@@ -1,0 +1,25 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r}
+library(raster)
+library(rgdal)
+neighborhoods <- shapefile(here("data", "Geofiles - Chicago Zip Code and Neighborhood", "Boundaries - Neighborhoods", "geo_export_79e4f76f-e344-4efb-bbec-421669f2faee.shp"))
+crs(neighborhoods)
+neighborhoods$area <- area(neighborhoods)
+```
+```{r}
+View(neighborhoods)
+```
+
+```{r}
+wards1 <- shapefile(here("data", "Geofiles - Chicago Zip Code and Neighborhood", "Boundaries - Wards (2003-2015)", "geo_export_fa687596-87b6-4059-afac-b28ce789a674.shp"))
+crs(wards1, "%mm/%dd/%yyyy")
+```
+
