@@ -198,19 +198,14 @@ wards2015.df <- merge(wards2015.points, wards2015@data, by="id")
 ```{r}
 
 
-wards2015_center.points <- gCentroid(wards2015, byid = TRUE)
-wards2015_center.df <- as.data.frame(wards2015_center.points)
-wards2015_center.df <- wards2015_center.df %>% rename(long = x, lat = y)
-wards2015_center.df <- wards2015_center.df %>% mutate(id=seq(1:50))
-left_join(wards2015_center.df, dplyr::select(.data=wards2015.df, id, ward), by.x=as.character("id"), by.y=as.character("id"))
+# wards2015_center.points <- gCentroid(wards2015, byid = TRUE)
+# wards2015_center.df <- as.data.frame(wards2015_center.points)
+# wards2015_center.df <- wards2015_center.df %>% rename(long = x, lat = y)
+# wards2015_center.df <- wards2015_center.df %>% mutate(id=seq(1:50))
+# left_join(wards2015_center.df, dplyr::select(.data=wards2015.df, id, ward), by.x=as.character("id"), by.y=as.character("id"))
 # fortify(SpatialPointsDataFrame(coords = wards2015_center.points@coords, bbox = wards2015_center.points@bbox, data=id.df), region="id"
 # wards2015_center.points = fortify(wards2015_spatial_centroid_pts, region="id")
 # ggplot(data=wards2015_center.df, aes(long, lat, group=group))
-```
-
-```{r}
-
-
 ```
 
 
@@ -226,7 +221,6 @@ bus_licenses %>% filter(activity_yr >= 2009, active == 1, `APPLICATION TYPE`%in%
   geom_point(aes(x=LONGITUDE, y=LATITUDE, color=as.factor(activity_yr)), alpha = 0.05, show.legend = FALSE, na.rm = TRUE) + 
   geom_path(data = wards2015.df, aes(long,lat,group=group), color="black") +
   geom_polygon(data = wards2015.df, aes(long,lat,group=group), fill=NA) +
-  geom_text(data = wards2015_spacial_centroids.df, aes(long,lat, group=group, label=ward, hjust = .50, vjust = .50)) + 
   coord_equal(ratio=1) + 
   labs(y="Latitude", x="Longitude", colour="Year", title="Money in the Middle", subtitle="Virtually No New Business Entry, Renwal in Ward 9, 10, 18, or 41 since 2009", caption = "Data Source: City of Chicago Department of Business Affairs and Consumer Protection, Business Licenses (2002 to Present)") +
   theme_minimal() + facet_grid(. ~ `APPLICATION TYPE`) +
