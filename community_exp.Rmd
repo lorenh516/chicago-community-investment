@@ -1,10 +1,9 @@
 ---
 title: "Chicago Community Investment Exploration"
 output:
-  pdf_document: default
+    html_document:
+    df_print: paged
 ---
-_**Submission for:**_ Loren Hinkson
-
 
 ```{r Housekeeping, echo=TRUE, message=FALSE, warning=FALSE, include=FALSE}
 # Housekeeping (clear workspace, start output file, load packages)
@@ -26,97 +25,105 @@ library(scales)
 library(lubridate)
 library(raster)
 library(rgdal)
+library(rgeos)
+library(maptools)
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache=TRUE)
 ```
 
 
-```{r}
-dr1iff <- sasxport.get(here("data", "DR1IFF_I.XPT"))
+```{r include=FALSE}
+# dr1iff <- sasxport.get(here("data", "DR1IFF_I.XPT"))
 ```
 
 
-```{r}
-ipums_food_sec <- read.delim(here("data", "cps_00001.dat"))
+```{r include=FALSE}
+# ipums_food_sec <- read.delim(here("data", "cps_00001.dat"))
 ```
 
-```{r}
-ddi <- read_ipums_ddi(here("data", "cps_00001.xml"))
-ipums_food_sec <- read_ipums_micro(ddi)
-View(ipums_food_sec)
+```{r include=FALSE}
+# ddi <- read_ipums_ddi(here("data", "cps_00001.xml"))
+# ipums_food_sec <- read_ipums_micro(ddi)
+# View(ipums_food_sec)
 ```
 
 
-```{r}
+```{r include=FALSE}
 # metadata <- data.frame(attr(ipums_food_sec, "names"), attr(ipums_food_sec, "variable.labels"))
 # names(metadata) <- c("var.name", "variable.label")
 ```
 
-```{r}
-library(SAScii)
-TANF09.instructions <- here("data", "tanf09", "input_TANF09a.sas")
+```{r include=FALSE}
+# library(SAScii)
+# TANF09.instructions <- here("data", "tanf09", "input_TANF09a.sas")
+# 
+# TANF09.infile.location <- here("data", "tanf09", "TANF09A.TXT")
+# 
+# #store file as an R data frame
+# tanf09 <- 
+# 	read.SAScii ( 
+# 		TANF09.infile.location, 
+# 		TANF09.instructions, 
+# 		zipped = F,
+# 		lrecl=1210)
+```
 
-TANF09.infile.location <- here("data", "tanf09", "TANF09A.TXT")
 
+
+```{r include=FALSE}
 #store file as an R data frame
-tanf09 <- 
-	read.SAScii ( 
-		TANF09.infile.location, 
-		TANF09.instructions, 
-		zipped = F,
-		lrecl=1210)
-```
-
-
-
-```{r}
-#store file as an R data frame
-tanf.fwf.parameters <-  parse.SAScii(here("data", "tanf09", "input_TANF09c.sas"), beginline = 1)
-tanf09c <- 
-	read.SAScii ( 
-		fn= here("data", "tanf09", "TANF09C.TXT"), 
-		sas_ri=here("data", "tanf09", "input_TANF09c.sas"), 
-		beginline=3,
-		zipped = F,
-		lrecl=721)
-
-```
-```{r}
- tanf09c <- SAScii::parse.SAScii( here("data", "tanf09", "input_TANF09c.sas"))
- tanf09c$varname <- tolower( tanf09c$varname )
-    
-    # tanf09a <- SAScii::parse.SAScii(here("data", "tanf09", "input_TANF09a.sas"))
-    # tanf09a$varname <- tolower( tanf09a$varname )
-    
-    cols_to_import <- tolower(c("FIPS", "COUNTY", "RPTMN", "ZIP", "REC_FS", "DOB1", "MARIT1", "EDUL1", "EMPLOY1"))
-    
-  # import fixed-width files
-  tanf09c_df <- 
-      data.frame( readr::read_fwf(
-          here("data", "tanf09", "TANF09C.TXT"),
-          readr::fwf_widths( 
-              abs( tanf09c$width ) , col_names = tanf09c[ , 'varname' ] 
-          ) ,
-          col_types = 
-              paste0( 
-                  ifelse( !( tanf09c$varname %in% cols_to_import ) , 
-                      "_" , 
-                      ifelse( tanf09c$char , "c" , "d" ) 
-                  ) , 
-                  collapse = "" 
-              )
-      ) )
+# tanf.fwf.parameters <-  parse.SAScii(here("data", "tanf09", "input_TANF09c.sas"), beginline = 1)
+# tanf09c <- 
+# 	read.SAScii ( 
+# 		fn= here("data", "tanf09", "TANF09C.TXT"), 
+# 		sas_ri=here("data", "tanf09", "input_TANF09c.sas"), 
+# 		beginline=3,
+# 		zipped = F,
+# 		lrecl=721)
 
 ```
 
-```{r}
+
+```{r include=FALSE}
+ # tanf09c <- SAScii::parse.SAScii( here("data", "tanf09", "input_TANF09c.sas"))
+ # tanf09c$varname <- tolower( tanf09c$varname )
+ #    
+ #    # tanf09a <- SAScii::parse.SAScii(here("data", "tanf09", "input_TANF09a.sas"))
+ #    # tanf09a$varname <- tolower( tanf09a$varname )
+ #    
+ #    cols_to_import <- tolower(c("FIPS", "COUNTY", "RPTMN", "ZIP", "REC_FS", "DOB1", "MARIT1", "EDUL1", "EMPLOY1"))
+ #    
+ #  # import fixed-width files
+ #  tanf09c_df <- 
+ #      data.frame( readr::read_fwf(
+ #          here("data", "tanf09", "TANF09C.TXT"),
+ #          readr::fwf_widths( 
+ #              abs( tanf09c$width ) , col_names = tanf09c[ , 'varname' ] 
+ #          ) ,
+ #          col_types = 
+ #              paste0( 
+ #                  ifelse( !( tanf09c$varname %in% cols_to_import ) , 
+ #                      "_" , 
+ #                      ifelse( tanf09c$char , "c" , "d" ) 
+ #                  ) , 
+ #                  collapse = "" 
+ #              )
+ #      ) )
+
+```
+
+```{r import-licenses, message=FALSE, warning=FALSE}
 bus_licenses <- read_csv(here::here("data", "Business_Licenses.csv"))
 ```
 
-```{r}
+```{r view-zip-problems}
 problems(bus_licenses)
 ```
 
 
-```{r}
+```{r check-zip-integrity}
 # investigate nonstandard zip codes
 # looks like int'l businesses
 bind_cols(bus_licenses[unlist(problems(bus_licenses)[, 'row']), c('LICENSE ID', 'LEGAL NAME', 'DOING BUSINESS AS NAME', 'ADDRESS', 'CITY', 'STATE', 'BUSINESS ACTIVITY')], problems(bus_licenses)[, 'actual']) %>% arrange(ADDRESS) %>% distinct(`DOING BUSINESS AS NAME`, `BUSINESS ACTIVITY`, ADDRESS, CITY, STATE, actual)
@@ -124,11 +131,11 @@ bind_cols(bus_licenses[unlist(problems(bus_licenses)[, 'row']), c('LICENSE ID', 
 
 
 
-```{r}
+```{r view-bus-lic}
 View(bus_licenses)
 ```
 
-```{r}
+```{r add-lic-cols}
 bus_licenses <- mutate(bus_licenses, active=ifelse(grepl("AAI",bus_licenses$`LICENSE STATUS`),1,0),
                        app_review = difftime(mdy(bus_licenses$`LICENSE APPROVED FOR ISSUANCE`,tz="America/Chicago"), mdy(bus_licenses$`APPLICATION REQUIREMENTS COMPLETE`,tz="America/Chicago"),unit="days"),
                        activity_date = mdy(ifelse(is.na(bus_licenses$`LICENSE STATUS CHANGE DATE`), bus_licenses$`DATE ISSUED`, bus_licenses$`LICENSE STATUS CHANGE DATE`),tz="America/Chicago"),
@@ -139,126 +146,131 @@ bus_licenses <- mutate(bus_licenses, active=ifelse(grepl("AAI",bus_licenses$`LIC
 
 
 
-```{r}
-bus_licenses %>% group_by(activity_date, WARD) %>% summarise(business_count = n()) %>% filter(activity_date < "2015-1-1", !is.na(WARD)) %>%
+```{r pre-2015-lic}
+bus_licenses %>% group_by(activity_date, WARD) %>% summarise(business_count = n()) %>% filter(activity_date < mdy("1/1/2015"), !is.na(WARD)) %>%
   ggplot() + geom_line(aes(x=activity_date, y=business_count, colour=as.factor(WARD))) +
   gghighlight(min(business_count), max_highlight = 3L) +
   labs(y="Business Count", x="Activity Date", colour="Ward", title="Chicago Ward Business Presence", caption="Data Source: Chicago Open Data Portal")
 ```
 
-```{r}
+```{r check-2012-spike}
 # look into spike around beginning of 2013
 bus_licenses %>% group_by(activity_date, WARD) %>% summarise(bus_count = n()) %>% summarise(max_activity = max(bus_count)) %>% arrange(desc(max_activity))
 ```
 
-```{r}
-bus_licenses %>% group_by(activity_date, WARD) %>% summarise(business_count = n()) %>% filter(activity_date < "2015-1-1", !is.na(WARD), !(activity_date== 2012-12-29)) %>%
+```{r pre-2015-licensing}
+bus_licenses %>% filter(
+  activity_date < mdy("1/1/2015"), !is.na(WARD), !(activity_date== mdy("12/29/2012")), active==1) %>%
+  group_by(activity_date, WARD) %>% summarise(business_count = n()) %>% 
   ggplot() + geom_line(aes(x=activity_date, y=business_count, colour=as.factor(WARD))) +
   gghighlight(min(business_count), max_highlight = 3L) +
   labs(y="Business Count", x="Activity Date", colour="Ward", title="Chicago Ward Business Presence (2002-2015)", caption="Data Source: Chicago Open Data Portal")
 ```
 
 
-```{r}
+```{r save-pre-2015-licensing}
 ggsave("pre_2015_licensing.pdf", width = 30, height = 15, units = "cm")
 ```
 
 
-```{r}
-wardsPre2015 <- shapefile(here("data", "Geofiles - Chicago Zip Code and Neighborhood", "Boundaries - Wards (2003-2015)", "geo_export_fa687596-87b6-4059-afac-b28ce789a674.shp"))
+```{r import-former-wards}
+wardsPre2015 <- shapefile(here::here("data", "Geofiles - Chicago Zip Code and Neighborhood", "Boundaries - Wards (2003-2015)", "geo_export_fa687596-87b6-4059-afac-b28ce789a674.shp"))
 crs(wardsPre2015)
 ```
 
 
-```{r}
+```{r import-2015-wards}
 wards.shp.2015 <- here::here("data","Geofiles - Chicago Zip Code and Neighborhood","Boundaries - Wards (2015-)","geo_export_0bb2e9fd-20ca-415b-a96a-7722d72c1b41.shp")
 wards2015 <- shapefile(wards.shp.2015)
-crs(wards2015)
+# crs(wards2015)
 
 ```
 
-```{r}
-View(wards2015)
-
-install.packages('rgeos', type='source')
-install.packages('rgdal', type='source')
-```
-
-```{r}
-library(rgeos)
-library(maptools)
-# license_with_polys <- merge(bus_licenses, wards2015,by.x = "WARD", by.y = "ward")
-wards2015.points = fortify(wards2015, region="ward")
-wards2015.df = merge(wards2015.points, wards2015@data, by="ward")
+```{r fortify-mapping, message=FALSE}
+wards2015@data <- mutate(wards2015@data, id = rownames(wards2015@data))
+wards2015.points = fortify(wards2015, region="id")
+wards2015.df = merge(wards2015.points, wards2015@data, by="id")
 
 ```
 
 
-```{r}
-bus_licenses %>% group_by(activity_yr, activity_month, WARD) %>% 
-  summarise(business_count = n()) %>% group_by(WARD) %>% 
-  filter(!is.na(WARD)) %>% merge(., wards2015,by.x = "WARD", by.y = "ward") %>% 
+```{r bus-locs}
+
+license_types <- c("ISSUE" = "New Business Licenses", 
+                   "RENEW" = "Business License Renewals")
+
+bus_licenses %>% filter(activity_yr >= 2015, active == 1, `APPLICATION TYPE`%in% c('ISSUE', 'RENEW')) %>% 
+  distinct(`LICENSE ID`, activity_yr, `APPLICATION TYPE`, LONGITUDE, LATITUDE) %>% 
+  ggplot(aes(x=LONGITUDE, y=LATITUDE, color=as.factor(activity_yr))) +
+  geom_hex(na.rm = TRUE, bins=200) + 
+  geom_path(data = wards2015.df, aes(long,lat,group=group), color="black") +
+  coord_equal( ) + 
+  labs(y="Latitude", x="Longitude", colour="Ward", title="Money in the Middle", subtitle="Virtually No New Business Entry, Renwal in Ward 9, 10, 18, or 41 since 2009", caption = "Data Source: City of Chicago Department of Business Affairs and Consumer Protection, Business Licenses (2002 to Present)") +
+  theme_minimal() + facet_grid(. ~ `APPLICATION TYPE`) +
+  theme(
+    panel.border = element_blank(),
+    axis.title.y = element_blank(),
+    axis.text.y = element_blank(),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank(),
+    axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.x = element_blank(),
+    plot.title = element_text(size = 15, face = "bold")
+  )
+  
+```
+
+
+```{r save-bus-locs}
+ggsave("business_locations_10yr.pdf", width = 20, height = 25, units = "cm")
 ```
 
 
 
-
-
-```{r}
-license_with_polys %>% group_by(activity_month, activity_yr, WARD) %>% 
-  summarise(business_count = n()) %>% group_by(WARD) %>% 
-  filter(!is.na(WARD)) %>% summarise(mean(business_count, na.rm=TRUE)) %>%
-  ggplot(aes(x=LONGITUDE, y=LATITUDE, group = group, fill = business_count)) +
-  geom_polygon()  +
-  geom_path(color = "white") +
-  scale_fill_hue(l = 40) +
-  coord_equal() +
-  theme(legend.position = "none", title = element_blank(),
-        axis.text = element_blank())
-```
-
-
-
-```{r}
-bus_licenses %>% group_by(activity_date, WARD) %>% summarise(business_count = n()) %>% filter(activity_date >= "2013-1-1", !is.na(WARD)) %>%
-  ggplot() + geom_line(aes(x=activity_date, y=business_count, colour=as.factor(WARD)), alpha=0.6) +
+```{r pre-2015-lic}
+bus_licenses %>% filter(activity_date >= "2013-1-1", !is.na(WARD), active==1) %>%
+  group_by(activity_date, WARD) %>% summarise(business_count = n()) %>% 
+  ggplot() + geom_line(aes(x=lubridate::week(activity_date), y=business_count, colour=as.factor(WARD)), alpha=0.6) +
   gghighlight(max(business_count), max_highlight = 3L) + 
-  labs(y="Business Count", x="Activity Date", colour="Ward", title="Five Years of Gentrifiation Over Rehabilitation", subtitle="New Business Entry beyond Loop Concentrated in Pilsen, East Garfield Park, Humbolt Park", caption="Data Source: Chicago Open Data Portal")+
-theme_minimal()
+  labs(y="Business Count", x="Activity Week", colour="Chicago Council Ward", title="Five Years of Gentrification Over Rehabilitation", subtitle="New Business Entry beyond Loop Concentrated in Pilsen, East Garfield Park, Humbolt Park", caption="Data Source: Chicago Open Data Portal") +
+scale_x_continuous(labels=c("", "Week 20", "Week 40", "")) +
+theme_minimal() + 
+theme(axis.title = element_text(size = 10, face = "bold"), 
+      plot.title = element_text(size = 15, face = "bold"))
+      
 
 ```
 
-```{r}
+```{r save-pre-2015-lic}
 ggsave("post2014_licensing.pdf", width = 25, height = 18, units = "cm")
 ```
 
 
 
-```{r}
-bus_licenses %>% group_by(activity_month, activity_yr, WARD) %>% 
+```{r avg-monthly-lic}
+bus_licenses %>% filter(!is.na(WARD), active==1) %>%
+  group_by(activity_month, activity_yr, WARD) %>% 
   summarise(business_count = n()) %>% group_by(WARD) %>% 
-  filter(!is.na(WARD)) %>% 
   ggplot(aes(x=as.factor(WARD),
                    y=business_count)) + 
-  geom_boxplot(aes(group=as.factor(WARD), colour=as.factor(WARD)), alpha=0.5) + 
+  geom_boxplot(aes(group=as.factor(WARD), fill=as.factor(WARD)), alpha=0.5) + 
+  scale_y_continuous(limits = c(0, 1750)) +
   scale_x_discrete(breaks=seq(0,50,5)) +
-  gghighlight(median(business_count)<25|median(business_count)>125) + 
-  labs(x="Chicago Council Ward", y="Average Monthly Business Count", caption="Data Source: Chicago Open Data Portal", title="South and West Wards Average Lowest Rate of Business Licensing for 15+ Years", subtitle="Calumet Heights and Westlawn Average less than 25 Business License Issuances per month ",colour="Ward") +
+  gghighlight(median(business_count)<23|median(business_count)>125) + 
+  labs(x="Chicago Council Ward", y="Average Monthly Business Count", caption="Data Source: Chicago Open Data Portal", title="South and West Wards Average Lowest Rate of Business Licensing for 15+ Years", subtitle="Calumet Heights and Westlawn Average less than 25 Business License Issuances per month ",fill="Ward") +
   theme_minimal()
 ```
 
-```{r}
+```{r save-new-bus}
 ggsave("avg_ward_business.pdf", width = 25, height = 18, units = "cm")
 ```
 
 
-
-```{r}
-full_period <- bus_licenses %>% mutate("DATE ISSUED" = dmy_hm("DATE ISSUED")) %>% complete("DATE ISSUED" = seq(from = min(bus_licenses$`DATE ISSUED`), to = max(bus_licenses$`DATE ISSUED`), by = "1 day"), "LICENSE ID", fill = list(active = 0))
+```{r start-school-import}
+school_cols_to_import <- c("Avg Class Size - High School", "Avg Class Size – All Grades", "Avg Teaching Exp", "Avg Teaching Exp - High Poverty", "Avg Teaching Exp - Low Poverty", "Bachelor Degree	Bachelor Degree - High Poverty", "Bachelor Degree - Low Poverty","Masters Degree	Masters Degree - High Poverty", "Masters Degree - Low Poverty", "Pupil Teacher Ratio - Elementary", "Pupil Teacher Ratio - High School", "Pupil Certified Staff Ratio", "Pupil Admin Ratio", "Teacher Avg Salary", "Admin Avg Salary", "Teacher Retention Rate")
 ```
 
 
-```{r}
-ggplot2(data=bus_licenses %>% filter('WARD' != NA), x='WARD', y=) + geom_smooth(color="WARD")
-```
 
