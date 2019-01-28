@@ -8,28 +8,33 @@ output:
 ```{r Housekeeping, echo=TRUE, message=FALSE, warning=FALSE, include=FALSE}
 # Housekeeping (clear workspace, start output file, load packages)
 rm(list=ls())
+# data cleaning, augmenting, manipulation
 library(tidyverse)
 library(dplyr)
 library(haven)
 library(stargazer)
 library(xtable)
-library(ggplot2)
 library(readxl)
 library(astsa)
 library(here)
 library(Hmisc)
 library(ipumsr)
+library(censusapi)
+library(lubridate)
+
+# plotting tools
+library(ggplot2)
+library(grid)
 library(ggrepel)
 library(gghighlight)
+library(ggalt)
 library(scales)
-library(lubridate)
+
+# mapping tools
 library(raster)
 library(rgdal)
 library(rgeos)
 library(maptools)
-library(grid)
-library(censusapi)
-library(ggalt)
 ```
 
 ```{r setup, include=FALSE}
@@ -222,40 +227,39 @@ wards2015.df <- merge(wards2015.points, wards2015@data, by="id")
 
 license_types <- c("ISSUE" = "New Business Licenses", 
                    "RENEW" = "Business License Renewals")
-
-bus_licenses %>% filter(activity_yr >= 2009, active == 1, `APPLICATION TYPE`%in% c('ISSUE', 'RENEW')) %>% 
-  distinct(`LICENSE ID`, activity_yr, `APPLICATION TYPE`, LONGITUDE, LATITUDE) %>% 
-  ggplot() +
-  geom_point(aes(x=LONGITUDE, y=LATITUDE, color=as.factor(activity_yr)), alpha = 0.05, show.legend = FALSE, na.rm = TRUE) + 
-  geom_path(data = wards2015.df, aes(long,lat,group=group), color="black") +
-  geom_polygon(data = wards2015.df, aes(long,lat,group=group), fill=NA) +
-  coord_equal(ratio=1) + 
-  labs(y="Latitude", x="Longitude", colour="Year", title="Money in the Middle", subtitle="Virtually No New Business Entry, Renwal in Ward 9, 10, 18, or 41 since 2009", caption = "Data Source: City of Chicago Department of Business Affairs and Consumer Protection, Business Licenses (2002 to Present)") +
-  theme_minimal() + 
-  # facet_grid(. ~ `APPLICATION TYPE`) +
-  theme(
-    panel.border = element_blank(),
-    axis.text.y = element_blank(),
-    panel.grid.major.y = element_blank(),
-    panel.grid.minor.y = element_blank(),
-    axis.text.x = element_blank(),
-    panel.grid.major.x = element_blank(),
-    panel.grid.minor.x = element_blank(),
-    plot.title = element_text(size = 15, face = "bold")
-  )
-  
+# 
+# bus_licenses %>% filter(activity_yr >= 2009, active == 1, `APPLICATION TYPE`%in% c('ISSUE', 'RENEW')) %>% 
+#   distinct(`LICENSE ID`, activity_yr, `APPLICATION TYPE`, LONGITUDE, LATITUDE) %>% 
+#   ggplot() +
+#   geom_point(aes(x=LONGITUDE, y=LATITUDE, color=as.factor(activity_yr)), alpha = 0.05, show.legend = FALSE, na.rm = TRUE) + 
+#   geom_path(data = wards2015.df, aes(long,lat,group=group), color="black") +
+#   geom_polygon(data = wards2015.df, aes(long,lat,group=group), fill=NA) +
+#   coord_equal(ratio=1) + 
+#   labs(y="Latitude", x="Longitude", colour="Year", title="Money in the Middle", subtitle="Virtually No New Business Entry, Renwal in Ward 9, 10, 18, or 41 since 2009", caption = "Data Source: City of Chicago Department of Business Affairs and Consumer Protection, Business Licenses (2002 to Present)") +
+#   theme_minimal() + 
+#   # facet_grid(. ~ `APPLICATION TYPE`) +
+#   theme(
+#     panel.border = element_blank(),
+#     axis.text.y = element_blank(),
+#     panel.grid.major.y = element_blank(),
+#     panel.grid.minor.y = element_blank(),
+#     axis.text.x = element_blank(),
+#     panel.grid.major.x = element_blank(),
+#     panel.grid.minor.x = element_blank(),
+#     plot.title = element_text(size = 15, face = "bold")
+#   )
+#   
 ```
 
 
 ```{r save-bus-locs, warning=FALSE, include = FALSE}
-ggsave("business_locations_10yr.pdf", width = 30, height = 25, units = "cm")
+# ggsave("business_locations_10yr.pdf", width = 30, height = 25, units = "cm")
 ```
 
 
 ```{r}
 bus_licenses <- bus_licenses %>% mutate(activity_wk = lubridate::as_date(cut(activity_date, breaks = "week", start.on.monday = FALSE, origin = lubridate::origin)))
 ```
-
 
 
 
@@ -273,8 +277,8 @@ subtitle_4 <- grid::textGrob(expression("New Business beyond " * phantom(bold("L
                  x = 0.5, y = 2.1, gp = grid::gpar(col = "#649efc"))
 
 bus_licenses %>% filter(activity_date >= "2013-1-1", !is.na(WARD), active==1) %>%
-  group_by(activity_wk, WARD) %>% summarise(business_count = n()) %>% 
-  ggplot() + geom_line(aes(x=activity_wk, y=business_count, colour=as.factor(WARD)), alpha=0.6) +
+  group_by(activity_date, WARD) %>% summarise(business_count = n()) %>% 
+  ggplot() + geom_line(aes(x=activity_date, y=business_count, colour=as.factor(WARD)), alpha=0.6) +
   gghighlight(max(business_count), max_highlight = 3L) + 
   labs(y="Business Count", x="Activity Week", colour="Chicago Council Ward", title="Over Five Years of Gentrification Over Rehabilitation", caption="Data Source: Chicago Open Data Portal") +
 scale_x_continuous(labels=c("", "Week 20", "Week 40", "")) +
