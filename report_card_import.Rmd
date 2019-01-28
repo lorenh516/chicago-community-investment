@@ -1,0 +1,123 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r include = FALSE}
+# pipe shortcut: *Cmd+Shift+M* 
+```
+
+
+```{r}
+library(tidyverse)
+library(here)
+library(haven)
+library(readxl)
+```
+
+
+
+```{r}
+rc17Layout <- read_excel(here::here("data","RC17_layout.xlsx"), sheet="RC17", col_names=FALSE)
+```
+
+
+```{r}
+rc17Layout %>% filter(is.na(as.numeric(X__1)))
+```
+
+
+```{r warning=FALSE}
+rc17Layout <- rc17Layout %>% filter(!is.na(as.numeric(X__1)))
+```
+
+```{r}
+rc17Layout %>% filter(!is.na(X__2))
+```
+
+```{r}
+rc17Layout <- rc17Layout %>% select(-one_of(c("X__2")))
+```
+
+```{r}
+rc_cols_to_import <- c("RCDTS", "Type",	"School Name", "District",	"City",	"County",	"District Type",	"School Type",	"Grades Served",	"Summative Designation", "Student Enrollment - Total", "Student Enrollment - White %", "Student Enrollment - Black or African American %", "Student Enrollment - Hispanic or Latino %",	"Student Enrollment - Asian %", "Student Enrollment - Low Income %", "Total Number of School Days", "Student Attendance Rate", "Student Chronic Truancy Rate",	"High School Dropout Rate - Total", "High School Dropout Rate - Low Income", "High School 5-Year Graduation Rate - Total", "Avg Class Size - High School", "Avg Class Size – All Grades", "Avg Teaching Exp", "Pupil Teacher Ratio - Elementary", "Pupil Teacher Ratio - High School", "Pupil Certified Staff Ratio", "Pupil Admin Ratio", "Teacher Avg Salary", "Admin Avg Salary", "Teacher Retention Rate", "Principal Turnover within 6 Years",	"Teacher Attendace Rate", "Teacher Evaluation Rate", "Number of Students who took AP classes Grade 9 Total", "Number Low Income of Students who took AP classes Grade 9 Total", "Number of Students who took AP classes Grade 10 Total", "Number Low Income of Students who took AP classes Grade 10 Total", "Number of Students who took AP classes Grade 11 Total", "Number Low Income of Students who took AP classes Grade 11 Total", "Number of Students who took AP classes Grade 12 Total", "Number Low Income of Students who took AP classes Grade 12 Total", "Number of students who took one ore more AP Exams Grade 10", "Number of students who took one ore more AP Exams Grade 11",	"Number of students who took one ore more AP Exams Grade 12")
+rc_cols_to_import <- sapply(rc_cols_to_import, toupper)
+```
+
+```{r}
+rc17Layout <- mutate(rc17Layout, descriptions = ifelse(is.na(X__3),X__6, paste(X__6, " - ", X__3)))
+
+```
+
+
+
+```{r}
+importReportCards <- function(file, year, layout) {
+   repCard = read.delim(here::here("data", file), header = FALSE, sep=";")
+   print(paste("layout length: ", nrow(layout)))
+   print(paste("report card columns: ", ncol(repCard)))
+   cols <- colnames(repCard)
+   if ("DistNAME" %in% cols) {
+      repCard %>% filter(DistNAME == "City of Chicago SD 299")
+   } else if ("District" %in% cols) {
+       repCard <- repCard %>% filter(District == "City of Chicago SD 299")
+   } else if ("DISTRICT NAME" %in% cols) {
+       repCard <- repCard %>% filter(`DISTRICT NAME` == "City of Chicago SD 299")
+   }
+   if (colnames(repCard) == nrow(layout)) {
+      names(repCard) <- layout %>% select(X__6)
+   } else if (ncol(repCard) > nrow(layout)) {
+      seq()
+      name_vec <- layout$descriptions
+      names(repCard) <- append(name_vec, sprintf("V%1d", 1:(ncol(repCard) > nrow(layout))))
+   }
+   
+   id_info <- c("SCHOOL ID (R-C-D-T-S)", "SCHOOL TYPE CODE (0,1,2,C)", "SCHOOL NAME", "DISTRICT NAME", "CITY", "COUNTY")
+   repCard <- repCard %>% select(id_info, contains("SCHOOL"))
+   repCard <- mutate(repCard, Year = year)
+   return(repCard)
+}
+
+
+```
+
+
+
+```{r}
+
+ncol(test17) - nrow(rc17Layout)
+
+```
+
+
+```{r}
+test17 <- importReportCards("rc17.txt", "2017", rc17Layout)
+name_vec <- rc17Layout$descriptions
+names(test17) <- append(name_vec, c("V1471", "V1472"))
+```
+
+```{r}
+id_info <- c("SCHOOL ID (R-C-D-T-S)", "SCHOOL TYPE CODE (0,1,2,C)", "SCHOOL NAME", "DISTRICT NAME", "CITY", "COUNTY")
+test17 <- test17 %>% select(id_info, contains("SCHOOL"))
+```
+
+
+```{r}
+processLayout <- function(file, sheet, colnames) {
+  layout <- read_excel(here::here("data", file), sheet=sheet, col_names=colnames)
+  layout <- layout %>% filter(!is.na(as.numeric(X__1)))
+  layout <- layout %>% select(-one_of(c("X__2")))
+  layout <- mutate(layout, descriptions = ifelse(is.na(X__3),X__6, paste(X__6, " - ", X__3)))
+  return(layout)
+}
+```
+
+```{r}
+rc16Layout <- processLayout(file="RC16-layout.xlsx", sheet="RC16", colnames=FALSE)
+```
+
+```{r}
+rc16 <- importReportCards("rc16.txt", "2016", rc16Layout)
+```
+

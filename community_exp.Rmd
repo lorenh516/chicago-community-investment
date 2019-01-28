@@ -7,7 +7,7 @@ output:
 
 ```{r Housekeeping, echo=TRUE, message=FALSE, warning=FALSE, include=FALSE}
 # Housekeeping (clear workspace, start output file, load packages)
-rm(list=ls())     
+rm(list=ls())
 library(tidyverse)
 library(dplyr)
 library(haven)
@@ -27,6 +27,9 @@ library(raster)
 library(rgdal)
 library(rgeos)
 library(maptools)
+library(grid)
+library(censusapi)
+library(ggalt)
 ```
 
 ```{r setup, include=FALSE}
@@ -145,6 +148,12 @@ bus_licenses <- mutate(bus_licenses, active=ifelse(grepl("AAI",bus_licenses$`LIC
 ```
 
 
+```{r}
+west_wards <- c(1, 2, 12, 22, 24, 25, 26, 27, 28, 29, 30, 32, 37)
+```
+
+
+
 
 ```{r pre-2015-lic}
 bus_licenses %>% group_by(activity_date, WARD) %>% summarise(business_count = n()) %>% filter(activity_date < mdy("1/1/2015"), !is.na(WARD)) %>%
@@ -195,8 +204,7 @@ wards2015.df <- merge(wards2015.points, wards2015@data, by="id")
 
 
 
-```{r}
-
+```{r include = False}
 
 # wards2015_center.points <- gCentroid(wards2015, byid = TRUE)
 # wards2015_center.df <- as.data.frame(wards2015_center.points)
@@ -210,7 +218,7 @@ wards2015.df <- merge(wards2015.points, wards2015@data, by="id")
 
 
 
-```{r bus-locs}
+```{r bus-locs, include =FALSE}
 
 license_types <- c("ISSUE" = "New Business Licenses", 
                    "RENEW" = "Business License Renewals")
@@ -223,7 +231,8 @@ bus_licenses %>% filter(activity_yr >= 2009, active == 1, `APPLICATION TYPE`%in%
   geom_polygon(data = wards2015.df, aes(long,lat,group=group), fill=NA) +
   coord_equal(ratio=1) + 
   labs(y="Latitude", x="Longitude", colour="Year", title="Money in the Middle", subtitle="Virtually No New Business Entry, Renwal in Ward 9, 10, 18, or 41 since 2009", caption = "Data Source: City of Chicago Department of Business Affairs and Consumer Protection, Business Licenses (2002 to Present)") +
-  theme_minimal() + facet_grid(. ~ `APPLICATION TYPE`) +
+  theme_minimal() + 
+  # facet_grid(. ~ `APPLICATION TYPE`) +
   theme(
     panel.border = element_blank(),
     axis.text.y = element_blank(),
@@ -238,54 +247,253 @@ bus_licenses %>% filter(activity_yr >= 2009, active == 1, `APPLICATION TYPE`%in%
 ```
 
 
-```{r save-bus-locs}
+```{r save-bus-locs, warning=FALSE, include = FALSE}
 ggsave("business_locations_10yr.pdf", width = 30, height = 25, units = "cm")
 ```
 
 
+```{r}
+bus_licenses <- bus_licenses %>% mutate(activity_wk = lubridate::as_date(cut(activity_date, breaks = "week", start.on.monday = FALSE, origin = lubridate::origin)))
+```
 
-```{r pre-2015-lic}
+
+
+
+```{r post-2012-lic, warning=FALSE}
+subtitle_1 <- grid::textGrob(expression("New Business beyond " * phantom(bold("Loop")) * "Concentrated in" * phantom(bold("Pilsen")) * " ," * phantom(bold("East Garfield Park")) * " ," *  phantom(bold("Humbolt Park")) ),
+                 x = 0.5, y = 2.1, gp = grid::gpar(col = "black"))
+
+subtitle_2 <- grid::textGrob(expression("New Business beyond " * phantom(bold("Loop")) * "Concentrated in" * phantom(bold("Pilsen")) * " ," * phantom(bold("East Garfield Park")) * " ," *  phantom(bold("Humbolt Park")) ),
+                 x = 0.5, y = 2.1, gp = grid::gpar(col = "#f67770"))
+
+subtitle_3 <- grid::textGrob(expression("New Business beyond " * phantom(bold("Loop")) * "Concentrated in" * phantom(bold("Pilsen")) * " ," * phantom(bold("East Garfield Park")) * " ," *  phantom(bold("Humbolt Park")) ),
+                 x = 0.5, y = 2.1, gp = grid::gpar(col = "#1bb840"))
+      
+subtitle_4 <- grid::textGrob(expression("New Business beyond " * phantom(bold("Loop")) * "Concentrated in" * phantom(bold("Pilsen")) * " ," * phantom(bold("East Garfield Park")) * " ," *  phantom(bold("Humbolt Park")) ),
+                 x = 0.5, y = 2.1, gp = grid::gpar(col = "#649efc"))
+
 bus_licenses %>% filter(activity_date >= "2013-1-1", !is.na(WARD), active==1) %>%
-  group_by(activity_date, WARD) %>% summarise(business_count = n()) %>% 
-  ggplot() + geom_line(aes(x=lubridate::week(activity_date), y=business_count, colour=as.factor(WARD)), alpha=0.6) +
+  group_by(activity_wk, WARD) %>% summarise(business_count = n()) %>% 
+  ggplot() + geom_line(aes(x=activity_wk, y=business_count, colour=as.factor(WARD)), alpha=0.6) +
   gghighlight(max(business_count), max_highlight = 3L) + 
-  labs(y="Business Count", x="Activity Week", colour="Chicago Council Ward", title="Five Years of Gentrification Over Rehabilitation", subtitle="New Business Entry beyond Loop Concentrated in Pilsen, East Garfield Park, Humbolt Park", caption="Data Source: Chicago Open Data Portal") +
+  labs(y="Business Count", x="Activity Week", colour="Chicago Council Ward", title="Over Five Years of Gentrification Over Rehabilitation", caption="Data Source: Chicago Open Data Portal") +
 scale_x_continuous(labels=c("", "Week 20", "Week 40", "")) +
 theme_minimal() + 
 theme(axis.title = element_text(size = 10, face = "bold"), 
-      plot.title = element_text(size = 15, face = "bold"))
-      
+      plot.title = element_text(size = 15, face = "bold")) + 
+annotation_custom(grobTree(subtitle_1, subtitle_2, subtitle_3, subtitle_4))
 
 ```
 
-```{r save-pre-2015-lic}
-ggsave("post2014_licensing.pdf", width = 25, height = 18, units = "cm")
+
+
+```{r save-post-2012-lic}
+ggsave("post2012_licensing.pdf", width = 25, height = 18, units = "cm")
 ```
 
 
 
-```{r avg-monthly-lic}
+```{r avg-monthly-lic, warning=FALSE}
 bus_licenses %>% filter(!is.na(WARD), active==1) %>%
   group_by(activity_month, activity_yr, WARD) %>% 
   summarise(business_count = n()) %>% group_by(WARD) %>% 
-  ggplot(aes(x=as.factor(WARD),
-                   y=business_count)) + 
+  ggplot(aes(x=as.factor(WARD), y=business_count)) + 
   geom_boxplot(aes(group=as.factor(WARD), fill=as.factor(WARD)), alpha=0.5) + 
   scale_y_continuous(limits = c(0, 1750)) +
   scale_x_discrete(breaks=seq(0,50,5)) +
   gghighlight(median(business_count)<23|median(business_count)>125) + 
+  # geom_label_repel(aes(group=as.factor(WARD), label=as.factor(WARD))) +
   labs(x="Chicago Council Ward", y="Average Monthly Business Count", caption="Data Source: Chicago Open Data Portal", title="South and West Wards Average Lowest Rate of Business Licensing for 15+ Years", subtitle="Calumet Heights and Westlawn Average less than 25 Business License Issuances per month ",fill="Ward") +
   theme_minimal()
 ```
 
-```{r save-new-bus}
+```{r save-new-bus, warning=FALSE}
 ggsave("avg_ward_business.pdf", width = 25, height = 18, units = "cm")
 ```
 
 
-```{r start-school-import}
-school_cols_to_import <- c("Avg Class Size - High School", "Avg Class Size – All Grades", "Avg Teaching Exp", "Avg Teaching Exp - High Poverty", "Avg Teaching Exp - Low Poverty", "Bachelor Degree	Bachelor Degree - High Poverty", "Bachelor Degree - Low Poverty","Masters Degree	Masters Degree - High Poverty", "Masters Degree - Low Poverty", "Pupil Teacher Ratio - Elementary", "Pupil Teacher Ratio - High School", "Pupil Certified Staff Ratio", "Pupil Admin Ratio", "Teacher Avg Salary", "Admin Avg Salary", "Teacher Retention Rate")
+```{r include = False}
+school_cols_to_import <- c("RCDTS", "Type",	"School Name", "District",	"City",	"County",	"District Type",	"School Type",	"Grades Served",	"Summative Designation", "Student Enrollment - Total", "Student Enrollment - White %", "Student Enrollment - Black or African American %", "Student Enrollment - Hispanic or Latino %",	"Student Enrollment - Asian %", "Student Enrollment - Low Income %", "Total Number of School Days", "Student Attendance Rate", "Student Chronic Truancy Rate",	"High School Dropout Rate - Total", "High School Dropout Rate - Low Income", "High School 5-Year Graduation Rate - Total", "Avg Class Size - High School", "Avg Class Size – All Grades", "Avg Teaching Exp", "Pupil Teacher Ratio - Elementary", "Pupil Teacher Ratio - High School", "Pupil Certified Staff Ratio", "Pupil Admin Ratio", "Teacher Avg Salary", "Admin Avg Salary", "Teacher Retention Rate", "Principal Turnover within 6 Years",	"Teacher Attendace Rate", "Teacher Evaluation Rate", "Number of Students who took AP classes Grade 9 Total", "Number Low Income of Students who took AP classes Grade 9 Total", "Number of Students who took AP classes Grade 10 Total", "Number Low Income of Students who took AP classes Grade 10 Total", "Number of Students who took AP classes Grade 11 Total", "Number Low Income of Students who took AP classes Grade 11 Total", "Number of Students who took AP classes Grade 12 Total", "Number Low Income of Students who took AP classes Grade 12 Total", "Number of students who took one ore more AP Exams Grade 10", "Number of students who took one ore more AP Exams Grade 11",	"Number of students who took one ore more AP Exams Grade 12")
 ```
 
 
+```{r include = False}
+# getCensus(name, vintage = NULL, key = Sys.getenv("CENSUS_KEY"), vars,
+#   region = NULL, regionin = NULL, time = NULL, date = NULL,
+#   period = NULL, monthly = NULL, category_code = NULL,
+#   data_type_code = NULL, naics = NULL, pscode = NULL,
+#   naics2012 = NULL, naics2007 = NULL, naics2002 = NULL,
+#   naics1997 = NULL, sic = NULL)
+# https://hrecht.github.io/censusapi/reference/getCensus.html#arguments
+```
+
+
+```{r include=FALSE}
+# View(listCensusApis())
+
+View(listCensusMetadata(name = "acs/acs5", vintage = 2016, type = "geography"))
+
+
+# sahie_vars <- listCensusMetadata(name = "timeseries/healthins/sahie", 
+#     type = "variables")
+```
+
+```{r include=FALSE}
+
+
+# acs_income <- getCensus(name = "acs/acs1",
+#     vintage = 2017, 
+#     vars = c("NAME", "SAEMHI_PT", "SAEMHI_MOE", "B19013_001MA"), 
+#     region = "county:031",
+#     regionin = "state:17",
+#     time = "from 2009 to 2019")
+# head(acs_income)
+```
+
+
+```{r}
+ggmap::register_google(key = Sys.getenv("GOOGLEMAPS_KEY"))
+```
+
+
+```{r}
+bl <- bus_licenses %>% filter(activity_yr >= 2009, active == 1, `APPLICATION TYPE`%in% c('ISSUE', 'RENEW')) %>% 
+  distinct(`LICENSE ID`, activity_yr, `APPLICATION TYPE`, LONGITUDE, LATITUDE) 
+
+bounds <- rbind(wards2015.df %>% dplyr::select(long, lat) %>% summarise(long = max(long, na.rm = TRUE),
+                                                 lat = max(lat, na.rm = TRUE)),
+      wards2015.df %>% dplyr::select(long, lat) %>% summarise(long = min(long, na.rm = TRUE),
+                                                 lat = min(lat, na.rm = TRUE))
+)
+
+ggmap(get_googlemap(center = c(lon = -87.732125, lat = 41.83379),
+                    zoom = 11, scale = 1,
+                    maptype ='terrain',
+                    color = 'color',
+                    visible=bounds)) + 
+  geom_point(data=bl, aes(x=LONGITUDE, y=LATITUDE, color=as.factor(activity_yr)), alpha = 0.05, show.legend = FALSE, na.rm = TRUE) + 
+  geom_path(data = wards2015.df, aes(long,lat,group=group), color="black") +
+  geom_polygon(data = wards2015.df, aes(long,lat,group=group), fill=NA) +
+  labs(y="Latitude", x="Longitude", colour="Year", title="Money in the Middle", subtitle="Virtually No New Business Entry, Renwal in Ward 9, 10, 18, or 41 since 2009", caption = "Data Source: City of Chicago Department of Business Affairs and Consumer Protection, Business Licenses (2002 to Present)") +
+  theme_minimal() + 
+  facet_grid(. ~ `APPLICATION TYPE`) +
+  theme(
+    panel.border = element_blank(),
+    axis.text.y = element_blank(),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank(),
+    axis.text.x = element_blank(),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.x = element_blank(),
+    plot.title = element_text(size = 15, face = "bold")
+  )
+```
+
+
+
+```{r}
+ggsave("location_over_googlemap.pdf", width = 36, height = 23, units = "cm")
+```
+
+
+```{r include = False}
+# reportCard13 <- read_sav(here::here("data", "rc13-spss-data.sav"))
+```
+
+```{r include = False}
+# reportCard13 <- reportCard13 %>% filter(DistNAME == "City of Chicago SD 299")
+# reportCard13 <- reportCard13 %>% mutate(YEAR = "2013")
+# report_card_vars <- data.frame(var.name=names(reportCard13), attr(reportCard13,"var.labels"))
+```
+
+
+
+
+```{r message=FALSE, warning=FALSE}
+voter_turnout15 <- read_csv(here::here("data", "voter_turnout_city_council_2015.csv"), col_names = FALSE, skip=8)
+voter_turnout15 <- voter_turnout15 %>% mutate(WARD = ifelse(
+  grepl("WARD", voter_turnout15$X1), as.numeric(gsub("WARD ", "", X1)), NA
+  ),
+  X4 = as.numeric(gsub("%", "", X4)))
+voter_turnout15 <- voter_turnout15 %>% fill(WARD)
+```
+
+```{r}
+# double-check columns that look empty
+voter_turnout15 %>% dplyr::select(X5, X6) %>% distinct()
+```
+```{r}
+voter_turnout15 <- voter_turnout15 %>% dplyr::select(-c(X5, X6))
+names(voter_turnout15) <- sapply(c("Precinct","Registered.2015","Ballots.2015","Turnout.2015", "WARD"), toupper)
+voter_turnout15 <- voter_turnout15 %>% filter(PRECINCT !="Precinct", !grepl("WARD", PRECINCT), !is.na(PRECINCT))
+```
+
+```{r}
+voter_turnout15 %>% filter(PRECINCT=="Total") %>% 
+  ggplot(aes(y=as.factor(WARD), x = TURNOUT.2015)) + geom_text(aes(label=WARD), size=3) + labs(x="Turnout %", y="City Council Ward") + theme_minimal() + theme()
+```
+
+```{r message=FALSE, warning=FALSE}
+voter_turnout11 <- read_csv(here::here("data", "voter_turnout_city_council_2011.csv"), col_names = FALSE, skip=8)
+voter_turnout11 <- voter_turnout11 %>% mutate(WARD = ifelse(
+  grepl("WARD", voter_turnout11$X1), as.numeric(gsub("WARD ", "", X1)), NA
+  ),
+  X4 = as.numeric(gsub("%", "", X4)))
+voter_turnout11 <- voter_turnout11 %>% fill(WARD)
+```
+
+
+```{r}
+# double-check columns that look empty
+voter_turnout11 %>% dplyr::select(X5, X6) %>% distinct()
+```
+
+```{r}
+voter_turnout11 <- voter_turnout11 %>% dplyr::select(-c(X5, X6))
+names(voter_turnout11) <- sapply(c("Precinct","Registered.2011","Ballots.2011","Turnout.2011", "WARD"), toupper)
+voter_turnout11 <- voter_turnout11 %>% filter(PRECINCT !="Precinct", !grepl("WARD", PRECINCT), !is.na(PRECINCT))
+```
+
+
+```{r}
+voter_turnout15 %>% filter(PRECINCT == "Total") %>% summarise(m = mean(TURNOUT.2015, na.rm=TRUE))
+```
+
+
+```{r}
+
+ merge(x=voter_turnout11, y=voter_turnout15) %>% filter(PRECINCT=="Total") %>% 
+  ggplot(aes(x=TURNOUT.2011, xend=TURNOUT.2015, y=WARD, group=WARD)) + 
+        geom_dumbbell(color="#e3e2e1", 
+                      size=1.5, 
+                      colour_x = "#a8ddb5",
+                      colour_xend="#43a2ca") + 
+        geom_vline(aes(
+          xintercept = unlist(voter_turnout15 %>%  filter(PRECINCT == "Total") %>% dplyr::summarise(m = mean(TURNOUT.2015, na.rm=TRUE)))),
+          color = "#43a2ca", size=1, alpha=0.75, linetype="dashed") +
+         geom_vline(aes(
+           xintercept = unlist(voter_turnout11 %>% filter(PRECINCT == "Total") %>%  dplyr::summarise(m = mean(TURNOUT.2011, na.rm=TRUE)))),
+        color = "#a8ddb5", linetype="dashed", size=1) +
+      geom_text_repel(aes(label=WARD), size=3, color = "#43a2ca") +
+      labs(x="Municipal Election Turnout (%)", 
+           y="City Council Ward", 
+           title="City-Wide Drop in Voter Turnout Could be Affecting Alderman Motivation \nto Fight Deinvestment", 
+           subtitle="Historical Voter Turnout in Chicago City Council Wards", 
+           caption="Source: Chicago Board of Election Commissioners") +
+      scale_y_continuous(expand = c(0, 1), limits = c(0, 51)) +
+      theme(plot.title = element_text(size = 15, face = "bold"),
+            panel.grid.minor=element_blank(),
+            panel.grid.major.y=element_blank(),
+            panel.grid.major.x=element_line(),
+            axis.text.y = element_blank(),
+            axis.ticks=element_blank(),
+            legend.position="top",
+            panel.border=element_blank()) + 
+      annotate("text", x=5 + (unlist(voter_turnout11 %>% filter(PRECINCT == "Total") %>% dplyr::summarise(m = mean(TURNOUT.2011, na.rm=TRUE)))),
+            y=30.5, color = "#a8ddb5", label="2011 Average",size=3) +
+      annotate("text", x=-5 + (unlist(voter_turnout15 %>% filter(PRECINCT == "Total") %>% dplyr::summarise(m = mean(TURNOUT.2011, na.rm=TRUE)))),
+            y=47, color = "#43a2ca", label="2011 Average", size = 3) +
+      theme_minimal()
+
+```
 
