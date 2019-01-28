@@ -1,3 +1,4 @@
 # ignore data files
 data/
 .Rproj.user
+.env
