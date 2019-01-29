@@ -369,43 +369,50 @@ register_google(key = Sys.getenv("GOOGLEMAPS_KEY"))
 
 
 ```{r}
-bl <- bus_licenses %>% filter(activity_yr >= 2009, active == 1, `APPLICATION TYPE`%in% c('ISSUE', 'RENEW')) %>% 
-  distinct(`LICENSE ID`, activity_yr, `APPLICATION TYPE`, LONGITUDE, LATITUDE) 
 
-bounds <- rbind(wards2015.df %>% dplyr::select(long, lat) %>% summarise(long = max(long, na.rm = TRUE),
-                                                 lat = max(lat, na.rm = TRUE)),
-      wards2015.df %>% dplyr::select(long, lat) %>% summarise(long = min(long, na.rm = TRUE),
-                                                 lat = min(lat, na.rm = TRUE))
-)
+# for (current_year in seq(2009:2019)) {
+  bl <- bus_licenses %>% filter(activity_yr >= 2009, active == 1, `APPLICATION TYPE`%in% c('ISSUE', 'RENEW')) %>% 
+    distinct(`LICENSE ID`, activity_yr, `APPLICATION TYPE`, LONGITUDE, LATITUDE) 
+  
+  # bounds <- rbind( wards2015.df %>% dplyr::select(long, lat) %>% summarise(long = max(long, na.rm = TRUE),
+  #                                                  lat = max(lat, na.rm = TRUE))  ,
+  #       wards2015.df %>% dplyr::select(long, lat) %>% summarise(long = min(long, na.rm = TRUE),
+  #                                                  lat = min(lat, na.rm = TRUE))
+  # )
 
-ggmap(get_googlemap(center = c(lon = -87.732125, lat = 41.83379),
-                    zoom = 11, scale = 1,
-                    maptype ='terrain',
-                    color = 'color',
-                    visible=bounds,
-                    key = Sys.getenv("GOOGLEMAPS_KEY"))) + 
-  geom_point(data=bl, aes(x=LONGITUDE, y=LATITUDE, color=as.factor(activity_yr)), alpha = 0.05, show.legend = FALSE, na.rm = TRUE) + 
-  geom_path(data = wards2015.df, aes(long,lat,group=group), color="black") +
-  geom_polygon(data = wards2015.df, aes(long,lat,group=group), fill=NA) +
-  labs(y="Latitude", x="Longitude", colour="Year", title="Money in the Middle", subtitle="Virtually No New Business Entry, Renwal in Ward 9, 10, 18, or 41 since 2009", caption = "Data Source: City of Chicago Department of Business Affairs and Consumer Protection, Business Licenses (2002 to Present)") +
-  theme_minimal() + 
-  facet_grid(. ~ `APPLICATION TYPE`) +
-  theme(
-    panel.border = element_blank(),
-    axis.text.y = element_blank(),
-    panel.grid.major.y = element_blank(),
-    panel.grid.minor.y = element_blank(),
-    axis.text.x = element_blank(),
-    panel.grid.major.x = element_blank(),
-    panel.grid.minor.x = element_blank(),
-    plot.title = element_text(size = 15, face = "bold")
-  )
+
+  
+  ggmap(get_googlemap(center = c(lon = -87.732125, lat = 41.83379),
+                      zoom = 10, scale = 1,
+                      maptype ='terrain',
+                      color = 'color',
+                      # visible=bounds,
+                      key = Sys.getenv("GOOGLEMAPS_KEY"))) + 
+    geom_point(data=bl, aes(x=LONGITUDE, y=LATITUDE, color=as.factor(activity_yr)), alpha = 0.05, show.legend = FALSE, na.rm = TRUE) + 
+    geom_path(data = wards2015.df, aes(long,lat,group=group), color="black") +
+    geom_polygon(data = wards2015.df, aes(long,lat,group=group), fill=NA) + 
+    labs(y="Latitude", x="Longitude", colour="Year", title="Money in the Middle", subtitle="Virtually No New Business Entry, Renwal in Ward 9, 10, 18, or 41 since 2009", caption = "Data Source: City of Chicago Department of Business Affairs and Consumer Protection, Business Licenses") +
+    theme_minimal() + 
+    facet_grid(. ~ `APPLICATION TYPE`) +
+    theme(
+      panel.border = element_blank(),
+      axis.text.y = element_blank(),
+      panel.grid.major.y = element_blank(),
+      panel.grid.minor.y = element_blank(),
+      axis.text.x = element_blank(),
+      panel.grid.major.x = element_blank(),
+      panel.grid.minor.x = element_blank(),
+      plot.title = element_text(size = 15, face = "bold")
+    ) +
+    scale_x_continuous(limits = c(wards2015.df %>% dplyr::select(long) %>% min() - 0.1, wards2015.df %>% dplyr::select(long) %>% max() + 0.05), expand = c(0, 0)) +
+    scale_y_continuous(limits = c(wards2015.df %>% dplyr::select(lat) %>% min() - 0.1, wards2015.df %>% dplyr::select(lat) %>% max()) + 0.05, expand = c(0, 0))
+  # }
 ```
 
 
 
 ```{r}
-ggsave("location_over_googlemap.pdf", width = 36, height = 23, units = "cm")
+ggsave("location_over_googlemap_zoom10.pdf", width = 36, height = 23, units = "cm")
 ```
 
 
