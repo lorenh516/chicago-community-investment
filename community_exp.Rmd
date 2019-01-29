@@ -23,6 +23,7 @@ library(censusapi)
 library(lubridate)
 
 # plotting tools
+library(gridExtra)
 library(ggplot2)
 library(grid)
 library(ggrepel)
@@ -40,6 +41,17 @@ library(ggmap)
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, cache=TRUE)
+```
+
+
+```{r include = FALSE}
+monochromatic_C6C3FF <- c()
+"#7d77ff"
+"#9690ff"
+#aeaaff
+#c6c3ff
+#deddff
+#f6f6ff
 ```
 
 
@@ -265,8 +277,27 @@ bus_licenses <- bus_licenses %>% mutate(activity_wk = lubridate::as_date(cut(act
 ```
 
 
+```{r fig.width=10}
+loop_colors <- c("2" = "#4e96c8",
+        "42" = "#b0ddfd",
+        "43" = "#62bcfb",
+        "44" = "#91d0fc")
+bus_licenses %>% filter(activity_date >= "2013-1-1", WARD %in% c(2, 42, 43, 44), active==1) %>% 
+    group_by(activity_wk, WARD) %>% summarise(business_count = n()) %>% 
+  ggplot() + 
+   geom_line(aes(x=ymd(activity_wk), y=business_count, color=as.factor(WARD)), show.legend = FALSE, alpha=0.5) + 
+  scale_color_manual(values=loop_colors) +
+  geom_label_repel(data = bus_licenses %>% filter(activity_date >= "2013-1-1",
+    WARD %in% c(2, 42, 43, 44), active==1) %>% group_by(WARD, activity_wk) %>%
+    summarise(business_count = n()) %>% filter(business_count ==
+    max(business_count)) %>% slice(which.max(business_count)),
+    aes(x=ymd(activity_wk), y=business_count, label=WARD, color=as.factor(WARD)), show.legend = FALSE) +
+  theme_minimal() +
+  scale_x_date(expand=c(0,0))
+```
 
-```{r post-2012-lic, warning=FALSE}
+
+```{r post-2012-lic, warning=FALSE, fig.width=10}
 # subtitle_1 <- textGrob(expression("New Business beyond Loop (Wards 2, 42, 43, 44) Concentrated in" * phantom(bold("Pilsen")) * " and" * phantom(bold("East Garfield Park")) ),
 #                  x = 2013, y = 202.1, gp = gpar(col = "black") )
 # 
@@ -276,23 +307,62 @@ bus_licenses <- bus_licenses %>% mutate(activity_wk = lubridate::as_date(cut(act
 # subtitle_3 <- textGrob(expression(phaontom("New Business beyond Loop (Wards 2, 42, 43, 44) Concentrated in Pilsen, ") * bold("East Garfield Park") ),
 #                  x = 2013, y = 202.1, gp = gpar(col = "#1bb840"))
 
-bus_licenses %>% filter(activity_date >= "2013-1-1", !is.na(WARD), !WARD %in% c(2, 42, 43, 44), active==1) %>%
+
+
+loop_timelines <- bus_licenses %>% filter(activity_date >= "2013-1-1", WARD %in% c(42, 2), active==1) %>% 
+    group_by(activity_wk, WARD) %>% summarise(business_count = n()) %>% 
+  ggplot() + 
+   geom_line(aes(x=ymd(activity_wk), y=business_count, color=as.factor(WARD)), show.legend = FALSE, alpha=0.5) + 
+  scale_color_manual(values=loop_colors) +
+  geom_label_repel(data = bus_licenses %>% filter(activity_date >= "2013-1-1",
+    WARD %in% c(42,2), active==1) %>% group_by(WARD, activity_wk) %>%
+    summarise(business_count = n()) %>% filter(business_count ==
+    max(business_count)) %>% slice(which.max(business_count)),
+    aes(x=ymd(activity_wk), y=business_count, label=WARD, color=as.factor(WARD)), show.legend = FALSE) + theme_minimal()
+  
+
+  
+all_wards <- bus_licenses %>% filter(activity_date >= "2013-1-1", !is.na(WARD), !WARD %in% c(2, 42, 43, 44), active==1) %>%
   group_by(activity_wk, WARD) %>% summarise(business_count = n()) %>% 
-  ggplot() + geom_line(aes(x=ymd(activity_wk), y=business_count, colour=as.factor(WARD))) +
+  ggplot() +   
+  geom_line(aes(x=ymd(activity_wk), y=business_count, colour=as.factor(WARD))) +
   gghighlight(max(business_count), max_highlight = 2, label_key = WARD) + 
-  geom_line(data = bus_licenses %>% 
-               filter(activity_date >= "2013-1-1", WARD %in% c(2, 42, 43, 44), active==1) %>%
-               group_by(activity_wk, WARD) %>% summarise(business_count = n()), 
-             aes(x=ymd(activity_wk), y=business_count), colour="#addcfd", alpha=0.5) +
-  # geom_label_repel(data = bus_licenses %>% 
-  #              filter(activity_date >= "2013-1-1", WARD %in% c(2, 42, 43, 44), active==1) %>%
-  #              group_by(activity_wk, WARD) %>% summarise(business_count = n()), 
-  #            aes(x=ymd(activity_wk), y=business_count, label=WARD), colour="#addcfd", alpha=0.5) +
-  labs(y="Business Count", x="Weekly Licenses Issued or Renewed", colour="Chicago Council Ward", title="Over Five Years of Gentrification versus Rehabilitation", subtitle="New Business beyond Loop (Wards 2, 42-44) Concentrated in Pilsen (27), East Garfield Park (25)", caption="Data Source: Chicago Open Data Portal") +
+   geom_line(data = bus_licenses %>% filter(activity_date >= "2013-1-1", WARD %in% c(2, 42, 43, 44), active==1) %>% 
+    group_by(activity_wk, WARD) %>% summarise(business_count = n()),
+    aes(x=ymd(activity_wk), y=business_count), color="#c6e7fe", show.legend = FALSE, alpha=0.5) + 
+  geom_label_repel(data = bus_licenses %>% filter(activity_date >= "2013-1-1",
+    WARD %in% c(2, 42, 43, 44), active==1) %>% group_by(WARD, activity_wk) %>%
+    summarise(business_count = n()) %>% filter(business_count ==
+    max(business_count)) %>% slice(which.max(business_count)),
+    aes(x=ymd(activity_wk), y=business_count, label=WARD), color="#62bcfb", show.legend = FALSE) +
+  labs(y="Number of Business Licenses", x="Weekly Licenses Issued or Renewed", colour="Chicago Council Ward", title="Over Five Years of Gentrification versus Rehabilitation", subtitle="New Business beyond Loop (Wards 2, 42-44) Concentrated in Pilsen (27), East Garfield Park (25)", caption="Data Source: Chicago Open Data Portal") +
 theme_minimal() + 
 theme(axis.title = element_text(size = 10, face = "bold"), 
-      plot.title = element_text(size = 15, face = "bold"))
-# annotation_custom(grobTree(subtitle_1, subtitle_2, subtitle_3, subtitle_4))
+      plot.title = element_text(size = 15, face = "bold")) +
+ scale_x_date(expand=c(0,0)) +
+  scale_y_continuous(limits = c(0,250), expand = c(0, 0))
+# 
+# # annotation_custom(grobTree(subtitle_1, subtitle_2, subtitle_3, subtitle_4))
+# 
+grid.arrange(all_wards,
+             top = tableGrob(t(
+               c("New Business beyond ", "Loop (Wards 2, 42, 43, 44) ",
+                 "Concentrated in ", "Pilsen (27)", ", ", "East Garfield Park (25)")),
+            theme=ttheme_minimal(padding=unit(c(0,2),'mm'),
+            base_colour = c("black", "#62bcfb", "black", "#1FBFC3", "black", "#F67770"))))
+
+
+# add column for loop1, loop2, loop3, loop4, pilsen, garfield, 
+# then group = ward, color= new var + scale_color_manual
+# geom_line(filter(data, ward %in% c(ward1, ward2, ward3, loop4), aes(color=ward)))
+
+annotate("text", x = 1985, y = 60, hjust = 0, parse=T, label=expression(bold("United States") * phantom(bold(" falls in maternal health; ")) * phantom(bold("Poland")) * phantom(bold(" improves the most"))), color = down_color, size = 7) + 
+  annotate("text", x = 1985, y = 60, hjust = 0, parse=T, label=expression(phantom(bold("United States")) * bold(" falls in maternal health; ") * phantom(bold("Poland")) * phantom(bold(" improves the most"))), color = "black", size = 7) + 
+  annotate("text", x = 1985, y = 60, hjust = 0, parse=T, label=expression(phantom(bold("United States")) * phantom(bold(" falls in maternal health; ")) * bold("Poland") * phantom(bold(" improves the most"))), color = up_color, size = 7) + 
+  annotate("text", x = 1985, y = 60, hjust = 0, parse=T, label=expression(phantom(bold("United States")) * phantom(bold(" falls in maternal health; ")) * phantom(bold("Poland")) * bold(" improves the most")), color = "black", size = 7) + 
+  annotate("text", x = 1985, y = 58, hjust = 0, label = "Ranking of maternal mortality ratios of high-income* countries", size = 4) +
+  annotate("text", x=2014, y=5, label="High maternal\ndeath to\nlive birth ratio", hjust = 1, size = 3, color = down_color, fontface = "bold.italic") +
+  annotate("text", x=2014, y=46, label="Low maternal\ndeath to\nlive birth ratio", hjust = 1, size = 3, color = up_color, fontface = "bold.italic") 
 
 ```
 
@@ -300,6 +370,12 @@ theme(axis.title = element_text(size = 10, face = "bold"),
 
 ```{r save-post-2012-lic}
 ggsave("post2012_licensing.pdf", width = 25, height = 18, units = "cm")
+```
+
+
+```{r}
+library(extrafont)
+font_import()
 ```
 
 
@@ -391,7 +467,7 @@ register_google(key = Sys.getenv("GOOGLEMAPS_KEY"))
     geom_point(data=bl, aes(x=LONGITUDE, y=LATITUDE, color=as.factor(activity_yr)), alpha = 0.05, show.legend = FALSE, na.rm = TRUE) + 
     geom_path(data = wards2015.df, aes(long,lat,group=group), color="black") +
     geom_polygon(data = wards2015.df, aes(long,lat,group=group), fill=NA) + 
-    labs(y="Latitude", x="Longitude", colour="Year", title="Money in the Middle", subtitle="Virtually No New Business Entry, Renwal in Ward 9, 10, 18, or 41 since 2009", caption = "Data Source: City of Chicago Department of Business Affairs and Consumer Protection, Business Licenses") +
+    labs(y="Latitude", x="Longitude", colour="Year", title="Money in the Middle", subtitle="Virtually No New Business Entry, Renwal in Chicago Wards 9, 10, 18, or 41 since 2009", caption = "Data Source: City of Chicago Department of Business Affairs and Consumer Protection, Business Licenses") +
     theme_minimal() + 
     facet_grid(. ~ `APPLICATION TYPE`) +
     theme(
