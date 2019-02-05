@@ -112,7 +112,7 @@ rc_key_phrases <- sapply(rc_key_phrases, toupper)
 
 
 ```{r}
-id_info <- c("YEAR", "SCHOOL ID (R-C-D-T-S)", "SCHOOL TYPE CODE (0,1,2,C)", "SCHOOL NAME", "DISTRICT NAME", "CITY", "COUNTY", "SCHOOL TYPE NAME", "GRADES IN SCHOOL", "SCHOOL - WHITE %", "SCHOOL - BLACK %", "SCHOOL - HISPANIC %", "SCHOOL - ASIAN %", "LOW-INCOME SCHOOL %")
+id_info <- c("YEAR", "SCHOOL ID (R-C-D-T-S)", "SCHOOL NAME", "DISTRICT NAME", "CITY", "COUNTY", "SCHOOL TYPE NAME", "GRADES IN SCHOOL", "SCHOOL - WHITE %", "SCHOOL - BLACK %", "SCHOOL - HISPANIC %", "SCHOOL - ASIAN %", "LOW-INCOME SCHOOL %")
 ```
 
 
@@ -253,9 +253,7 @@ rc18 <- rc18 %>% rename(
   "# OF GRADE 12 STUDENTS PASSED ONE OR MORE AP EXAMS (SCHOOL)" = "NUMBER OF STUDENTS WHO PASSED ONE ORE MORE AP EXAMS GRADE 12"
   )
 
-id_info18 <- c("YEAR", "SCHOOL ID (R-C-D-T-S)", "SCHOOL NAME", "DISTRICT NAME", "CITY", "COUNTY", "SCHOOL TYPE NAME", "GRADES IN SCHOOL", "SCHOOL - WHITE %", "SCHOOL - BLACK %", "SCHOOL - HISPANIC %", "SCHOOL - ASIAN %", "LOW-INCOME SCHOOL %")
-
-rc18 %>% filter(grepl("City of Chicago", `DISTRICT NAME`)) %>% select(id_info18, matches(paste(rc_key_phrases,collapse="|")), -contains("IEP"), -contains("TWO OR MORE"), -contains("OTHER"), -contains("ALASKA"), -contains("NUMBER EL"), -contains(" - SUBREGION"), -contains(" - DISTRICT"))
+rc18 %>% filter(grepl("City of Chicago", `DISTRICT NAME`)) %>% select(id_info, matches(paste(rc_key_phrases,collapse="|")), -contains("IEP"), -contains("TWO OR MORE"), -contains("OTHER"), -contains("ALASKA"), -contains("NUMBER EL"), -contains(" - SUBREGION"), -contains(" - DISTRICT"))
 ```
 
 ```{r}
@@ -294,7 +292,8 @@ rc_2015_to_2018 <- plyr::rbind.fill(rc_2015_to_2017, rc18)
 ```
 
 ```{r}
-
+test <- haven::read_sas(here::here("data", "rc14-sas-data", "rc13-sas-data.sas"),here::here("data", "rc14-sas-data", "rc13-sas-data.sas7bdat"))
+test <- haven::read_sas(here::here("data", "rc14-sas-data", "rc14-sas-data.sas"),here::here("data", "rc14-sas-data", "rc14-sas-data.sas7bdat"))
 ```
 
 
