@@ -15,6 +15,7 @@ output: html_notebook
 rm(list=ls())
 library(tidyverse)
 library(here)
+library(Hmisc)
 library(haven)
 library(readxl)
 library(lubridate)
@@ -54,9 +55,9 @@ library(lubridate)
 ```
 
 
-```{r}
-rc_cols_to_import <- c("RCDTS", "Type",	"School Name", "District",	"City",	"County",	"District Type",	"School Type",	"Grades Served",	"Summative Designation", "Student Enrollment - Total", "Student Enrollment - White %", "Student Enrollment - Black or African American %", "Student Enrollment - Hispanic or Latino %",	"Student Enrollment - Asian %", "Student Enrollment - Low Income %", "Total Number of School Days", "Student Attendance Rate", "Student Chronic Truancy Rate",	"High School Dropout Rate - Total", "High School Dropout Rate - Low Income", "High School 5-Year Graduation Rate - Total", "Avg Class Size - High School", "Avg Class Size – All Grades", "Avg Teaching Exp", "Pupil Teacher Ratio - Elementary", "Pupil Teacher Ratio - High School", "Pupil Certified Staff Ratio", "Pupil Admin Ratio", "Teacher Avg Salary", "Admin Avg Salary", "Teacher Retention Rate", "Principal Turnover within 6 Years",	"Teacher Attendace Rate", "Teacher Evaluation Rate", "Number of Students who took AP classes Grade 9 Total", "Number Low Income of Students who took AP classes Grade 9 Total", "Number of Students who took AP classes Grade 10 Total", "Number Low Income of Students who took AP classes Grade 10 Total", "Number of Students who took AP classes Grade 11 Total", "Number Low Income of Students who took AP classes Grade 11 Total", "Number of Students who took AP classes Grade 12 Total", "Number Low Income of Students who took AP classes Grade 12 Total", "Number of students who took one ore more AP Exams Grade 10", "Number of students who took one ore more AP Exams Grade 11",	"Number of students who took one ore more AP Exams Grade 12")
-rc_cols_to_import <- sapply(rc_cols_to_import, toupper)
+```{r inclued=FALSE}
+# rc_cols_to_import <- c("RCDTS", "Type",	"School Name", "District",	"City",	"County",	"District Type",	"School Type",	"Grades Served",	"Summative Designation", "Student Enrollment - Total", "Student Enrollment - White %", "Student Enrollment - Black or African American %", "Student Enrollment - Hispanic or Latino %",	"Student Enrollment - Asian %", "Student Enrollment - Low Income %", "Total Number of School Days", "Student Attendance Rate", "Student Chronic Truancy Rate",	"High School Dropout Rate - Total", "High School Dropout Rate - Low Income", "High School 5-Year Graduation Rate - Total", "Avg Class Size - High School", "Avg Class Size – All Grades", "Avg Teaching Exp", "Pupil Teacher Ratio - Elementary", "Pupil Teacher Ratio - High School", "Pupil Certified Staff Ratio", "Pupil Admin Ratio", "Teacher Avg Salary", "Admin Avg Salary", "Teacher Retention Rate", "Principal Turnover within 6 Years",	"Teacher Attendace Rate", "Teacher Evaluation Rate", "Number of Students who took AP classes Grade 9 Total", "Number Low Income of Students who took AP classes Grade 9 Total", "Number of Students who took AP classes Grade 10 Total", "Number Low Income of Students who took AP classes Grade 10 Total", "Number of Students who took AP classes Grade 11 Total", "Number Low Income of Students who took AP classes Grade 11 Total", "Number of Students who took AP classes Grade 12 Total", "Number Low Income of Students who took AP classes Grade 12 Total", "Number of students who took one ore more AP Exams Grade 10", "Number of students who took one ore more AP Exams Grade 11",	"Number of students who took one ore more AP Exams Grade 12")
+# rc_cols_to_import <- sapply(rc_cols_to_import, toupper)
 ```
 
 
@@ -169,7 +170,7 @@ ncol(rc17)
 
 
 ```{r}
-rc_2015_to_2017 <- plyr::rbind.fill(rc15, rc16, rc17)
+full_term <- plyr::rbind.fill(rc15, rc16, rc17)
 ```
 
 ```{r}
@@ -262,17 +263,17 @@ rc18 <- rc18 %>% filter(grepl("City of Chicago", `DISTRICT NAME`)) %>% select(id
 
 ```{r}
 # check for column name changes from previous years
-setdiff(colnames(rc_2015_to_2017), colnames(rc18))
+setdiff(colnames(full_term), colnames(rc18))
 ```
 
 ```{r}
 # check for newly introduced columns in 2018
-setdiff(colnames(rc18), colnames(rc_2015_to_2017))
+setdiff(colnames(rc18), colnames(full_term))
 ```
 
 
 ```{r}
-rc_2015_to_2018 <- plyr::rbind.fill(rc_2015_to_2017, rc18)
+full_term <- plyr::rbind.fill(full_term, rc18)
 ```
 
 
@@ -292,13 +293,167 @@ rc_2015_to_2018 <- plyr::rbind.fill(rc_2015_to_2017, rc18)
 ```
 
 ```{r}
-test <- haven::read_sas(here::here("data", "rc14-sas-data", "rc13-sas-data.sas"),here::here("data", "rc14-sas-data", "rc13-sas-data.sas7bdat"))
-test <- haven::read_sas(here::here("data", "rc14-sas-data", "rc14-sas-data.sas"),here::here("data", "rc14-sas-data", "rc14-sas-data.sas7bdat"))
+rc13 <- haven::read_sas(here::here("data", "rc13-sas-data", "rc13-sas-data.sas7bdat"))
+rc14 <- haven::read_sas(here::here("data", "rc14-sas-data", "rc14-sas-data.sas7bdat"))
+```
+
+```{r}
+dim(rc13 %>% filter(grepl("City of Chicago", DistNAME)))
+dim(rc14 %>% filter(grepl("City of Chicago", DistNAME)))
+```
+```{r}
+rc13 <- rc13 %>% filter(grepl("City of Chicago", DistNAME))
+rc14 <- rc14 %>% filter(grepl("City of Chicago", DistNAME))
+rc13 <- mutate(rc13, YEAR = "2013")
+rc14 <- mutate(rc13, YEAR = "2014")
+```
+
+
+```{r}
+
+rc13 <- rc13 %>% rename("SCHOOL ID (R-C-D-T-S)" = "SchRcdts",
+                "SCHOOL TYPE NAME" = "SchTYPENAME",
+                "GRADES IN SCHOOL" = "GRSINSch",
+                "SCHOOL NAME" = "SchNAME",
+                "DISTRICT NAME" = "DistNAME",
+                "SCHOOL - WHITE %" = "SchWhPct", 
+                "SCHOOL - BLACK %" = "SchBlPct",
+                "SCHOOL - HISPANIC %" = "SchHispPct",
+                "SCHOOL - ASIAN %" = "SchAsiPct",
+                "SCHOOL TOTAL ENROLLMENT"  = "SchTotEnroll",
+                "LOW-INCOME SCHOOL %" = "LowIncSchPct",
+                "TOTAL SCHOOL DAYS - SCHOOL" = "TotSchDAYSSch",
+                "ATTENDANCE RATE SCHOOL %  -  ALL" = "AttendRATESchPctALL",
+                "ATTENDANCE RATE SCHOOL %  -  MALE" = "AttendRATESchPctMALE",
+                "ATTENDANCE RATE SCHOOL %  -  FEMALE" = "AttendRATESchPctFem",
+                "ATTENDANCE RATE SCHOOL %  -  WHITE" = "AttendRATESchPctWh",
+                "ATTENDANCE RATE SCHOOL %  -  HISPANIC" = "AttendRATESchPctHisp",
+                "ATTENDANCE RATE SCHOOL %  -  BLACK" = "AttendRATESchPctBl",
+                "ATTENDANCE RATE SCHOOL %  -  ASIAN" = "AttendRATESchPctAsi",
+                "CHRONIC TRUANTS # - SCHOOL" = "CHRONICTRUANTSNumSch",
+                "CHRONIC TRUANTS RATE SCHOOL %" = "CHRONICTRUANTSRATESchPct",
+                "DROPOUT RATE  SCHOOL %" = "DROPOUTRATESchPct",
+                "HS 5-YEAR GRAD RATE SCHOOL %  -  ALL" = "HS5YrGRADRATESchPctALL",
+                "HS 4-YEAR GRAD RATE SCHOOL %  -  ALL" = "HS4YrGRADRATESchPctALL",
+                "AVG CLASS SIZE - SCHOOL (KG)" = "AVGCLASSSIZESchKG",
+                "AVG CLASS SIZE - SCHOOL (GR1)" = "AVGCLASSSIZESchGR1",
+                "AVG CLASS SIZE - SCHOOL (GR2)" = "AVGCLASSSIZESchGR2",
+                "AVG CLASS SIZE - SCHOOL (GR3)" = "AVGCLASSSIZESchGR3",
+                "AVG CLASS SIZE - SCHOOL (GR4)" = "AVGCLASSSIZESchGR4",
+                "AVG CLASS SIZE - SCHOOL (GR5)" = "AVGCLASSSIZESchGR5",
+                "AVG CLASS SIZE - SCHOOL (GR6)" = "AVGCLASSSIZESchGR6",
+                "AVG CLASS SIZE - SCHOOL (GR7)" = "AVGCLASSSIZESchGR7",
+                "AVG CLASS SIZE - SCHOOL (GR8)" = "AVGCLASSSIZESchGR8",
+                "AVG CLASS SIZE - SCHOOL (H.S.)" = "AVGCLASSSIZESchHS",
+                "OVERALL AVERAGE CLASS SIZE - SCHOOL" = "OVERALLAvgCLASSSIZESch",
+                "HS 4-YEAR GRAD RATE SCHOOL %  -  MALE" = "HS4YrGRADRATESchPctMALE",
+                "HS 4-YEAR GRAD RATE SCHOOL %  -  FEMALE" = "HS4YrGRADRATESchPctFem",
+                "HS 4-YEAR GRAD RATE SCHOOL %  -  WHITE" = "HS4YrGRADRATESchPctWh",
+                "HS 4-YEAR GRAD RATE SCHOOL %  -  BLACK" = "HS4YrGRADRATESchPctBl",
+                "HS 4-YEAR GRAD RATE SCHOOL %  -  HISPANIC" = "HS4YrGRADRATESchPctHisp",
+                "HS 4-YEAR GRAD RATE SCHOOL %  -  ASIAN" = "HS4YrGRADRATESchPctAsi",
+                "HS 4-YEAR GRAD RATE SCHOOL %  -  LOW INCOME" = "HS4YrGRADRATESchPctLowInc",
+                "HS 5-YEAR GRAD RATE SCHOOL %  -  MALE" = "HS5YrGRADRATESchPctMALE",
+                "HS 5-YEAR GRAD RATE SCHOOL %  -  FEMALE" = "HS5YrGRADRATESchPctFem",
+                "HS 5-YEAR GRAD RATE SCHOOL %  -  WHITE" = "HS5YrGRADRATESchPctWh",
+                "HS 5-YEAR GRAD RATE SCHOOL %  -  BLACK" = "HS5YrGRADRATESchPctBl",
+                "HS 5-YEAR GRAD RATE SCHOOL %  -  HISPANIC" = "HS5YrGRADRATESchPctHisp",
+                "HS 5-YEAR GRAD RATE SCHOOL %  -  ASIAN" = "HS5YrGRADRATESchPctAsi",
+                "HS 5-YEAR GRAD RATE SCHOOL %  -  LOW INCOME" = "HS5YrGRADRATESchPctLowInc")
+
+rc14 <- rc14 %>%  rename("SCHOOL ID (R-C-D-T-S)" = "SchRcdts",
+                "SCHOOL TYPE NAME" = "SchTYPENAME",
+                "GRADES IN SCHOOL" = "GRSINSch",
+                "SCHOOL NAME" = "SchNAME",
+                "DISTRICT NAME" = "DistNAME",
+                "SCHOOL - WHITE %" = "SchWhPct", 
+                "SCHOOL - BLACK %" = "SchBlPct",
+                "SCHOOL - HISPANIC %" = "SchHispPct",
+                "SCHOOL - ASIAN %" = "SchAsiPct",
+                "SCHOOL TOTAL ENROLLMENT"  = "SchTotEnroll",
+                "LOW-INCOME SCHOOL %" = "LowIncSchPct",
+                "TOTAL SCHOOL DAYS - SCHOOL" = "TotSchDAYSSch",
+                "ATTENDANCE RATE SCHOOL %  -  ALL" = "AttendRATESchPctALL",
+                "ATTENDANCE RATE SCHOOL %  -  MALE" = "AttendRATESchPctMALE",
+                "ATTENDANCE RATE SCHOOL %  -  FEMALE" = "AttendRATESchPctFem",
+                "ATTENDANCE RATE SCHOOL %  -  WHITE" = "AttendRATESchPctWh",
+                "ATTENDANCE RATE SCHOOL %  -  HISPANIC" = "AttendRATESchPctHisp",
+                "ATTENDANCE RATE SCHOOL %  -  BLACK" = "AttendRATESchPctBl",
+                "ATTENDANCE RATE SCHOOL %  -  ASIAN" = "AttendRATESchPctAsi",
+                "CHRONIC TRUANTS # - SCHOOL" = "CHRONICTRUANTSNumSch",
+                "CHRONIC TRUANTS RATE SCHOOL %" = "CHRONICTRUANTSRATESchPct",
+                "DROPOUT RATE  SCHOOL %" = "DROPOUTRATESchPct",
+                "HS 5-YEAR GRAD RATE SCHOOL %  -  ALL" = "HS5YrGRADRATESchPctALL",
+                "HS 4-YEAR GRAD RATE SCHOOL %  -  ALL" = "HS4YrGRADRATESchPctALL",
+                "AVG CLASS SIZE - SCHOOL (KG)" = "AVGCLASSSIZESchKG",
+                "AVG CLASS SIZE - SCHOOL (GR1)" = "AVGCLASSSIZESchGR1",
+                "AVG CLASS SIZE - SCHOOL (GR2)" = "AVGCLASSSIZESchGR2",
+                "AVG CLASS SIZE - SCHOOL (GR3)" = "AVGCLASSSIZESchGR3",
+                "AVG CLASS SIZE - SCHOOL (GR4)" = "AVGCLASSSIZESchGR4",
+                "AVG CLASS SIZE - SCHOOL (GR5)" = "AVGCLASSSIZESchGR5",
+                "AVG CLASS SIZE - SCHOOL (GR6)" = "AVGCLASSSIZESchGR6",
+                "AVG CLASS SIZE - SCHOOL (GR7)" = "AVGCLASSSIZESchGR7",
+                "AVG CLASS SIZE - SCHOOL (GR8)" = "AVGCLASSSIZESchGR8",
+                "AVG CLASS SIZE - SCHOOL (H.S.)" = "AVGCLASSSIZESchHS",
+                "OVERALL AVERAGE CLASS SIZE - SCHOOL" = "OVERALLAvgCLASSSIZESch",
+                "HS 4-YEAR GRAD RATE SCHOOL %  -  MALE" = "HS4YrGRADRATESchPctMALE",
+                "HS 4-YEAR GRAD RATE SCHOOL %  -  FEMALE" = "HS4YrGRADRATESchPctFem",
+                "HS 4-YEAR GRAD RATE SCHOOL %  -  WHITE" = "HS4YrGRADRATESchPctWh",
+                "HS 4-YEAR GRAD RATE SCHOOL %  -  BLACK" = "HS4YrGRADRATESchPctBl",
+                "HS 4-YEAR GRAD RATE SCHOOL %  -  HISPANIC" = "HS4YrGRADRATESchPctHisp",
+                "HS 4-YEAR GRAD RATE SCHOOL %  -  ASIAN" = "HS4YrGRADRATESchPctAsi",
+                "HS 4-YEAR GRAD RATE SCHOOL %  -  LOW INCOME" = "HS4YrGRADRATESchPctLowInc",
+                "HS 5-YEAR GRAD RATE SCHOOL %  -  MALE" = "HS5YrGRADRATESchPctMALE",
+                "HS 5-YEAR GRAD RATE SCHOOL %  -  FEMALE" = "HS5YrGRADRATESchPctFem",
+                "HS 5-YEAR GRAD RATE SCHOOL %  -  WHITE" = "HS5YrGRADRATESchPctWh",
+                "HS 5-YEAR GRAD RATE SCHOOL %  -  BLACK" = "HS5YrGRADRATESchPctBl",
+                "HS 5-YEAR GRAD RATE SCHOOL %  -  HISPANIC" = "HS5YrGRADRATESchPctHisp",
+                "HS 5-YEAR GRAD RATE SCHOOL %  -  ASIAN" = "HS5YrGRADRATESchPctAsi",
+                "HS 5-YEAR GRAD RATE SCHOOL %  -  LOW INCOME" = "HS5YrGRADRATESchPctLowInc")
+
+
 ```
 
 
 
 
+```{r}
+setdiff(sapply(colnames(rc13), toupper), sapply(colnames(rc14), toupper))
+```
+
+
+```{r}
+# double-check "COMING SOON" columns are all NA in 2013 data
+rc13 %>% select(contains("Coming")) %>% summarise_all(funs(n_distinct(.)))
+```
+
+
+```{r}
+# double-check "COMING SOON" columns are all NA in 2014 data
+rc14 %>% select(contains("Comming")) %>% summarise_all(funs(n_distinct(.)))
+```
+
+
+```{r}
+# remove columns with non-pertinent info
+rc13 <- rc13 %>%  select(-contains("Coming"), -contains("PctOFStudsNOTTAKING"), -contains("Nhopi"), -contains("TomR"), -contains("StaPct"), -contains("DistPct"), -contains("EnrollFORGR"), -contains("DistGR"), -contains("DistEnroll"),-contains("NumSta"), -contains("StaEnroll"), -contains("Subr"), -contains("MINPERDAY"), -contains("DistDOLLAR"), -contains("EnrollIN"), -contains("ISAT"), -contains("DistBELOW"), -contains("DistMeet"), -contains("Distexceed"), -contains("DistAcadWarn"), -contains("StaBELOW"), -contains("StaMeet"), -contains("Staexceed"), -contains("StaAcadWarn"),  -contains("SCORE"), -contains("SchAcadWarn"), -contains("SchBELOW"), -contains("SchMeet"), -contains("Schexceed"), -contains("PROGRESSING"), -contains("ATTEMPTING"),-contains("FORMeetAND"), -contains("ATTAINING"), -contains("EMERGING"), -contains("PROFICIENT"), -contains("BASIC"), -contains("ADVANCED"), -contains("ParticipatRATE"), -contains("MAKINGAYP"), -contains("Readtest"), -contains("TAKINGMATHTESTS"), -contains("OTHERINDICATO"), -contains("IMPROVEMENT"), -contains("DOLLAR"), -contains("EXPEND"), -contains("SchSINTHESta"), -contains("DistSINTHESta"), -contains("SchSINTHEDist"), -contains("PctMult"), -contains("PctNhopi"), -contains("PctNat"), -contains("ACTCOMP"), -contains("LEGISLATIVE"), -contains("IEP"), -contains("AVGCLASSSIZESta"), -contains("AVGCLASSSIZEDist"), -one_of("ROE","COUNTYCODE","DISTRICT","TYPE", "DistWhPct", "DistBlPct", "DistHispPct", "DistAsiPct", "DistNhopiPct", "DistNatPct", "DistTomRPct", "DistTotEnroll", "StaWhPct", "StaBlPct", "StaHispPct", "StaAsiPct", "StaNhopiPct", "StaNatPct", "StaTomRPct", "StaTotEnroll", "TotSchDAYSDist", "TotSchDAYSSta", "PctREADYFORCollCoursesDist",  "PctREADYFORCollCoursesSta") )
+
+
+rc14 <- rc14 %>% select(-contains("Coming"), -contains("PctOFStudsNOTTAKING"), -contains("Nhopi"), -contains("TomR"), -contains("StaPct"), -contains("DistPct"), -contains("EnrollFORGR"), -contains("DistGR"), -contains("DistEnroll"),-contains("NumSta"), -contains("StaEnroll"), -contains("Subr"), -contains("MINPERDAY"), -contains("DistDOLLAR"), -contains("EnrollIN"), -contains("ISAT"), -contains("DistBELOW"), -contains("DistMeet"), -contains("Distexceed"), -contains("DistAcadWarn"), -contains("StaBELOW"), -contains("StaMeet"), -contains("Staexceed"), -contains("StaAcadWarn"),  -contains("SCORE"), -contains("SchAcadWarn"), -contains("SchBELOW"), -contains("SchMeet"), -contains("Schexceed"), -contains("PROGRESSING"), -contains("ATTEMPTING"),-contains("FORMeetAND"), -contains("ATTAINING"), -contains("EMERGING"), -contains("PROFICIENT"), -contains("BASIC"), -contains("ADVANCED"), -contains("ParticipatRATE"), -contains("MAKINGAYP"), -contains("Readtest"), -contains("TAKINGMATHTESTS"), -contains("OTHERINDICATO"), -contains("IMPROVEMENT"), -contains("DOLLAR"), -contains("EXPEND"), -contains("SchSINTHESta"), -contains("DistSINTHESta"), -contains("SchSINTHEDist"), -contains("PctMult"), -contains("PctNhopi"), -contains("PctNat"), -contains("ACTCOMP"), -contains("LEGISLATIVE"), -contains("IEP"), -contains("AVGCLASSSIZESta"), -contains("AVGCLASSSIZEDist"), -one_of("ROE","COUNTYCODE","DISTRICT","TYPE", "DistWhPct", "DistBlPct", "DistHispPct", "DistAsiPct", "DistNhopiPct", "DistNatPct", "DistTomRPct", "DistTotEnroll", "StaWhPct", "StaBlPct", "StaHispPct", "StaAsiPct", "StaNhopiPct", "StaNatPct", "StaTomRPct", "StaTotEnroll", "TotSchDAYSDist", "TotSchDAYSSta", "PctREADYFORCollCoursesDist",  "PctREADYFORCollCoursesSta") )
+
+
+
+```
+
+
+
+
+```{r}
+labels(rc14)[2]
+```
+```{r}
+full_term <- plyr::rbind.fill(full_term, rc13, rc14)
+```
 
 
 
