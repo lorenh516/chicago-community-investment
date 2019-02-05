@@ -9,48 +9,54 @@ output: html_notebook
 ```
 
 
-```{r}
+
+```{r Housekeeping, echo=TRUE, message=FALSE, warning=FALSE, include=FALSE}
+# Housekeeping (clear workspace, start output file, load packages)
+rm(list=ls())
 library(tidyverse)
 library(here)
 library(haven)
 library(readxl)
-```
-
-```{r}
-here()
+library(lubridate)
 ```
 
 
-```{r}
-rc17Layout <- read_excel(here::here("data","RC17_layout.xlsx"), sheet="RC17", col_names=FALSE)
+
+```{r include=FALSE}
+# Experiment with one file to write functions
+# rc17Layout <- mutate(rc17Layout, descriptions = ifelse(is.na(X__3),X__6, paste(X__6, " - ", X__3)))
+
 ```
 
-
-```{r}
-rc17Layout %>% filter(is.na(as.numeric(X__1)))
+```{r include=FALSE}
+# rc17Layout <- read_excel(here::here("data","RC17_layout.xlsx"), sheet="RC17", col_names=FALSE)
 ```
 
-
-```{r warning=FALSE}
-rc17Layout <- rc17Layout %>% filter(!is.na(as.numeric(X__1)))
+```{r include=FALSE}
+# rc17Layout %>% filter(is.na(as.numeric(X__1)))
 ```
 
-```{r}
-rc17Layout %>% filter(!is.na(X__2))
+```{r warning=FALSE, include=FALSE}
+# rc17Layout <- rc17Layout %>% filter(!is.na(as.numeric(X__1)))
 ```
 
-```{r}
-rc17Layout <- rc17Layout %>% select(-one_of(c("X__2")))
+```{r include=FALSE}
+# rc17Layout %>% filter(!is.na(X__2))
 ```
+
+```{r include=FALSE}
+# rc17Layout <- rc17Layout %>% select(-one_of(c("X__2")))
+```
+
+```{r include=FALSE}
+# rc17Layout <- mutate(rc17Layout, descriptions = ifelse(is.na(X__3),X__6, paste(X__6, " - ", X__3)))
+
+```
+
 
 ```{r}
 rc_cols_to_import <- c("RCDTS", "Type",	"School Name", "District",	"City",	"County",	"District Type",	"School Type",	"Grades Served",	"Summative Designation", "Student Enrollment - Total", "Student Enrollment - White %", "Student Enrollment - Black or African American %", "Student Enrollment - Hispanic or Latino %",	"Student Enrollment - Asian %", "Student Enrollment - Low Income %", "Total Number of School Days", "Student Attendance Rate", "Student Chronic Truancy Rate",	"High School Dropout Rate - Total", "High School Dropout Rate - Low Income", "High School 5-Year Graduation Rate - Total", "Avg Class Size - High School", "Avg Class Size – All Grades", "Avg Teaching Exp", "Pupil Teacher Ratio - Elementary", "Pupil Teacher Ratio - High School", "Pupil Certified Staff Ratio", "Pupil Admin Ratio", "Teacher Avg Salary", "Admin Avg Salary", "Teacher Retention Rate", "Principal Turnover within 6 Years",	"Teacher Attendace Rate", "Teacher Evaluation Rate", "Number of Students who took AP classes Grade 9 Total", "Number Low Income of Students who took AP classes Grade 9 Total", "Number of Students who took AP classes Grade 10 Total", "Number Low Income of Students who took AP classes Grade 10 Total", "Number of Students who took AP classes Grade 11 Total", "Number Low Income of Students who took AP classes Grade 11 Total", "Number of Students who took AP classes Grade 12 Total", "Number Low Income of Students who took AP classes Grade 12 Total", "Number of students who took one ore more AP Exams Grade 10", "Number of students who took one ore more AP Exams Grade 11",	"Number of students who took one ore more AP Exams Grade 12")
 rc_cols_to_import <- sapply(rc_cols_to_import, toupper)
-```
-
-```{r}
-rc17Layout <- mutate(rc17Layout, descriptions = ifelse(is.na(X__3),X__6, paste(X__6, " - ", X__3)))
-
 ```
 
 
@@ -99,28 +105,14 @@ processLayout <- function(file, sheet, colnames) {
 
 
 
-
 ```{r}
-rc_years <- c("2017", "2016", "2015")
-rc_files <- c("RC17_layout.xlsx", "RC16-layout.xlsx", "RC15-layout.xlsx")
-rc_txts <- c("rc17_assessment.txt", "rc16-assessment.txt", "rc15-assessment.txt")
-rc_dfs <- vector("list", 5)
-for (i in length(rc_years)) {
-  layout = processLayout(file= rc_files[i], 
-                          sheet=paste("RC", substr(rc_years[i], nchar(rc_years[i])-1, nchar(rc_years[i])), sep=""), colnames=FALSE)
-  df = importReportCards(paste("rc", substr(rc_years[i], nchar(rc_years[i])-1, nchar(rc_years[i])),".txt", sep=""), rc_years[i], layout)
-  rc_dfs[i] <-df
-}
-```
-
-```{r}
-rc_key_phrases <- c("Summative Designation", "Low-Income", "Enrollment", "School Days", "Attendance Rate", "Truancy",	"Truant", "Truants", "Dropout", "Graduation Rate", "Grad Rate", "Class Size", "Teaching Exp", "Teacher Exp", "Teaching Experience", "Provisional Credentials", "Teacher Ratio", "Admin Ratio", "Pupil-Teacher", "Pupil-Admin", "Teacher Avg Salary", "Admin Avg Salary", "Teacher Retention", "Principal Turnover",	"Teacher Attendace", "Teacher Evaluation", "AP Classes", "AP Exams")
+rc_key_phrases <- c("Summative Designation", "Low-Income", "Enrollment", "School Days", "Attendance Rate", "Truancy",	"Truant", "Truants", "Dropout", 'Dropout Rate', "DROPOUT RATE SCHOOL %", "Graduation Rate", "Grad Rate", "Class Size", "Teaching Exp", "Teacher Exp", "Teaching Exp.", "Teacher Exp.", "Teaching Experience", "Provisional Credentials", "Teacher Ratio", "Admin Ratio", "Pupil-Teacher", "Pupil-Admin", "Teacher Avg Salary", "Admin Avg Salary", "Teacher Retention", "Principal Turnover",	"Teacher Attendace", "Teacher Evaluation", "AP Classes", "AP Exams")
 rc_key_phrases <- sapply(rc_key_phrases, toupper)
 ```
 
 
 ```{r}
-id_info <- c("YEAR", "SCHOOL ID (R-C-D-T-S)", "SCHOOL TYPE CODE (0,1,2,C)", "SCHOOL NAME", "DISTRICT NAME", "CITY", "COUNTY", "SCHOOL TYPE NAME", "GRADES IN SCHOOL", "SCHOOL - WHITE %", "SCHOOL - BLACK %", "SCHOOL - HISPANIC %", "SCHOOL - ASIAN %")
+id_info <- c("YEAR", "SCHOOL ID (R-C-D-T-S)", "SCHOOL TYPE CODE (0,1,2,C)", "SCHOOL NAME", "DISTRICT NAME", "CITY", "COUNTY", "SCHOOL TYPE NAME", "GRADES IN SCHOOL", "SCHOOL - WHITE %", "SCHOOL - BLACK %", "SCHOOL - HISPANIC %", "SCHOOL - ASIAN %", "LOW-INCOME SCHOOL %")
 ```
 
 
@@ -177,103 +169,139 @@ ncol(rc17)
 
 
 ```{r}
-# bind_rows(rc15, rc16, rc17)
 rc_2015_to_2017 <- plyr::rbind.fill(rc15, rc16, rc17)
 ```
 
-
-
 ```{r}
-# # cols in 2016 not 2017
-# setdiff(
-#   colnames(rc17 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|"))) ), 
-#   colnames(rc16 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|"))) )
-#   )
-# 
-# # cols in 2017 not 2016
-# setdiff(
-#   colnames(rc16 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|"))) ), 
-#   colnames(rc17 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|"))) )
-#   )
-
-```
-
-
-
-```{r}
-# cols in 2017 not 2015
-setdiff(
-  colnames(rc17 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|"))) ), 
-  colnames(rc15 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|"))) )
-  )
-```
-
-
-
-```{r}
-# cols in 2015 not 2017
-add_to_2017 <- setdiff(
-  colnames(rc15 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|"))) ),
-  colnames(rc17 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|"))) )
-  )
-
-# cols in 2015 not 2016
-add_to_2016 <- setdiff(
-  colnames(rc15 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|"))) ),
-  colnames(rc16 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|"))) )
-  )
+rc18 <- read_xlsx(here::here("data", "Report-Card-Public-Data-Set.xlsx"), sheet = "General")
+rc18 <- mutate(rc18, YEAR="2018")
+colnames(rc18) <- sapply(colnames(rc18), toupper)
 ```
 
 ```{r}
-rc17[add_to_2017] <- NA
-rc16[add_to_2016] <- NA
+rc18 <- rc18 %>% rename(
+  "SCHOOL ID (R-C-D-T-S)" = "RCDTS",
+  "SCHOOL TYPE NAME" = "SCHOOL TYPE",
+  "GRADES IN SCHOOL" = "GRADES SERVED",
+  "DISTRICT NAME" = "DISTRICT",
+  "SCHOOL - WHITE %" = "STUDENT ENROLLMENT - WHITE %", 
+  "SCHOOL - BLACK %" = "STUDENT ENROLLMENT - BLACK OR AFRICAN AMERICAN %",
+  "SCHOOL - HISPANIC %" = "STUDENT ENROLLMENT - HISPANIC OR LATINO %",
+  "SCHOOL - ASIAN %" = "STUDENT ENROLLMENT - ASIAN %",
+  "SCHOOL TOTAL ENROLLMENT"  = "STUDENT ENROLLMENT - TOTAL",
+  "LOW-INCOME SCHOOL %" = "STUDENT ENROLLMENT - LOW INCOME %",
+  "TOTAL SCHOOL DAYS - SCHOOL" = "TOTAL NUMBER OF SCHOOL DAYS",
+  "ATTENDANCE RATE SCHOOL %  -  ALL" = "STUDENT ATTENDANCE RATE",
+  "ATTENDANCE RATE SCHOOL %  -  MALE" = "STUDENT ATTENDANCE RATE - MALE",
+  "ATTENDANCE RATE SCHOOL %  -  FEMALE" = "STUDENT ATTENDANCE RATE - FEMALE",
+  "ATTENDANCE RATE SCHOOL %  -  WHITE" = "STUDENT ATTENDANCE RATE - WHITE",
+  "ATTENDANCE RATE SCHOOL %  -  HISPANIC" = "STUDENT ATTENDANCE RATE - HISPANIC OR LATINO",
+  "CHRONIC TRUANTS RATE SCHOOL %" = "STUDENT CHRONIC TRUANCY RATE",
+  "ATTENDANCE RATE SCHOOL %  -  BLACK" = "STUDENT ATTENDANCE RATE - BLACK OR AFRICAN AMERICAN",
+  "ATTENDANCE RATE SCHOOL %  -  ASIAN" = "STUDENT ATTENDANCE RATE - ASIAN",
+  "CHRONIC TRUANTS # - SCHOOL" = "CHRONICALLY TRUANT STUDENTS",
+  "DROPOUT RATE  SCHOOL %" = "HIGH SCHOOL DROPOUT RATE - TOTAL",
+  "HS 4-YEAR GRAD RATE SCHOOL %  -  ALL" = "HIGH SCHOOL 4-YEAR GRADUATION RATE - TOTAL",
+  "HS 4-YEAR GRAD RATE SCHOOL %  -  MALE" = "HIGH SCHOOL 4-YEAR GRADUATION RATE - MALE",
+  "HS 4-YEAR GRAD RATE SCHOOL %  -  FEMALE" = "HIGH SCHOOL 4-YEAR GRADUATION RATE - FEMALE",
+  "HS 4-YEAR GRAD RATE SCHOOL %  -  WHITE" = "HIGH SCHOOL 4-YEAR GRADUATION RATE - WHITE",
+  "HS 4-YEAR GRAD RATE SCHOOL %  -  BLACK" = "HIGH SCHOOL 4-YEAR GRADUATION RATE - BLACK OR AFRICAN AMERICAN",
+  "HS 4-YEAR GRAD RATE SCHOOL %  -  HISPANIC" = "HIGH SCHOOL 4-YEAR GRADUATION RATE - HISPANIC OR LATINO",
+  "HS 4-YEAR GRAD RATE SCHOOL %  -  ASIAN" = "HIGH SCHOOL 4-YEAR GRADUATION RATE - ASIAN",
+  "HS 4-YEAR GRAD RATE SCHOOL %  -  LOW INCOME" = "HIGH SCHOOL 4-YEAR GRADUATION RATE - LOW INCOME",
+  "HS 5-YEAR GRAD RATE SCHOOL %  -  ALL" = "HIGH SCHOOL 5-YEAR GRADUATION RATE - TOTAL",
+  "HS 5-YEAR GRAD RATE SCHOOL %  -  MALE" = "HIGH SCHOOL 5-YEAR GRADUATION RATE - MALE",
+  "HS 5-YEAR GRAD RATE SCHOOL %  -  FEMALE" = "HIGH SCHOOL 5-YEAR GRADUATION RATE - FEMALE",
+  "HS 5-YEAR GRAD RATE SCHOOL %  -  WHITE" = "HIGH SCHOOL 5-YEAR GRADUATION RATE - WHITE",
+  "HS 5-YEAR GRAD RATE SCHOOL %  -  BLACK" = "HIGH SCHOOL 5-YEAR GRADUATION RATE - BLACK OR AFRICAN AMERICAN",
+  "HS 5-YEAR GRAD RATE SCHOOL %  -  HISPANIC" = "HIGH SCHOOL 5-YEAR GRADUATION RATE - HISPANIC OR LATINO",
+  "HS 5-YEAR GRAD RATE SCHOOL %  -  ASIAN" = "HIGH SCHOOL 5-YEAR GRADUATION RATE - ASIAN",
+  "HS 5-YEAR GRAD RATE SCHOOL %  -  LOW INCOME" = "HIGH SCHOOL 5-YEAR GRADUATION RATE - LOW INCOME",
+  "HS 6-YEAR GRAD RATE SCHOOL %  -  ALL" = "HIGH SCHOOL 6-YEAR GRADUATION RATE - TOTAL",
+  "HS 6-YEAR GRAD RATE SCHOOL %  -  MALE" = "HIGH SCHOOL 6-YEAR GRADUATION RATE - MALE",
+  "HS 6-YEAR GRAD RATE SCHOOL %  -  FEMALE" = "HIGH SCHOOL 6-YEAR GRADUATION RATE - FEMALE",
+  "HS 6-YEAR GRAD RATE SCHOOL %  -  WHITE" = "HIGH SCHOOL 6-YEAR GRADUATION RATE - WHITE",
+  "HS 6-YEAR GRAD RATE SCHOOL %  -  BLACK" = "HIGH SCHOOL 6-YEAR GRADUATION RATE - BLACK OR AFRICAN AMERICAN",
+  "HS 6-YEAR GRAD RATE SCHOOL %  -  HISPANIC" = "HIGH SCHOOL 6-YEAR GRADUATION RATE - HISPANIC OR LATINO",
+  "HS 6-YEAR GRAD RATE SCHOOL %  -  ASIAN" = "HIGH SCHOOL 6-YEAR GRADUATION RATE - ASIAN",
+  "HS 6-YEAR GRAD RATE SCHOOL %  -  LOW INCOME"  = "HIGH SCHOOL 6-YEAR GRADUATION RATE - LOW INCOME",
+  "AVG CLASS SIZE - SCHOOL (KG)" = "AVG CLASS SIZE - KINDERGARTEN",
+  "AVG CLASS SIZE - SCHOOL (GR1)" = "AVG CLASS SIZE - 1",
+  "AVG CLASS SIZE - SCHOOL (GR2)" = "AVG CLASS SIZE - 2",
+  "AVG CLASS SIZE - SCHOOL (GR3)" = "AVG CLASS SIZE - 3",
+  "AVG CLASS SIZE - SCHOOL (GR4)" = "AVG CLASS SIZE - 4",
+  "AVG CLASS SIZE - SCHOOL (GR5)" = "AVG CLASS SIZE - 5",
+  "AVG CLASS SIZE - SCHOOL (GR6)" = "AVG CLASS SIZE - 6",
+  "AVG CLASS SIZE - SCHOOL (GR7)" = "AVG CLASS SIZE - 7",
+  "AVG CLASS SIZE - SCHOOL (GR8)" = "AVG CLASS SIZE - 8",
+  "AVG CLASS SIZE - SCHOOL (H.S.)" = "AVG CLASS SIZE - HIGH SCHOOL",
+  "OVERALL AVERAGE CLASS SIZE - SCHOOL" = "AVG CLASS SIZE – ALL GRADES",
+  "TEACHER RETENTION RATE (SCHOOL)" = "TEACHER RETENTION RATE",
+  "# OF PRINCIPAL TURNOVER WITHIN 6 YEARS (SCHOOL)"  = "PRINCIPAL TURNOVER WITHIN 6 YEARS",
+  "TEACHER ATTENDANCE RATE (SCHOOL)  -  ALL" = "TEACHER ATTENDACE RATE",
+  "# OF CTE ENROLLMENT (SCHOOL)" = "# OF CTE ENROLLMENT",
+  "# OF AP EXAMS TAKEN BY GRADE 10 STUDENTS (SCHOOL)" = "TOTAL AP EXAMS GRADE 10",
+  "# OF AP EXAMS PASSED BY GRADE 10 STUDENTS (SCHOOL)" = "TOTAL AP EXAMS RESULTING IN COLLEGE CREDIT GRADE 10",
+  "# OF GRADE 10 STUDENTS TOOK ONE OR MORE AP EXAMS (SCHOOL)" = "NUMBER OF STUDENTS WHO TOOK ONE ORE MORE AP EXAMS GRADE 10",
+  "# OF AP EXAMS TAKEN BY GRADE 11 STUDENTS (SCHOOL)" = "TOTAL AP EXAMS GRADE 11",
+  "# OF AP EXAMS PASSED BY GRADE 11 STUDENTS (SCHOOL)" = "TOTAL AP EXAMS RESULTING IN COLLEGE CREDIT GRADE 11",
+  "# OF GRADE 11 STUDENTS TOOK ONE OR MORE AP EXAMS (SCHOOL)" = "NUMBER OF STUDENTS WHO TOOK ONE ORE MORE AP EXAMS GRADE 11",
+  "# OF GRADE 11 STUDENTS PASSED ONE OR MORE AP EXAMS (SCHOOL)" = "NUMBER OF STUDENTS WHO PASSED ONE ORE MORE AP EXAMS GRADE 11",
+  "# OF AP EXAMS TAKEN BY GRADE 12 STUDENTS (SCHOOL)" = "TOTAL AP EXAMS GRADE 12",
+  "# OF AP EXAMS PASSED BY GRADE 12 STUDENTS (SCHOOL)" = "TOTAL AP EXAMS RESULTING IN COLLEGE CREDIT GRADE 12",
+  "# OF GRADE 12 STUDENTS TOOK ONE OR MORE AP EXAMS (SCHOOL)" = "NUMBER OF STUDENTS WHO TOOK ONE ORE MORE AP EXAMS GRADE 12",
+  "# OF GRADE 12 STUDENTS PASSED ONE OR MORE AP EXAMS (SCHOOL)" = "NUMBER OF STUDENTS WHO PASSED ONE ORE MORE AP EXAMS GRADE 12"
+  )
+
+id_info18 <- c("YEAR", "SCHOOL ID (R-C-D-T-S)", "SCHOOL NAME", "DISTRICT NAME", "CITY", "COUNTY", "SCHOOL TYPE NAME", "GRADES IN SCHOOL", "SCHOOL - WHITE %", "SCHOOL - BLACK %", "SCHOOL - HISPANIC %", "SCHOOL - ASIAN %", "LOW-INCOME SCHOOL %")
+
+rc18 %>% filter(grepl("City of Chicago", `DISTRICT NAME`)) %>% select(id_info18, matches(paste(rc_key_phrases,collapse="|")), -contains("IEP"), -contains("TWO OR MORE"), -contains("OTHER"), -contains("ALASKA"), -contains("NUMBER EL"), -contains(" - SUBREGION"), -contains(" - DISTRICT"))
 ```
 
 ```{r}
-# confirm all columns added
-setdiff(
-  colnames(rc15 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|"))) ),
-  colnames(rc17 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|"))) )
-  )
-
-setdiff(
-  colnames(rc15 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|"))) ),
-  colnames(rc16 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|"))) )
-  )
+rc18 <- rc18 %>% filter(grepl("City of Chicago", `DISTRICT NAME`)) %>% select(id_info18, matches(paste(rc_key_phrases,collapse="|")), -contains("IEP"), -contains("TWO OR MORE"), -contains("OTHER"), -contains("ALASKA"), -contains("NUMBER EL"), -contains(" - SUBREGION"), -contains(" - DISTRICT"))
 ```
 
 ```{r}
-# cols in 2017 not 2015
-add_to_2015 <- setdiff(
-  colnames(rc17 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|"))) ), 
-  colnames(rc15 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|"))) )
-  )
+# check for column name changes from previous years
+setdiff(colnames(rc_2015_to_2017), colnames(rc18))
+```
 
-# cols in 2016 not 2015
-setdiff(
-  colnames(rc17 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|"))) ), 
-  colnames(rc15 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|"))) )
-  )
+```{r}
+# check for newly introduced columns in 2018
+setdiff(colnames(rc18), colnames(rc_2015_to_2017))
 ```
 
 
 ```{r}
-# add missing columns to 2015 and check that all added properly
-rc15[add_to_2015] <- NA
-setdiff(
-  colnames(rc17 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|"))) ), 
-  colnames(rc15 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|"))) )
-  )
+rc_2015_to_2018 <- plyr::rbind.fill(rc_2015_to_2017, rc18)
 ```
 
+
+```{r include=FALSE}
+# attempt at fuzzzy matching between 2018 and previous years
+# col_check <- data.frame(name2018=colnames(rc18),
+#                  prevname=NA*length(colnames(rc18)), 
+#                  stringsAsFactors=FALSE) 
+# for(i in 1:length(col_check$name2018) ) {
+#    x <- agrep(pattern=col_check$name2018[i], x=colnames(rc_2015_to_2018),
+#    ignore.case=TRUE, value=TRUE,
+#    max.distance = 0.01, useBytes = TRUE)
+#    x <- paste0(x,"")
+#    col_check$prevname[i] <- x
+# }
+# View(col_check)
+```
 
 ```{r}
-rc_2015_to_2017 <- NULL
-rc_2015_to_2017 <- rbind(rc_2015_to_2017, rc15)
-rc_2015_to_2017 <- rbind(rc_2015_to_2017, rc16)
-rc_2015_to_2017<- rbind(rc_2015_to_2017, rc17)
+
 ```
-```
+
+
+
+
+
+
 
 
 
