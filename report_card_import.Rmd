@@ -16,6 +16,9 @@ library(haven)
 library(readxl)
 ```
 
+```{r}
+here()
+```
 
 
 ```{r}
@@ -51,66 +54,86 @@ rc17Layout <- mutate(rc17Layout, descriptions = ifelse(is.na(X__3),X__6, paste(X
 ```
 
 
-
 ```{r}
 importReportCards <- function(file, year, layout) {
-   repCard = read.delim(here::here("data", file), header = FALSE, sep=";")
+   repCard <- read.delim(here::here("data", file), header = FALSE, sep=";")
    print(paste("layout length: ", nrow(layout)))
    print(paste("report card columns: ", ncol(repCard)))
-   cols <- colnames(repCard)
-   if ("DistNAME" %in% cols) {
-      repCard %>% filter(DistNAME == "City of Chicago SD 299")
-   } else if ("District" %in% cols) {
-       repCard <- repCard %>% filter(District == "City of Chicago SD 299")
-   } else if ("DISTRICT NAME" %in% cols) {
-       repCard <- repCard %>% filter(`DISTRICT NAME` == "City of Chicago SD 299")
-   }
+   
    if (colnames(repCard) == nrow(layout)) {
-      names(repCard) <- layout %>% select(X__6)
+      names(repCard) = layout %>% select(X__6)
    } else if (ncol(repCard) > nrow(layout)) {
-      seq()
-      name_vec <- layout$descriptions
-      names(repCard) <- append(name_vec, sprintf("V%1d", 1:(ncol(repCard) > nrow(layout))))
+      name_vec = layout$descriptions
+      names(repCard) <-  append(name_vec, sprintf("V%1d", 1:(ncol(repCard) - nrow(layout))))
    }
    
-   id_info <- c("SCHOOL ID (R-C-D-T-S)", "SCHOOL TYPE CODE (0,1,2,C)", "SCHOOL NAME", "DISTRICT NAME", "CITY", "COUNTY")
+   cols = colnames(repCard)
+   if ("DistNAME" %in% cols) {
+      repCard <-  repCard %>% filter(grepl("City of Chicago",`DISTRICT NAME`))
+   } else if ("District" %in% cols) {
+       repCard <-  repCard %>% filter(grepl("City of Chicago",`DISTRICT NAME`))
+   } else if ("DISTRICT NAME" %in% cols) {
+       repCard <- repCard %>% filter(grepl("City of Chicago",`DISTRICT NAME`))
+   } else {
+     print("Error: Check District column name")
+   }
+
+   id_info = c("SCHOOL ID (R-C-D-T-S)", "SCHOOL TYPE CODE (0,1,2,C)", "SCHOOL NAME", "DISTRICT NAME", "CITY", "COUNTY")
    repCard <- repCard %>% select(id_info, contains("SCHOOL"))
-   repCard <- mutate(repCard, Year = year)
+   repCard <-  mutate(repCard, YEAR = year)
    return(repCard)
-}
-
-
+   } 
 ```
 
-
-
-```{r}
-
-ncol(test17) - nrow(rc17Layout)
-
-```
-
-
-```{r}
-test17 <- importReportCards("rc17.txt", "2017", rc17Layout)
-name_vec <- rc17Layout$descriptions
-names(test17) <- append(name_vec, c("V1471", "V1472"))
-```
-
-```{r}
-id_info <- c("SCHOOL ID (R-C-D-T-S)", "SCHOOL TYPE CODE (0,1,2,C)", "SCHOOL NAME", "DISTRICT NAME", "CITY", "COUNTY")
-test17 <- test17 %>% select(id_info, contains("SCHOOL"))
-```
 
 
 ```{r}
 processLayout <- function(file, sheet, colnames) {
-  layout <- read_excel(here::here("data", file), sheet=sheet, col_names=colnames)
-  layout <- layout %>% filter(!is.na(as.numeric(X__1)))
-  layout <- layout %>% select(-one_of(c("X__2")))
-  layout <- mutate(layout, descriptions = ifelse(is.na(X__3),X__6, paste(X__6, " - ", X__3)))
+  layout = read_excel(here::here("data", file), sheet=sheet, col_names=colnames)
+  layout = layout %>% filter(!is.na(as.numeric(X__1)))
+  layout = layout %>% select(-one_of(c("X__2")))
+  layout = mutate(layout, descriptions = toupper(ifelse(is.na(X__3),X__6, paste(X__6, " - ", X__3))))
   return(layout)
 }
+```
+
+
+
+
+```{r}
+rc_years <- c("2017", "2016", "2015")
+rc_files <- c("RC17_layout.xlsx", "RC16-layout.xlsx", "RC15-layout.xlsx")
+rc_txts <- c("rc17_assessment.txt", "rc16-assessment.txt", "rc15-assessment.txt")
+rc_dfs <- vector("list", 5)
+for (i in length(rc_years)) {
+  layout = processLayout(file= rc_files[i], 
+                          sheet=paste("RC", substr(rc_years[i], nchar(rc_years[i])-1, nchar(rc_years[i])), sep=""), colnames=FALSE)
+  df = importReportCards(paste("rc", substr(rc_years[i], nchar(rc_years[i])-1, nchar(rc_years[i])),".txt", sep=""), rc_years[i], layout)
+  rc_dfs[i] <-df
+}
+```
+
+```{r}
+rc_key_phrases <- c("Summative Designation", "Low-Income", "Enrollment", "School Days", "Attendance Rate", "Truancy",	"Truant", "Truants", "Dropout", "Graduation Rate", "Grad Rate", "Class Size", "Teaching Exp", "Teacher Exp", "Teaching Experience", "Provisional Credentials", "Teacher Ratio", "Admin Ratio", "Pupil-Teacher", "Pupil-Admin", "Teacher Avg Salary", "Admin Avg Salary", "Teacher Retention", "Principal Turnover",	"Teacher Attendace", "Teacher Evaluation", "AP Classes", "AP Exams")
+rc_key_phrases <- sapply(rc_key_phrases, toupper)
+```
+
+
+```{r}
+id_info <- c("YEAR", "SCHOOL ID (R-C-D-T-S)", "SCHOOL TYPE CODE (0,1,2,C)", "SCHOOL NAME", "DISTRICT NAME", "CITY", "COUNTY", "SCHOOL TYPE NAME", "GRADES IN SCHOOL", "SCHOOL - WHITE %", "SCHOOL - BLACK %", "SCHOOL - HISPANIC %", "SCHOOL - ASIAN %")
+```
+
+
+```{r}
+rc15Layout <- processLayout(file="RC15-layout.xlsx", sheet="RC15", colnames=FALSE)
+```
+
+```{r}
+rc15 <- importReportCards("rc15.txt", "2015", rc15Layout)
+```
+
+```{r}
+rc15 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|")))
 ```
 
 ```{r}
@@ -120,4 +143,140 @@ rc16Layout <- processLayout(file="RC16-layout.xlsx", sheet="RC16", colnames=FALS
 ```{r}
 rc16 <- importReportCards("rc16.txt", "2016", rc16Layout)
 ```
+
+```{r}
+rc16 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|")))
+```
+
+
+```{r}
+rc17Layout <- processLayout(file="RC17_layout.xlsx", sheet="RC17", colnames=FALSE)
+```
+
+```{r}
+rc17 <- importReportCards("rc17.txt", "2017", rc16Layout)
+```
+
+```{r}
+rc17 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|")))
+```
+
+
+```{r}
+rc15 <- rc15 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|")))
+rc16 <- rc16 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|")))
+rc17 <- rc17 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|")))
+```
+
+
+```{r}
+ncol(rc15)
+ncol(rc16)
+ncol(rc17)
+```
+
+
+```{r}
+# bind_rows(rc15, rc16, rc17)
+rc_2015_to_2017 <- plyr::rbind.fill(rc15, rc16, rc17)
+```
+
+
+
+```{r}
+# # cols in 2016 not 2017
+# setdiff(
+#   colnames(rc17 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|"))) ), 
+#   colnames(rc16 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|"))) )
+#   )
+# 
+# # cols in 2017 not 2016
+# setdiff(
+#   colnames(rc16 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|"))) ), 
+#   colnames(rc17 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|"))) )
+#   )
+
+```
+
+
+
+```{r}
+# cols in 2017 not 2015
+setdiff(
+  colnames(rc17 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|"))) ), 
+  colnames(rc15 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|"))) )
+  )
+```
+
+
+
+```{r}
+# cols in 2015 not 2017
+add_to_2017 <- setdiff(
+  colnames(rc15 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|"))) ),
+  colnames(rc17 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|"))) )
+  )
+
+# cols in 2015 not 2016
+add_to_2016 <- setdiff(
+  colnames(rc15 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|"))) ),
+  colnames(rc16 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|"))) )
+  )
+```
+
+```{r}
+rc17[add_to_2017] <- NA
+rc16[add_to_2016] <- NA
+```
+
+```{r}
+# confirm all columns added
+setdiff(
+  colnames(rc15 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|"))) ),
+  colnames(rc17 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|"))) )
+  )
+
+setdiff(
+  colnames(rc15 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|"))) ),
+  colnames(rc16 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|"))) )
+  )
+```
+
+```{r}
+# cols in 2017 not 2015
+add_to_2015 <- setdiff(
+  colnames(rc17 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|"))) ), 
+  colnames(rc15 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|"))) )
+  )
+
+# cols in 2016 not 2015
+setdiff(
+  colnames(rc17 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|"))) ), 
+  colnames(rc15 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|"))) )
+  )
+```
+
+
+```{r}
+# add missing columns to 2015 and check that all added properly
+rc15[add_to_2015] <- NA
+setdiff(
+  colnames(rc17 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|"))) ), 
+  colnames(rc15 %>% select(id_info, matches(paste(rc_key_phrases,collapse="|"))) )
+  )
+```
+
+
+```{r}
+rc_2015_to_2017 <- NULL
+rc_2015_to_2017 <- rbind(rc_2015_to_2017, rc15)
+rc_2015_to_2017 <- rbind(rc_2015_to_2017, rc16)
+rc_2015_to_2017<- rbind(rc_2015_to_2017, rc17)
+```
+```
+
+
+
+
+
 
