@@ -1,5 +1,5 @@
 ---
-title: "R Notebook"
+title: "Chicago Public Schools Data Import"
 output: html_notebook
 ---
 
@@ -20,7 +20,6 @@ library(haven)
 library(readxl)
 library(lubridate)
 ```
-
 
 
 ```{r include=FALSE}
@@ -456,9 +455,61 @@ full_term <- plyr::rbind.fill(full_term, rc13, rc14)
 ```
 
 
+```{r}
+budget13 <- read_xlsx(here::here("data", "FY12-13 My Schools Report by Category by Unit RollUp.xlsx"), col_names = TRUE, skip = 2,
+                      col_types = c("guess", "guess", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric"))
+budget13 <- mutate(budget13, YEAR = "2013") 
+                   # `Positions Difference` = `FY 2013 Proposed Positions` - `FY 2012 Budgeted Positions`)
+```
+
+
+```{r}
+library("rvest")
+tbls2_ls <- list()
+
+# schools <- chiSchoolsURL %>%
+#   read_html() %>%
+#   rvest::html_nodes(xpath='//*[@id="ctl00_ContentPlaceHolder1_AdHocDataGrid"]/tbody') %>%
+#   rvest::html_table() 
+
+
+tbls2_ls$Table1 <- read_html("http://webapps.isbe.net/aarp/AdHocReport.aspx") %>% html_nodes("table") %>%  html_table(fill = TRUE) 
+# %>% .[[1]]
+  
+```
 
 
 
+```{r}
+library(tm)
+read <- tm::readPDF(control = list(text = "-layout"))
+schoolsByWard <- Corpus(URISource(here::here("data", "Schools_by_Ward.pdf")), readerControl = list(reader = read))
+schoolsByWard_content <- content(schoolsByWard[[1]])
+# schoolsByWard_content <- strsplit(schoolsByWard_content, "\n")
 
+```
+
+```{r}
+page_breaks <- grep("\\f", schoolsByWard_content)
+schoolsByWard_content[page_breaks[1]]
+```
+
+```{r}
+# Remove headers
+header_rows <- grep("^Schools by", schoolsByWard_content) # Remember: \f are for page breaks
+schoolsByWard_content[header_rows] <- "page" # I put a marker here that will be useful later
+# schoolsByWard_content <- schoolsByWard_content[- (header_rows - 2)]
+
+
+# Remove footers
+footer_rows <- grep("\\f$", schoolsByWard_content) # Remember: \f are for page breaks
+schoolsByWard_content[footer_rows] <- "page" # I put a marker here that will be useful later
+schoolsByWard_content <- schoolsByWard_content[- (footer_rows - 1)]
+```
+
+
+```{r}
+schoolsByWard_content
+```
 
 
