@@ -485,26 +485,24 @@ library(tm)
 read <- tm::readPDF(control = list(text = "-layout"))
 schoolsByWard <- Corpus(URISource(here::here("data", "Schools_by_Ward.pdf")), readerControl = list(reader = read))
 schoolsByWard_content <- content(schoolsByWard[[1]])
-# schoolsByWard_content <- strsplit(schoolsByWard_content, "\n")
+schoolsByWard_content <- unlist(schoolsByWard_content <- strsplit(schoolsByWard_content, "\n"))
 
 ```
 
 ```{r}
-page_breaks <- grep("\\f", schoolsByWard_content)
-schoolsByWard_content[page_breaks[1]]
+page_breaks <- grep("02/05/2019", schoolsByWard_content)
+schoolsByWard_content <- schoolsByWard_content[- (page_breaks)]
+
 ```
 
 ```{r}
 # Remove headers
-header_rows <- grep("^Schools by", schoolsByWard_content) # Remember: \f are for page breaks
-schoolsByWard_content[header_rows] <- "page" # I put a marker here that will be useful later
-# schoolsByWard_content <- schoolsByWard_content[- (header_rows - 2)]
+header_rows <- grep("^Schools by", schoolsByWard_content) 
 
+schoolsByWard_content <- schoolsByWard_content[- (header_rows)]
 
-# Remove footers
-footer_rows <- grep("\\f$", schoolsByWard_content) # Remember: \f are for page breaks
-schoolsByWard_content[footer_rows] <- "page" # I put a marker here that will be useful later
-schoolsByWard_content <- schoolsByWard_content[- (footer_rows - 1)]
+subtitle_rows <- grep("^Based on", schoolsByWard_content) 
+schoolsByWard_content <- schoolsByWard_content[- (subtitle_rows)]
 ```
 
 
