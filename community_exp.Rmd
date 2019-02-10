@@ -18,7 +18,7 @@ library(readxl)
 library(astsa)
 library(Hmisc)
 library(ipumsr)
-library(censusapi)
+library(tidycensus)
 library(lubridate)
 library(here)
 
@@ -176,11 +176,9 @@ wardSides <- read_csv(here::here("data", "wardSides.csv"))
 
 
 ```{r}
-# tidycensus::census_api_key(Sys.getenv("CENSUS_API_KEY"), install=TRUE, overwrite=TRUE)
-
 # want to know: how population changing/ not changing across tracts - race, age, income, poverty status, safety net takeup
-
-demos_17 <- tidycensus::get_acs(geography = "tract", 
+getDemos <- function(acs_year) {
+  tidycensus::get_acs(geography = "tract", 
               variables = c(medianIncome = 'B19013_001',
                             perCapitaIncome = 'B19301_001',
                             population = 'B02001_001',
@@ -189,6 +187,7 @@ demos_17 <- tidycensus::get_acs(geography = "tract",
                             blackPop = 'B02001_003',
                             latinxPop = 'B03001_003',
                             asianPop = 'B02001_005',
+                            citizenshipPop = 'B05001_001',
                             naturalized = 'B05001_005',
                             noncitizen = 'B05001_006',
                             mobilityPop = 'B07001_001',
@@ -196,55 +195,105 @@ demos_17 <- tidycensus::get_acs(geography = "tract",
                             movedInside20to24 = 'B07001_021',  #hipster age movement inside Cook County
                             movedInside25to29 = 'B07001_022', 
                             medAgemovedInside = 'B07002_003',
+                            renterPop = 'B07013_001',
                             owners = 'B07013_002',
-                            retners = 'B07013_003',
+                            renters = 'B07013_003',
+                            transportPop = 'B08122_001',
                             publicTransport = 'B08122_013',
                             households = 'B22001_001',
                             householdsSNAP = 'B22001_002',
                             householdsKidsSNAP = 'B22002_003',
                             kidsHealthIns = 'B27001_007',
                             medicarePop = 'C27006_001',
-                            maleChildMedicare = 'C27006_003',
-                            maleMedicare = 'C27006_002',
-                            femaleChildMedicare = 'C27006_013',
-                            femaleMedicare = 'C27006_012',
+                            maleChildMedicare = 'C27006_004',
+                            maleMedicare18_64 = 'C27006_007',
+                            maleMedicare65_up = 'C27006_010',
+                            femaleMedicare18_64 = 'C27006_017',
+                            femaleMedicare65_up = 'C27006_020',
+                            femaleChildMedicare = 'C27006_014',
                             medicaidPop = 'C27007_001',
-                            maleChildMedicaid = 'C27007_003',
-                            maleMedicaid = 'C27007_002',
-                            femaleChildMedicaid = 'C27007_013',
-                            femaleMedicaid = 'C27007_012'
+                            maleChildMedicaid = 'C27007_004',
+                            maleMedicaid18_64 = 'C27007_007',
+                            maleMedicaid65_up = 'C27007_010',
+                            femaleMedicaid18_64 = 'C27007_017',
+                            femaleMedicaid65_up = 'C27007_020',
+                            femaleChildMedicaid = 'C27007_014'
                             ), 
-              year = 2017,
+              year = acs_year,
               state = "IL",
-              county = "Cook")
+              county = "Cook",
+              geometry = TRUE,
+              options(tigris_use_cache = TRUE))
+}
+```
+
+
+```{r message=FALSE}
+# tidycensus::census_api_key(Sys.getenv("CENSUS_API_KEY"))
+demos_17 <- getDemos(acs_year=2017)
 ```
 
 ```{r}
-demos_17 %>% dplyr::select(-one_of("moe")) %>% spread(variable, estimate)
+
+demoConversion <- function(acs_year) {
+  demo_df <- getDemos(acs_year=acs_year)
+  demo_df <- demo_df %>% dplyr::select(-one_of("moe")) %>% spread(variable, estimate)
+  demo_df <- demo_df %>% mutate(
+                      asian_pct = asianPop/ population,
+                      black_pct = blackPop / population,
+                      latinx_pct = latinxPop/ population,
+                      white_pct = whitePop/ population,
+                      other_pct = ifelse((population - blackPop - latinxPop - whitePop - asianPop) / population > 0, 
+                                         (population - blackPop - latinxPop - whitePop - asianPop) / population, NA),
+                      below_poverty_pct = belowPovertyPop / population,
+                      childMedicaid_pct = (femaleChildMedicaid + maleChildMedicaid) / medicarePop,
+                      childMedicare_pct = (femaleChildMedicare + maleChildMedicare) / medicarePop,
+                      takeupMedicare_pct = (maleChildMedicare + maleMedicare18_64 + maleMedicare65_up +
+                          femaleChildMedicare + femaleMedicare18_64 + femaleMedicare65_up) / medicarePop,
+                      takeupMedicaid_pct = (maleChildMedicaid + maleMedicaid18_64 + maleMedicaid65_up +
+                          femaleChildMedicaid + femaleMedicaid18_64 + femaleMedicaid65_up) / medicaidPop,
+                      households_kidsSNAP_pct = householdsKidsSNAP / households,
+                      takeupSNAP_pct = householdsSNAP / households,
+                      YAmovesInChi_pct = (movedInside20to24 + movedInside25to29) / mobilityPop,
+                      movesInChi_pct = movedInsideCounty / mobilityPop,
+                      immigrant_pct = (naturalized + noncitizen) / citizenshipPop,
+                      renting_pct = renters / renterPop,
+                      public_transport_pct = publicTransport / transportPop
+                      ) %>% dplyr::select(GEOID, NAME, medianIncome, perCapitaIncome, population, medAgemovedInside, contains("_pct"), geometry)
+  
+    demo_df <- left_join(demo_df, demo_df %>% group_by(GEOID, NAME) %>% 
+                           select(GEOID, NAME, geometry, black_pct, latinx_pct, asian_pct, white_pct, other_pct) %>%
+                           gather(group_name, pct, -GEOID, -NAME, -geometry) %>% 
+                           slice(which.max(pct)) %>% mutate(predominant_race = ifelse(group_name == 'black_pct', 'Black',
+                                                       ifelse(group_name == 'white_pct', 'White',
+                                                       ifelse(group_name == 'asian_pct', 'Asian',
+                                                       ifelse(group_name == 'latinx_pct', 'Latinx',
+                                                       ifelse(group_name == 'other_pct', 'Other')))))) %>% 
+                           dplyr::select(GEOID, NAME, predominant_race), by=c("GEOID", "NAME"))
+    return(demo_df)
+}
+```
+
+
+```{r}
+demoConversion(2012)
 ```
 
 
 
+
+
 ```{r}
-years <- lst(2013, 2014, 2015, 2016, 2017, 2018)
+years <- lst(2012, 2013, 2014, 2015, 2016, 2017)
 
 multi_year <-
-  map(
-    years,
-    ~ get_acs(
-      geography = "county",
-      variables = "B01003_001",
-      state = "IL",
-      year = .x,
-      geometry = TRUE
-      )
-  ) %>%
+  map(years ~ demoConversion(year = .x)) %>%
   map2(years, ~ mutate(.x, id = .y))
 
-nc <- reduce(multi_year, rbind)
+all_demos <- reduce(multi_year, rbind)
 
-ggplot(nc) +
-  geom_sf(aes(fill = estimate), color = NA) +
+ggplot(all_demos) +
+  geom_sf(aes(fill = medianIncome, color=predominant_race)) +
   coord_sf(datum = NA) +
   facet_wrap(~ id)
 ```
