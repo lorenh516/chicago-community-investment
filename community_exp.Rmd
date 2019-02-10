@@ -12,12 +12,11 @@ rm(list=ls())
 library(tidyverse)
 library(dplyr)
 library(haven)
-library(stargazer)
+# library(stargazer)
 library(xtable)
 library(readxl)
-library(astsa)
+# library(astsa)
 library(Hmisc)
-library(ipumsr)
 library(tidycensus)
 library(lubridate)
 library(here)
@@ -38,7 +37,7 @@ library(rgdal)
 library(rgeos)
 library(maptools)
 library(ggmap)
-library(tidycensus)
+library(sf)
 ```
 
 ```{r setup, include=FALSE}
@@ -222,14 +221,15 @@ getDemos <- function(acs_year) {
               year = acs_year,
               state = "IL",
               county = "Cook",
-              geometry = TRUE,
-              options(tigris_use_cache = TRUE))
+              geometry = TRUE
+              # options(tigris_use_cache = TRUE)
+              )
 }
 ```
 
 
 ```{r message=FALSE}
-# tidycensus::census_api_key(Sys.getenv("CENSUS_API_KEY"))
+tidycensus::census_api_key(Sys.getenv("CENSUS_API_KEY"))
 demos_17 <- getDemos(acs_year=2017)
 ```
 
@@ -261,15 +261,17 @@ demoConversion <- function(acs_year) {
                       public_transport_pct = publicTransport / transportPop
                       ) %>% dplyr::select(GEOID, NAME, medianIncome, perCapitaIncome, population, medAgemovedInside, contains("_pct"), geometry)
   
-    demo_df <- left_join(demo_df, demo_df %>% group_by(GEOID, NAME) %>% 
-                           select(GEOID, NAME, geometry, black_pct, latinx_pct, asian_pct, white_pct, other_pct) %>%
+    demo_df <- st_join(demo_df, demo_df %>% group_by(GEOID, NAME) %>% 
+                           dplyr::select(GEOID, NAME, geometry, black_pct, latinx_pct, asian_pct, white_pct, other_pct) %>%
                            gather(group_name, pct, -GEOID, -NAME, -geometry) %>% 
                            slice(which.max(pct)) %>% mutate(predominant_race = ifelse(group_name == 'black_pct', 'Black',
                                                        ifelse(group_name == 'white_pct', 'White',
                                                        ifelse(group_name == 'asian_pct', 'Asian',
                                                        ifelse(group_name == 'latinx_pct', 'Latinx',
                                                        ifelse(group_name == 'other_pct', 'Other')))))) %>% 
-                           dplyr::select(GEOID, NAME, predominant_race), by=c("GEOID", "NAME"))
+                           dplyr::select(GEOID, NAME, predominant_race)
+                       # , by=c("GEOID", "NAME")
+                       )
     return(demo_df)
 }
 ```
@@ -283,26 +285,37 @@ demoConversion(2012)
 
 
 
-```{r}
+```{r facet_wrap_demo_info, message=FALSE, warning=FALSE, fig.width=8}
 years <- lst(2012, 2013, 2014, 2015, 2016, 2017)
 
 multi_year <-
-  map(years ~ demoConversion(year = .x)) %>%
-  map2(years, ~ mutate(.x, id = .y))
+  map(.x = years, .f=demoConversion) %>%
+  map2(.y = years, ~ mutate(.x, id = .y))
 
 all_demos <- reduce(multi_year, rbind)
 
 ggplot(all_demos) +
-  geom_sf(aes(fill = medianIncome, color=predominant_race)) +
+  geom_sf(aes(color=predominant_race)) +
   coord_sf(datum = NA) +
-  facet_wrap(~ id)
+  theme_minimal() + 
+  theme(axis.title.y = element_blank(),
+        axis.title.x = element_blank(),
+        # axis.text.y = element_blank(),
+        axis.ticks.x=element_blank(),
+        panel.grid.minor.y=element_blank(),
+        panel.grid.minor.x=element_blank(),
+        # panel.grid.major.y=element_blank(),
+        panel.grid.major.x=element_blank(),
+        panel.border=element_blank(),
+        plot.title = element_text(size = 30, face = "bold", hjust="0.5"),
+        plot.caption = element_text(size = 15)) +
+  facet_wrap(~ id) + labs(
+    title = "Predoinantly Latinx, Black Populations Being Edged out of Waterfront Neighborhoods",
+    caption = "Source: U.S. Census Bureau"
+  )
+  
 ```
 
-
-```{r}
-v15 <- tidycensus::load_variables(2015, "acs5", cache = TRUE)
-View(v15)
-```
 
 
 ```{r}
@@ -447,7 +460,7 @@ bus_licenses %>% filter(activity_date >= "2013-1-1", !is.na(WARD), !WARD %in% c(
   geom_line(aes(x=ymd(activity_wk), y=business_count, colour="grey")) +
   gghighlight(max(business_count), max_highlight = 2, label_key = WARD) + 
    geom_line(filter(data, ward %in% c("loop1", "loop2", "loop3", "loop4", "pilsen", "garfield")),
-    aes(x=ymd(activity_wk), y=business_count), color=WARD), show.legend = FALSE, alpha=0.5) + 
+    aes(x=ymd(activity_wk), y=business_count, color=WARD), show.legend = FALSE, alpha=0.5) + 
   geom_label_repel(data = bus_licenses %>% filter(activity_date >= "2013-1-1",
     WARD %in% c(2, 42, 43, 44), active==1) %>% group_by(WARD, activity_wk) %>%
     summarise(business_count = n()) %>% filter(business_count ==
