@@ -257,7 +257,7 @@ rc18 %>% filter(grepl("City of Chicago", `DISTRICT NAME`)) %>% select(id_info, m
 ```
 
 ```{r}
-rc18 <- rc18 %>% filter(grepl("City of Chicago", `DISTRICT NAME`)) %>% select(id_info18, matches(paste(rc_key_phrases,collapse="|")), -contains("IEP"), -contains("TWO OR MORE"), -contains("OTHER"), -contains("ALASKA"), -contains("NUMBER EL"), -contains(" - SUBREGION"), -contains(" - DISTRICT"))
+rc18 <- rc18 %>% filter(grepl("City of Chicago", `DISTRICT NAME`)) %>% select(id_info, matches(paste(rc_key_phrases,collapse="|")), -contains("IEP"), -contains("TWO OR MORE"), -contains("OTHER"), -contains("ALASKA"), -contains("NUMBER EL"), -contains(" - SUBREGION"), -contains(" - DISTRICT"))
 ```
 
 ```{r}
@@ -456,34 +456,9 @@ full_term <- plyr::rbind.fill(full_term, rc13, rc14)
 
 
 ```{r}
-budget13 <- read_xlsx(here::here("data", "FY12-13 My Schools Report by Category by Unit RollUp.xlsx"), col_names = TRUE, skip = 2,
-                      col_types = c("guess", "guess", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric"))
-budget13 <- mutate(budget13, YEAR = "2013") 
-                   # `Positions Difference` = `FY 2013 Proposed Positions` - `FY 2012 Budgeted Positions`)
-```
-
-
-```{r}
-library("rvest")
-tbls2_ls <- list()
-
-# schools <- chiSchoolsURL %>%
-#   read_html() %>%
-#   rvest::html_nodes(xpath='//*[@id="ctl00_ContentPlaceHolder1_AdHocDataGrid"]/tbody') %>%
-#   rvest::html_table() 
-
-
-tbls2_ls$Table1 <- read_html("http://webapps.isbe.net/aarp/AdHocReport.aspx") %>% html_nodes("table") %>%  html_table(fill = TRUE) 
-# %>% .[[1]]
-  
-```
-
-
-
-```{r}
 library(tm)
 read <- tm::readPDF(control = list(text = "-layout"))
-schoolsByWard <- Corpus(URISource(here::here("data", "Schools_by_Ward.pdf")), readerControl = list(reader = read))
+schoolsByWard <- Corpus(URISource(here::here("data", "Schools_by_Ward_2012.pdf")), readerControl = list(reader = read))
 schoolsByWard_content <- content(schoolsByWard[[1]])
 schoolsByWard_content <- unlist(schoolsByWard_content <- strsplit(schoolsByWard_content, "\n"))
 
@@ -492,7 +467,6 @@ schoolsByWard_content <- unlist(schoolsByWard_content <- strsplit(schoolsByWard_
 ```{r}
 page_breaks <- grep("02/05/2019", schoolsByWard_content)
 schoolsByWard_content <- schoolsByWard_content[- (page_breaks)]
-
 ```
 
 ```{r}
@@ -507,7 +481,132 @@ schoolsByWard_content <- schoolsByWard_content[- (subtitle_rows)]
 
 
 ```{r}
-schoolsByWard_content
+# add delimiters to PDF text corpus
+schoolsByWard <-  gsub(" {2,100}", ";", schoolsByWard_content)
 ```
 
+```{r}
+# Concatenate cut-off rows
+to_remove <- list()
+
+for (i in 1:length(schoolsByWard)) {
+  if (str_count(schoolsByWard[i],";") == 3 ) {
+    schoolsByWard[[i]] = gsub("Ave ", "Ave;", schoolsByWard[[i]])
+    schoolsByWard[[i]] = gsub("Blvd ", "Blvd;", schoolsByWard[[i]])
+    
+  } else if (str_count(schoolsByWard[i],";") < 3 ) {
+    if (";Dr" %in% schoolsByWard[[i]] | ";Ave" %in% schoolsByWard[[i]]) {
+      schoolsByWard[[i]] = paste(str_match(schoolsByWard[i-1], '^(?:[^;]*;){3}([^;]*)'), " ", gsub(";", "", schoolsByWard[[i]]), ";", str_match(schoolsByWard[i-1], '(?:[^;]*;){0}([^;]*)$'), sep="")[1]
+      to_remove <- append(to_remove, i-1)
+      
+    } else {
+    schoolsByWard[[i]] = paste(str_match(schoolsByWard[[i-1]], '^(?:[^;]*;){2}([^;]*)'), " ", gsub(";", "", str_match(schoolsByWard[[i]],'(?:[^;]*;)([^;][:alpha:]+[:space:]*){1,4}')), ";", str_match(schoolsByWard[[i-1]], '(?:[^;]*;){1}([^;]*)$'), sep="")[1]
+    to_remove <- append(to_remove, i-1)
+    }
+  }
+}
+
+schoolsByWard <- schoolsByWard[-(unlist(to_remove))]
+```
+
+
+
+```{r}
+schoolsByWard <-  read.table(text=schoolsByWard, sep=";", quote="", stringsAsFactors=FALSE, header = TRUE)
+schoolsByWard <- schoolsByWard %>% select(-one_of('X'))
+```
+
+
+```{r}
+read_csv(here::here("data", "Chicago_Public_Schools_-_School_Profile_Information_SY1617.csv"), col_names = TRUE)
+```
+
+```{r}
+formatBudget <- function(budget_df, year) {
+  df_names <- colnames(budget_df)
+  for (i in 1:length(df_names)) {
+    
+    if (str_detect(df_names[i], as.character(year))) {
+       df_names[i] <-  gsub(paste("FY ",year," ", sep=""),"", df_names[i])
+       df_names[i] <-  gsub(paste("FY",year," ", sep=""),"", df_names[i])
+    } else if (str_detect(df_names[i], as.character(year - 1))) {
+      df_names[i] <- gsub(paste("FY ",year - 1," ", sep=""),"Previous Year ", df_names[i])
+      df_names[i] <- gsub(paste("FY",year - 1," ", sep=""),"Previous Year ", df_names[i])
+    } else if (str_detect(df_names[i], as.character(year - 2))) {
+      df_names[i] <- gsub(paste("FY ",year - 2," ", sep=""),"2 Yr Prior ", df_names[i])
+      df_names[i] <- gsub(paste("FY",year - 2," ", sep=""),"2 Yr Prior ", df_names[i])
+    } 
+    
+    if (str_detect(df_names[i], "Difference of")) { 
+      df_names[i] <- str_match(df_names[i], "(.)+Difference")[1] 
+      }
+    if ((df_names[i] == "Budget") || (df_names[i] == "Positions") ) { 
+      df_names[i] <- str_c(df_names[i], " Difference") 
+      }
+  } 
+  return(df_names)
+}
+```
+
+
+
+
+```{r warning=FALSE}
+compileBudgets <- function(filename, year, col_types=c("guess", "guess", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric")) {
+  
+  budget_df <- read_xlsx(here::here("data", filename), col_names = TRUE, skip = 2,
+                        col_types = col_types)
+  budget_df <- budget_df %>% mutate(unitNum = gsub("U", "", Unit),
+                                    YEAR=year)
+  colnames(budget_df) <- formatBudget(budget_df, year)
+  return(budget_df)
+ }
+```
+
+```{r warning=FALSE}
+
+
+bud13 <- compileBudgets("FY12-13 My Schools Report by Category by Unit RollUp.xlsx", 2013, col_types=c("guess", "guess", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric"))
+bud14 <- compileBudgets("FY12-14 My Schools Report by Category by Unit RollUp.xlsx", 2014)
+bud15 <- compileBudgets("FY13-15 My Schools Report by Category by Unit RollUp.xlsx", 2015)
+bud16 <- compileBudgets("FY14-16 My Schools Report by Category by Unit RollUp.xlsx", 2016)
+bud17 <- compileBudgets("FY15-17 My Schools Report by Category by Unit RollUp.xlsx", 2017, col_types=c("guess", "guess", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric"))
+bud18 <- compileBudgets("FY16-18 My Schools Report by Category by Unit RollUp.xlsx", 2018)
+bud19 <- compileBudgets("FY18-19 My Schools Report by Category by Unit RollUp.xlsx", 2019)
+```
+
+
+
+```{r}
+all_budgets <- plyr::rbind.fill(bud13, bud14, bud15, bud16, bud17, bud18, bud19)
+```
+
+
+```{r}
+all_budgets <- all_budgets %>% mutate(`Proposed Budget` = ifelse(is.na(`Proposed Budget`), `Approved Budget`, `Proposed Budget`),
+                                      `Proposed Positions` = ifelse(is.na(`Proposed Positions`), `Approved Positions`, `Proposed Positions`))
+```
+
+
+```{r}
+# look at rows missing budget difference
+all_budgets %>% filter(is.na(`Budget Difference`))
+```
+
+
+```{r message=FALSE, warning=FALSE}
+id_overlap <- read_csv(here::here("data", "Chicago_Public_Schools_-_School_Profile_Information_SY1617.csv"), col_names = TRUE)
+id_overlap <- id_overlap %>% mutate(Finance_ID = as.character(Finance_ID))
+```
+
+
+```{r}
+all_budgets <- left_join(all_budgets, id_overlap, by = c("unitNum" = "Finance_ID")) %>% 
+  select( contains('_ID'), contains("long_name"),contains("address"), one_of(colnames(all_budgets)), contains("latitude"), contains("longitude"))
+```
+
+```{r}
+all_budgets <- left_join(all_budgets, schoolsByWard, by = c("unitNum" = "Finance_ID")) %>% 
+  select( contains('_ID'), contains("long_name"),contains("address"), one_of(colnames(all_budgets)), contains("latitude"), contains("longitude"))
+```
 
