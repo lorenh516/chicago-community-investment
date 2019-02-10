@@ -30,6 +30,9 @@ library(gghighlight)
 library(ggalt)
 library(scales)
 library(extrafont)
+# font_import()
+# loadfonts()
+library(swatches)
 
 # mapping tools
 library(raster)
@@ -133,8 +136,75 @@ monochromatic_C6C3FF <- c(
  #                  collapse = "" 
  #              )
  #      ) )
+)
 
 ```
+
+```{r}
+
+```
+
+
+
+```{r}
+theme_diverging_green <- function(base_size = 12,
+                                  base_family = "Encode Sans",
+                                  base_line_size = base_size / 25,
+                                  base_rect_size = base_size / 25) {
+  require(grid)
+  theme_minimal(base_size = base_size, 
+                base_family = base_family,
+                base_line_size = base_line_size) 
+  %+replace%
+    theme(
+        axis.title = element_text(size = rel(0.75)),
+        axis.text = element_text(size = rel(0.5)),
+        axis.ticks=element_line(colour="grey", size=0.5),
+        panel.grid.minor =element_line(colour="lightgrey", size=0.25),
+        legend.box = NULL, 
+        legend.text = element_text(size = rel(0.)),
+        legend.key.height = NULL,
+        legend.key.width = NULL,
+        legend.key = element_rect(fill = NA, colour = NA),
+        legend.background = element_rect(colour = NA, fill=NA), 
+        legend.position = "right",
+        legend.justification = "center", 
+        plot.background = element_rect(colour = NA, fill=NA),
+        plot.margin = unit(c(0,0,0,0),"lines"),
+        plot.title = element_text(size = rel(2), face = "bold", hjust="0.5"),
+        plot.caption = element_text(size = rel(1.25)),
+        strip.background = element_rect(colour = NA, fill=NA),
+        strip.text = element_text(face = "bold")
+        panel.spacing = unit(0,"lines"),
+        panel.border=element_blank(),
+        complete = TRUE
+    )
+}
+  
+  
+
+theme_clean_map <- function(base_size = 12) {
+  require(grid)
+  theme_void(base_size) %+replace%
+    theme(
+        axis.title.y = element_blank(),
+        axis.title.x = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks=element_blank(),
+        panel.grid.minor.y=element_blank(),
+        panel.grid.minor.x=element_blank(),
+        panel.grid.major.x=element_blank(),
+        panel.border=element_blank(),
+        plot.title = element_text(size = 30, face = "bold", hjust="0.5"),
+        plot.caption = element_text(size = 15),
+        panel.spacing    =   unit(0,"lines"),
+        plot.margin     =   unit(c(0,0,0,0),"lines")
+    )
+}
+
+theme_set(theme_gray(base_size = 20))
+```
+
 
 ```{r import-licenses, message=FALSE, warning=FALSE}
 bus_licenses <- read_csv(here::here("data", "Business_Licenses.csv"))
@@ -228,6 +298,11 @@ wards.2015 <- wards.2015 %>% mutate(ctr = sf::st_transform(wards.2015, 29101) %>
   st_transform(., '+proj=longlat +ellps=WGS84 +no_defs') %>%
   # add as a second geometry col:
   st_geometry())
+
+filter(name %in% co_names) %>% # filter to just the counties we want
+  
+wards.2015 <- wards.2015 %>% mutate(lon=map_dbl(geometry, ~st_centroid(.x)[[1]]), # add centroid values for labels
+                                    lat=map_dbl(geometry, ~st_centroid(.x)[[2]])) # add centroid values for labels
 ```
 
 
@@ -335,23 +410,33 @@ demoConversion <- function(acs_year) {
 
 
 ```{r}
-years <- lst(2012, 2013, 2014, 2015, 2016, 2017)
+years <- list(2012, 2013, 2014, 2015, 2016, 2017)
 
 multi_year <-
   map(.x = years, .f=demoConversion) %>%
   map2(.y = years, ~ mutate(.x, id = .y))
 
 all_demos <- reduce(multi_year, rbind)
+rm(multi_year)
+
+rm(wards.shp.2015, wards2015.df, wards2015.points, wards2015)
+```
+
+```{r}
+wards.2015.acs.proj <- st_transform(wards.2015, crs = st_crs(all_demos))
+all.demos.Chi <- st_intersection(all_demos, wards.2015.acs.proj)
 ```
 
 
 
 ```{r facet_wrap_demo_info, message=FALSE, warning=FALSE, fig.width=10}
-ggplot(st_intersection(all_demos, st_transform(wards.2015, crs = st_crs(all_demos)))) +
+
+ggplot(all.demos.Chi) +
   geom_sf(aes(fill=predominant_race), lwd = 0) +
-  geom_sf(data = wards.2015, color="black", fill=NA) +
-  geom_sf_label(data = wards.2015, aes(label=ward)) +
-  coord_sf(crs = st_crs(all_demos), datum = NA) +
+  geom_sf(data = wards.2015.acs.proj, color="black", fill=NA) +
+  geom_text_repel(data=filter(wards.2015.acs.proj, ward %in% c(4, 9, 10, 13, 14, 22, 18, 34)), 
+                  aes(x=lon, y=lat, label=ward)) +
+  coord_sf(datum = NA) +
   theme_minimal() + 
   theme(axis.title.y = element_blank(),
         axis.title.x = element_blank(),
@@ -365,15 +450,16 @@ ggplot(st_intersection(all_demos, st_transform(wards.2015, crs = st_crs(all_demo
         plot.title = element_text(size = 30, face = "bold", hjust="0.5"),
         plot.caption = element_text(size = 15)) +
   facet_wrap( ~ id) + labs(
-    title = "Predoinantly Latinx, Black Populations Being Edged out of Waterfront Neighborhoods",
-    caption = "Source: U.S. Census Bureau"
+    title = "Latinx Populations Being Edged out\nof Central, Waterfront Neighborhoods",
+    subtitle = "Chicago Racial and Ethnic Group Movement by Census Tract Since 2012",
+    caption = "Source: U.S. Census Bureau", color = "Race"
   )
   
 ```
 
 
 ```{r save-bus-locs, warning=FALSE, include = FALSE}
-# ggsave("ward_demographics.pdf", width = 30, height = 25, units = "cm")
+ggsave("ward_demographics.pdf", width = 30, height = 25, units = "cm")
 ```
 
 
@@ -702,6 +788,8 @@ rm(voter_turnout11, voter_turnout15)
 ```{r}
 ggsave("ward_election_turnout2011_2015.pdf", width = 36, height = 23, units = "cm")
 ```
+
+
 
 
 
