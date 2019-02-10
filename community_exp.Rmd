@@ -111,58 +111,24 @@ monochromatic_C6C3FF <- c(
 ```
 
 
-```{r include=FALSE}
- # tanf09c <- SAScii::parse.SAScii( here("data", "tanf09", "input_TANF09c.sas"))
- # tanf09c$varname <- tolower( tanf09c$varname )
- #    
- #    # tanf09a <- SAScii::parse.SAScii(here("data", "tanf09", "input_TANF09a.sas"))
- #    # tanf09a$varname <- tolower( tanf09a$varname )
- #    
- #    cols_to_import <- tolower(c("FIPS", "COUNTY", "RPTMN", "ZIP", "REC_FS", "DOB1", "MARIT1", "EDUL1", "EMPLOY1"))
- #    
- #  # import fixed-width files
- #  tanf09c_df <- 
- #      data.frame( readr::read_fwf(
- #          here("data", "tanf09", "TANF09C.TXT"),
- #          readr::fwf_widths( 
- #              abs( tanf09c$width ) , col_names = tanf09c[ , 'varname' ] 
- #          ) ,
- #          col_types = 
- #              paste0( 
- #                  ifelse( !( tanf09c$varname %in% cols_to_import ) , 
- #                      "_" , 
- #                      ifelse( tanf09c$char , "c" , "d" ) 
- #                  ) , 
- #                  collapse = "" 
- #              )
- #      ) )
-)
 
-```
-
-```{r}
-
-```
-
-
-
-```{r}
-theme_diverging_green <- function(base_size = 12,
-                                  base_family = "Encode Sans",
+```{r set_theme}
+theme_modest <- function(base_size = 12,
+                                  base_family = "Roboto",
                                   base_line_size = base_size / 25,
                                   base_rect_size = base_size / 25) {
   require(grid)
   theme_minimal(base_size = base_size, 
                 base_family = base_family,
-                base_line_size = base_line_size) 
-  %+replace%
+                base_line_size = base_line_size)  %+replace%
     theme(
-        axis.title = element_text(size = rel(0.75)),
-        axis.text = element_text(size = rel(0.5)),
+        axis.title = element_text(size = rel(0.85)),
+        axis.text = element_text(size = rel(0.6)),
         axis.ticks=element_line(colour="grey", size=0.5),
-        panel.grid.minor =element_line(colour="lightgrey", size=0.25),
+        panel.grid.major = element_line(colour="grey", size=0.4),
+        panel.grid.minor = element_line(colour="lightgrey", size=0.25),
         legend.box = NULL, 
-        legend.text = element_text(size = rel(0.)),
+        legend.text = element_text(size = rel(0.75)),
         legend.key.height = NULL,
         legend.key.width = NULL,
         legend.key = element_rect(fill = NA, colour = NA),
@@ -171,10 +137,11 @@ theme_diverging_green <- function(base_size = 12,
         legend.justification = "center", 
         plot.background = element_rect(colour = NA, fill=NA),
         plot.margin = unit(c(0,0,0,0),"lines"),
-        plot.title = element_text(size = rel(2), face = "bold", hjust="0.5"),
-        plot.caption = element_text(size = rel(1.25)),
+        plot.title = element_text(size = rel(1.5), face = "bold", hjust="0.5"),
+        plot.subtitle = element_text(size = rel(1.25), face = "bold", hjust="0.5"),
+        plot.caption = element_text(size = rel(0.75), hjust = 1),
         strip.background = element_rect(colour = NA, fill=NA),
-        strip.text = element_text(face = "bold")
+        strip.text = element_text(face = "bold"),
         panel.spacing = unit(0,"lines"),
         panel.border=element_blank(),
         complete = TRUE
@@ -183,9 +150,9 @@ theme_diverging_green <- function(base_size = 12,
   
   
 
-theme_clean_map <- function(base_size = 12) {
+theme_map_modest <- function(base_size = 12) {
   require(grid)
-  theme_void(base_size) %+replace%
+  theme_modest(base_size) %+replace%
     theme(
         axis.title.y = element_blank(),
         axis.title.x = element_blank(),
@@ -195,14 +162,12 @@ theme_clean_map <- function(base_size = 12) {
         panel.grid.minor.x=element_blank(),
         panel.grid.major.x=element_blank(),
         panel.border=element_blank(),
-        plot.title = element_text(size = 30, face = "bold", hjust="0.5"),
-        plot.caption = element_text(size = 15),
-        panel.spacing    =   unit(0,"lines"),
-        plot.margin     =   unit(c(0,0,0,0),"lines")
+        panel.spacing = unit(0,"lines")
+        # plot.margin  =  unit(c(0,0,0,0),"lines")
     )
 }
 
-theme_set(theme_gray(base_size = 20))
+theme_set(theme_modest(base_size = 12))
 ```
 
 
@@ -252,10 +217,13 @@ bus_licenses <- left_join(bus_licenses, wardSides, by="WARD")
 
 
 ```{r pre-2015-lic}
-bus_licenses %>% group_by(activity_date, WARD) %>% summarise(business_count = n()) %>% filter(activity_date < mdy("1/1/2015"), !is.na(WARD)) %>%
+# data exploration
+bus_licenses %>% group_by(activity_date, WARD) %>% summarise(business_count = n()) %>% 
+  filter(activity_date < mdy("1/1/2015"), !is.na(WARD)) %>%
   ggplot() + geom_line(aes(x=activity_date, y=business_count, colour=as.factor(WARD))) +
   gghighlight(min(business_count), max_highlight = 3L) +
-  labs(y="Business Count", x="Activity Date", colour="Ward", title="Chicago Ward Business Presence", caption="Data Source: Chicago Open Data Portal")
+  labs(y="Business Count", x="Activity Date", colour="Ward", title="Chicago Ward Business Presence", caption="Data Source: Chicago Open Data Portal") + 
+  theme_modest()
 ```
 
 ```{r check-2012-spike}
@@ -264,12 +232,12 @@ bus_licenses %>% group_by(activity_date, WARD) %>% summarise(bus_count = n()) %>
 ```
 
 ```{r pre-2015-licensing}
-bus_licenses %>% filter(
-  activity_date < mdy("1/1/2015"), !is.na(WARD), !(activity_date== mdy("12/29/2012")), active==1) %>%
-  group_by(activity_date, WARD) %>% summarise(business_count = n()) %>% 
-  ggplot() + geom_line(aes(x=activity_date, y=business_count, colour=as.factor(WARD))) +
-  gghighlight(min(business_count), max_highlight = 3L) +
-  labs(y="Business Count", x="Activity Date", colour="Ward", title="Chicago Ward Business Presence (2002-2015)", caption="Data Source: Chicago Open Data Portal")
+# bus_licenses %>% filter(
+#   activity_date < mdy("1/1/2015"), !is.na(WARD), !(activity_date== mdy("12/29/2012")), active==1) %>%
+#   group_by(activity_date, WARD) %>% summarise(business_count = n()) %>% 
+#   ggplot() + geom_line(aes(x=activity_date, y=business_count, colour=as.factor(WARD))) +
+#   gghighlight(min(business_count), max_highlight = 3L) +
+#   labs(y="Business Count", x="Activity Date", colour="Ward", title="Chicago Ward Business Presence (2002-2015)", caption="Data Source: Chicago Open Data Portal")
 ```
 
 
@@ -280,29 +248,34 @@ bus_licenses %>% filter(
 
 ```{r import-former-wards}
 wardsPre2015 <- sf::st_read(here::here("data","Geofiles - Chicago Zip Code and Neighborhood", "Boundaries - Wards (2003-2015)","geo_export_fa687596-87b6-4059-afac-b28ce789a674.shp"))
-wardsPre2015 <- wardsPre2015 %>% mutate(ctr = sf::st_transform(wards.2015, 29101) %>% 
+wardsPre2015 <- wardsPre2015 %>% mutate(ctr = sf::st_transform(wardsPre2015, 29101) %>% 
   st_centroid() %>% 
   # this is the crs from wards.2015, which has no EPSG code:
   st_transform(., '+proj=longlat +ellps=WGS84 +no_defs') %>%
   # add as a second geometry col:
   st_geometry())
+
+wardsPre2015 <-wardsPre2015 %>% mutate(lon=map_dbl(geometry, ~st_centroid(.x)[[1]]), # add centroid values for labels
+                                    lat=map_dbl(geometry, ~st_centroid(.x)[[2]])) # add centroid values for labels
 ```
 
 
 ```{r fortify-mapping, message=FALSE}
 
 wards.2015 <- sf::st_read(here::here("data","Geofiles - Chicago Zip Code and Neighborhood","Boundaries - Wards (2015-)","geo_export_0bb2e9fd-20ca-415b-a96a-7722d72c1b41.shp"))
-wards.2015 <- wards.2015 %>% mutate(ctr = sf::st_transform(wards.2015, 29101) %>% 
-  st_centroid() %>% 
-  # this is the crs from wards.2015, which has no EPSG code:
-  st_transform(., '+proj=longlat +ellps=WGS84 +no_defs') %>%
-  # add as a second geometry col:
-  st_geometry())
-
-filter(name %in% co_names) %>% # filter to just the counties we want
+# wards.2015 <- wards.2015 %>% mutate(ctr = sf::st_transform(wards.2015, 29101) %>% 
+#   st_centroid() %>% 
+#   # this is the crs from wards.2015, which has no EPSG code:
+#   st_transform(., '+proj=longlat +ellps=WGS84 +no_defs') %>%
+#   # add as a second geometry col:
+#   st_geometry())
   
 wards.2015 <- wards.2015 %>% mutate(lon=map_dbl(geometry, ~st_centroid(.x)[[1]]), # add centroid values for labels
                                     lat=map_dbl(geometry, ~st_centroid(.x)[[2]])) # add centroid values for labels
+```
+
+```{r}
+tidycensus::census_api_key(Sys.getenv("CENSUS_API_KEY"))
 ```
 
 
@@ -351,19 +324,14 @@ getDemos <- function(acs_year) {
                             femaleChildMedicaid = 'C27007_014'
                             ), 
               year = acs_year,
-              state = "IL",
-              county = "Cook",
+              state = 17, # IL = 17
+              county = 031, # Cook County = 031 FIPS
               geometry = TRUE
               # options(tigris_use_cache = TRUE)
               )
 }
 ```
 
-
-```{r message=FALSE}
-tidycensus::census_api_key(Sys.getenv("CENSUS_API_KEY"))
-demos_17 <- getDemos(acs_year=2017)
-```
 
 ```{r}
 
@@ -393,20 +361,27 @@ demoConversion <- function(acs_year) {
                       public_transport_pct = publicTransport / transportPop
                       ) %>% dplyr::select(GEOID, NAME, medianIncome, perCapitaIncome, population, medAgemovedInside, contains("_pct"), geometry)
   
-    demo_df <- st_join(demo_df, demo_df %>% group_by(GEOID, NAME) %>% 
-                           dplyr::select(GEOID, NAME, geometry, black_pct, latinx_pct, asian_pct, white_pct, other_pct) %>%
-                           gather(group_name, pct, -GEOID, -NAME, -geometry) %>% 
+    demo_df <- left_join(demo_df, as.data.frame(demo_df) %>% 
+                           dplyr::select(GEOID, NAME, black_pct, latinx_pct, asian_pct, white_pct, other_pct) %>%
+                           group_by(GEOID, NAME) %>% 
+                           gather(group_name, pct, -GEOID, -NAME) %>% 
                            slice(which.max(pct)) %>% mutate(predominant_race = ifelse(group_name == 'black_pct', 'Black',
                                                        ifelse(group_name == 'white_pct', 'White',
                                                        ifelse(group_name == 'asian_pct', 'Asian',
                                                        ifelse(group_name == 'latinx_pct', 'Latinx',
                                                        ifelse(group_name == 'other_pct', 'Other')))))) %>% 
-                           dplyr::select(GEOID, NAME, predominant_race)
-                       # , by=c("GEOID", "NAME")
+                           dplyr::select(GEOID, NAME, predominant_race, max_pct = pct), by = "GEOID"
                        )
     return(demo_df)
 }
 ```
+
+
+```{r}
+# test that census calls working
+getDemos(2013)
+```
+
 
 
 ```{r}
@@ -417,9 +392,7 @@ multi_year <-
   map2(.y = years, ~ mutate(.x, id = .y))
 
 all_demos <- reduce(multi_year, rbind)
-rm(multi_year)
-
-rm(wards.shp.2015, wards2015.df, wards2015.points, wards2015)
+# rm(multi_year)
 ```
 
 ```{r}
@@ -428,31 +401,33 @@ all.demos.Chi <- st_intersection(all_demos, wards.2015.acs.proj)
 ```
 
 
-
 ```{r facet_wrap_demo_info, message=FALSE, warning=FALSE, fig.width=10}
 
-ggplot(all.demos.Chi) +
-  geom_sf(aes(fill=predominant_race), lwd = 0) +
+ggplot(all.demos.Chi %>% filter(!is.na(max_pct))) +
+  geom_sf(aes(fill=predominant_race, alpha=max_pct), lwd = 0) +
+  scale_alpha(range = c(0.35, 0.9), guide=FALSE) + 
   geom_sf(data = wards.2015.acs.proj, color="black", fill=NA) +
   geom_text_repel(data=filter(wards.2015.acs.proj, ward %in% c(4, 9, 10, 13, 14, 22, 18, 34)), 
-                  aes(x=lon, y=lat, label=ward)) +
+                  aes(x=lon, y=lat, label=ward),
+                  nudge_x = -.25,
+                  direction = "y") +
   coord_sf(datum = NA) +
-  theme_minimal() + 
-  theme(axis.title.y = element_blank(),
-        axis.title.x = element_blank(),
-        # axis.text.y = element_blank(),
-        axis.ticks.x=element_blank(),
-        panel.grid.minor.y=element_blank(),
-        panel.grid.minor.x=element_blank(),
-        # panel.grid.major.y=element_blank(),
-        panel.grid.major.x=element_blank(),
-        panel.border=element_blank(),
-        plot.title = element_text(size = 30, face = "bold", hjust="0.5"),
-        plot.caption = element_text(size = 15)) +
+  theme_map_modest() + 
+  # theme(axis.title.y = element_blank(),
+  #       axis.title.x = element_blank(),
+  #       # axis.text.y = element_blank(),
+  #       axis.ticks.x=element_blank(),
+  #       panel.grid.minor.y=element_blank(),
+  #       panel.grid.minor.x=element_blank(),
+  #       # panel.grid.major.y=element_blank(),
+  #       panel.grid.major.x=element_blank(),
+  #       panel.border=element_blank(),
+  #       plot.title = element_text(size = 30, face = "bold", hjust="0.5"),
+  #       plot.caption = element_text(size = 15)) +
   facet_wrap( ~ id) + labs(
     title = "Latinx Populations Being Edged out\nof Central, Waterfront Neighborhoods",
     subtitle = "Chicago Racial and Ethnic Group Movement by Census Tract Since 2012",
-    caption = "Source: U.S. Census Bureau", color = "Race"
+    caption = "Source: U.S. Census Bureau", fill = "Predominant Race in Tract"
   )
   
 ```
@@ -483,7 +458,7 @@ bus_licenses %>% filter(activity_date >= "2013-1-1", WARD %in% c(2, 42, 43, 44),
     summarise(business_count = n()) %>% filter(business_count ==
     max(business_count)) %>% slice(which.max(business_count)),
     aes(x=ymd(activity_wk), y=business_count, label=WARD, color=as.factor(WARD)), show.legend = FALSE) +
-  theme_minimal() +
+  theme_modest() +
   scale_x_date(expand=c(0,0))
 ```
 
@@ -510,7 +485,7 @@ bus_licenses %>% filter(activity_date >= "2013-1-1", !is.na(WARD), !WARD %in% c(
     max(business_count)) %>% slice(which.max(business_count)),
     aes(x=ymd(activity_wk), y=business_count, label=WARD), color="#62bcfb", show.legend = FALSE) +
   labs(y="Number of Business Licenses", x="Weekly Licenses Issued or Renewed", colour="Chicago Council Ward", caption="Data Source: Chicago Open Data Portal") +
-theme_minimal() + 
+theme_modest() + 
 theme(axis.title = element_text(size = 10, face = "bold"), 
       plot.title = element_text(size = 15, face = "bold")) +
  scale_x_date(expand=c(0,0)) +
@@ -559,7 +534,7 @@ bus_licenses %>% filter(!is.na(WARD), active==1) %>%
   labs(x="Chicago Council Ward", y="Average Monthly Business Count", caption="Data Source: Chicago Open Data Portal", title="South and West Wards Average Lowest Rate of Business Licensing for 15+ Years", subtitle="Calumet Heights and Westlawn Average less than 25 Business License Issuances per month ",fill="Chicago Area") + 
   theme(axis.title = element_text(size = 10, face = "bold"), 
       plot.title = element_text(size = 15, face = "bold")) +
-  theme_minimal()
+  theme_modest()
 ```
 
 ```{r save-new-bus, warning=FALSE}
