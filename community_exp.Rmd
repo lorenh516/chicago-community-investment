@@ -174,6 +174,80 @@ wardSides <- read_csv(here::here("data", "wardSides.csv"))
 ```
 
 
+
+```{r}
+bus_licenses <- left_join(bus_licenses, wardSides, by="WARD")
+```
+
+
+
+```{r pre-2015-lic}
+bus_licenses %>% group_by(activity_date, WARD) %>% summarise(business_count = n()) %>% filter(activity_date < mdy("1/1/2015"), !is.na(WARD)) %>%
+  ggplot() + geom_line(aes(x=activity_date, y=business_count, colour=as.factor(WARD))) +
+  gghighlight(min(business_count), max_highlight = 3L) +
+  labs(y="Business Count", x="Activity Date", colour="Ward", title="Chicago Ward Business Presence", caption="Data Source: Chicago Open Data Portal")
+```
+
+```{r check-2012-spike}
+# look into spike around beginning of 2013
+bus_licenses %>% group_by(activity_date, WARD) %>% summarise(bus_count = n()) %>% summarise(max_activity = max(bus_count)) %>% arrange(desc(max_activity))
+```
+
+```{r pre-2015-licensing}
+bus_licenses %>% filter(
+  activity_date < mdy("1/1/2015"), !is.na(WARD), !(activity_date== mdy("12/29/2012")), active==1) %>%
+  group_by(activity_date, WARD) %>% summarise(business_count = n()) %>% 
+  ggplot() + geom_line(aes(x=activity_date, y=business_count, colour=as.factor(WARD))) +
+  gghighlight(min(business_count), max_highlight = 3L) +
+  labs(y="Business Count", x="Activity Date", colour="Ward", title="Chicago Ward Business Presence (2002-2015)", caption="Data Source: Chicago Open Data Portal")
+```
+
+
+```{r save-pre-2015-licensing}
+ggsave("pre_2015_licensing.pdf", width = 30, height = 15, units = "cm")
+```
+
+
+```{r import-former-wards}
+wardsPre2015 <- shapefile(here::here("data", "Geofiles - Chicago Zip Code and Neighborhood", "Boundaries - Wards (2003-2015)", "geo_export_fa687596-87b6-4059-afac-b28ce789a674.shp"))
+crs(wardsPre2015)
+```
+
+```{r}
+
+```
+
+
+
+```{r import-2015-wards}
+
+wards.shp.2015 <- here::here("data","Geofiles - Chicago Zip Code and Neighborhood","Boundaries - Wards (2015-)","geo_export_0bb2e9fd-20ca-415b-a96a-7722d72c1b41.shp")
+wards2015 <- shapefile(wards.shp.2015)
+# crs(wards2015)
+
+```
+
+```{r fortify-mapping, message=FALSE}
+wards2015@data <- mutate(wards2015@data, id = rownames(wards2015@data))
+wards2015.points <- fortify(wards2015, region="id")
+wards2015.df <- merge(wards2015.points, wards2015@data, by="id")
+```
+
+
+
+```{r include = FALSE}
+
+# wards2015_center.points <- gCentroid(wards2015, byid = TRUE)
+# wards2015_center.df <- as.data.frame(wards2015_center.points)
+# wards2015_center.df <- wards2015_center.df %>% rename(long = x, lat = y)
+# wards2015_center.df <- wards2015_center.df %>% mutate(id=seq(1:50))
+# left_join(wards2015_center.df, dplyr::select(.data=wards2015.df, id, ward), by.x=as.character("id"), by.y=as.character("id"))
+# fortify(SpatialPointsDataFrame(coords = wards2015_center.points@coords, bbox = wards2015_center.points@bbox, data=id.df), region="id"
+# wards2015_center.points = fortify(wards2015_spatial_centroid_pts, region="id")
+# ggplot(data=wards2015_center.df, aes(long, lat, group=group))
+```
+
+
 ```{r}
 # want to know: how population changing/ not changing across tracts - race, age, income, poverty status, safety net takeup
 getDemos <- function(acs_year) {
@@ -278,14 +352,6 @@ demoConversion <- function(acs_year) {
 
 
 ```{r}
-demoConversion(2012)
-```
-
-
-
-
-
-```{r facet_wrap_demo_info, message=FALSE, warning=FALSE, fig.width=8}
 years <- lst(2012, 2013, 2014, 2015, 2016, 2017)
 
 multi_year <-
@@ -293,9 +359,14 @@ multi_year <-
   map2(.y = years, ~ mutate(.x, id = .y))
 
 all_demos <- reduce(multi_year, rbind)
+```
 
+
+
+```{r facet_wrap_demo_info, message=FALSE, warning=FALSE, fig.width=10}
 ggplot(all_demos) +
-  geom_sf(aes(color=predominant_race)) +
+  geom_sf(aes(fill=predominant_race), lwd = 0) +
+  geom_path(data = wards2015.df, aes(long,lat,group=group), color="black") +
   coord_sf(datum = NA) +
   theme_minimal() + 
   theme(axis.title.y = element_blank(),
@@ -317,106 +388,8 @@ ggplot(all_demos) +
 ```
 
 
-
-```{r}
-bus_licenses <- left_join(bus_licenses, wardSides, by="WARD")
-```
-
-
-
-```{r pre-2015-lic}
-bus_licenses %>% group_by(activity_date, WARD) %>% summarise(business_count = n()) %>% filter(activity_date < mdy("1/1/2015"), !is.na(WARD)) %>%
-  ggplot() + geom_line(aes(x=activity_date, y=business_count, colour=as.factor(WARD))) +
-  gghighlight(min(business_count), max_highlight = 3L) +
-  labs(y="Business Count", x="Activity Date", colour="Ward", title="Chicago Ward Business Presence", caption="Data Source: Chicago Open Data Portal")
-```
-
-```{r check-2012-spike}
-# look into spike around beginning of 2013
-bus_licenses %>% group_by(activity_date, WARD) %>% summarise(bus_count = n()) %>% summarise(max_activity = max(bus_count)) %>% arrange(desc(max_activity))
-```
-
-```{r pre-2015-licensing}
-bus_licenses %>% filter(
-  activity_date < mdy("1/1/2015"), !is.na(WARD), !(activity_date== mdy("12/29/2012")), active==1) %>%
-  group_by(activity_date, WARD) %>% summarise(business_count = n()) %>% 
-  ggplot() + geom_line(aes(x=activity_date, y=business_count, colour=as.factor(WARD))) +
-  gghighlight(min(business_count), max_highlight = 3L) +
-  labs(y="Business Count", x="Activity Date", colour="Ward", title="Chicago Ward Business Presence (2002-2015)", caption="Data Source: Chicago Open Data Portal")
-```
-
-
-```{r save-pre-2015-licensing}
-ggsave("pre_2015_licensing.pdf", width = 30, height = 15, units = "cm")
-```
-
-
-```{r import-former-wards}
-wardsPre2015 <- shapefile(here::here("data", "Geofiles - Chicago Zip Code and Neighborhood", "Boundaries - Wards (2003-2015)", "geo_export_fa687596-87b6-4059-afac-b28ce789a674.shp"))
-crs(wardsPre2015)
-```
-
-
-```{r import-2015-wards}
-
-wards.shp.2015 <- here::here("data","Geofiles - Chicago Zip Code and Neighborhood","Boundaries - Wards (2015-)","geo_export_0bb2e9fd-20ca-415b-a96a-7722d72c1b41.shp")
-wards2015 <- shapefile(wards.shp.2015)
-# crs(wards2015)
-
-```
-
-```{r fortify-mapping, message=FALSE}
-wards2015@data <- mutate(wards2015@data, id = rownames(wards2015@data))
-wards2015.points <- fortify(wards2015, region="id")
-wards2015.df <- merge(wards2015.points, wards2015@data, by="id")
-```
-
-
-
-```{r include = FALSE}
-
-# wards2015_center.points <- gCentroid(wards2015, byid = TRUE)
-# wards2015_center.df <- as.data.frame(wards2015_center.points)
-# wards2015_center.df <- wards2015_center.df %>% rename(long = x, lat = y)
-# wards2015_center.df <- wards2015_center.df %>% mutate(id=seq(1:50))
-# left_join(wards2015_center.df, dplyr::select(.data=wards2015.df, id, ward), by.x=as.character("id"), by.y=as.character("id"))
-# fortify(SpatialPointsDataFrame(coords = wards2015_center.points@coords, bbox = wards2015_center.points@bbox, data=id.df), region="id"
-# wards2015_center.points = fortify(wards2015_spatial_centroid_pts, region="id")
-# ggplot(data=wards2015_center.df, aes(long, lat, group=group))
-```
-
-
-
-```{r bus-locs, include =FALSE}
-
-
-# 
-# bus_licenses %>% filter(activity_yr >= 2009, active == 1, `APPLICATION TYPE`%in% c('ISSUE', 'RENEW')) %>% 
-#   distinct(`LICENSE ID`, activity_yr, `APPLICATION TYPE`, LONGITUDE, LATITUDE) %>% 
-#   ggplot() +
-#   geom_point(aes(x=LONGITUDE, y=LATITUDE, color=as.factor(activity_yr)), alpha = 0.05, show.legend = FALSE, na.rm = TRUE) + 
-#   geom_path(data = wards2015.df, aes(long,lat,group=group), color="black") +
-#   geom_polygon(data = wards2015.df, aes(long,lat,group=group), fill=NA) +
-#   coord_equal(ratio=1) + 
-#   labs(y="Latitude", x="Longitude", colour="Year", title="Money in the Middle", subtitle="Virtually No New Business Entry, Renwal in Ward 9, 10, 18, or 41 since 2009", caption = "Data Source: City of Chicago Department of Business Affairs and Consumer Protection, Business Licenses (2002 to Present)") +
-#   theme_minimal() + 
-#   # facet_grid(. ~ `APPLICATION TYPE`) +
-#   theme(
-#     panel.border = element_blank(),
-#     axis.text.y = element_blank(),
-#     panel.grid.major.y = element_blank(),
-#     panel.grid.minor.y = element_blank(),
-#     axis.text.x = element_blank(),
-#     panel.grid.major.x = element_blank(),
-#     panel.grid.minor.x = element_blank(),
-#     plot.title = element_text(size = 15, face = "bold")
-#   )
-#   
-```
-
-
 ```{r save-bus-locs, warning=FALSE, include = FALSE}
-# ggsave("business_locations_10yr.pdf", width = 30, height = 25, units = "cm")
+# ggsave("ward_demographics.pdf", width = 30, height = 25, units = "cm")
 ```
 
 
