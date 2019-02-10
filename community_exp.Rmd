@@ -2,7 +2,10 @@
 title: "Chicago Community Investment Exploration"
 output:
     html_document:
-    df_print: paged
+      df_print: paged
+      toc: true
+      toc_float: true
+      code_folding: hide
 ---
 
 ```{r Housekeeping, echo=TRUE, message=FALSE, warning=FALSE, include=FALSE}
@@ -162,8 +165,8 @@ theme_map_modest <- function(base_size = 12) {
         panel.grid.minor.x=element_blank(),
         panel.grid.major.x=element_blank(),
         panel.border=element_blank(),
-        panel.spacing = unit(0,"lines")
-        # plot.margin  =  unit(c(0,0,0,0),"lines")
+        panel.spacing = unit(0,"lines"),
+        plot.margin  =  unit(c(0,0,0,0),"lines")
     )
 }
 
@@ -260,19 +263,7 @@ wardsPre2015 <-wardsPre2015 %>% mutate(lon=map_dbl(geometry, ~st_centroid(.x)[[1
 ```
 
 
-```{r fortify-mapping, message=FALSE}
 
-wards.2015 <- sf::st_read(here::here("data","Geofiles - Chicago Zip Code and Neighborhood","Boundaries - Wards (2015-)","geo_export_0bb2e9fd-20ca-415b-a96a-7722d72c1b41.shp"))
-# wards.2015 <- wards.2015 %>% mutate(ctr = sf::st_transform(wards.2015, 29101) %>% 
-#   st_centroid() %>% 
-#   # this is the crs from wards.2015, which has no EPSG code:
-#   st_transform(., '+proj=longlat +ellps=WGS84 +no_defs') %>%
-#   # add as a second geometry col:
-#   st_geometry())
-  
-wards.2015 <- wards.2015 %>% mutate(lon=map_dbl(geometry, ~st_centroid(.x)[[1]]), # add centroid values for labels
-                                    lat=map_dbl(geometry, ~st_centroid(.x)[[2]])) # add centroid values for labels
-```
 
 ```{r}
 tidycensus::census_api_key(Sys.getenv("CENSUS_API_KEY"))
@@ -395,22 +386,49 @@ all_demos <- reduce(multi_year, rbind)
 # rm(multi_year)
 ```
 
+```{r fortify-mapping, message=FALSE}
+
+wards.2015 <- sf::st_read(here::here("data","Geofiles - Chicago Zip Code and Neighborhood","Boundaries - Wards (2015-)","geo_export_0bb2e9fd-20ca-415b-a96a-7722d72c1b41.shp"))
+```
+
 ```{r}
 wards.2015.acs.proj <- st_transform(wards.2015, crs = st_crs(all_demos))
-all.demos.Chi <- st_intersection(all_demos, wards.2015.acs.proj)
+wards.2015.acs.proj <- wards.2015.acs.proj %>% mutate(long=map_dbl(geometry, ~st_centroid(.x)[[1]]), # add centroid values for labels
+                                                      lat=map_dbl(geometry, ~st_centroid(.x)[[2]])) # add centroid values for labels
+# all.demos.Chi <- st_intersection(all_demos, wards.2015.acs.proj)
+```
+
+```{r}
+min(wards.2015.acs.proj$long)
+median(wards.2015.acs.proj$long)
+max(wards.2015.acs.proj$long)
 ```
 
 
-```{r facet_wrap_demo_info, message=FALSE, warning=FALSE, fig.width=10}
 
-ggplot(all.demos.Chi %>% filter(!is.na(max_pct))) +
+```{r facet_wrap_demo_info, message=FALSE, warning=FALSE, fig.width=10}
+chiCentralLongitude <- -87.68008
+
+ggplot(st_intersection(all_demos, wards.2015.acs.proj) %>% filter(!is.na(max_pct))) +
   geom_sf(aes(fill=predominant_race, alpha=max_pct), lwd = 0) +
-  scale_alpha(range = c(0.35, 0.9), guide=FALSE) + 
+  scale_alpha(range = c(0.35, 0.9), guide="none") + 
   geom_sf(data = wards.2015.acs.proj, color="black", fill=NA) +
-  geom_text_repel(data=filter(wards.2015.acs.proj, ward %in% c(4, 9, 10, 13, 14, 22, 18, 34)), 
-                  aes(x=lon, y=lat, label=ward),
-                  nudge_x = -.25,
-                  direction = "y") +
+  geom_text_repel(data=wards.2015.acs.proj %>% filter(ward %in% c(4, 9, 10, 13, 14, 22, 18, 33, 34), long < chiCentralLongitude), 
+                  aes(x=long, y=lat, label=ward),
+                  nudge_x = -.75,
+                  segment.size = 0.25,
+                  segment.color = "grey",
+                  force = 5,
+                  direction = "both",
+                  hjust=0) +
+  geom_text_repel(data = wards.2015.acs.proj %>% filter(ward %in% c(4, 9, 10, 13, 14, 22, 18, 33, 34), long > chiCentralLongitude), 
+                  aes(x=long, y=lat, label=ward),
+                  nudge_x = .75,
+                  segment.size = 0.25,
+                  segment.color = "grey",
+                  force = 5,
+                  direction = "both",
+                  hjust = 1) +
   coord_sf(datum = NA) +
   theme_map_modest() + 
   # theme(axis.title.y = element_blank(),
@@ -528,6 +546,7 @@ bus_licenses %>% filter(!is.na(WARD), active==1) %>%
   summarise(business_count = n()) %>% group_by(WARD) %>% arrange(desc(business_count)) %>% 
   ggplot(aes(x=reorder(as.factor(WARD), business_count, FUN = median), y=business_count)) + 
   geom_boxplot(aes(group=as.factor(WARD), fill=as.factor(SIDE)), alpha=0.5) + 
+  geom_label_repel(aes(label=WARD)) + 
   scale_y_continuous(limits = c(0, 1750)) +
   # scale_x_discrete(breaks=seq(0,50,5)) + 
   # geom_label_repel(aes(group=as.factor(WARD), label=as.factor(WARD))) +
@@ -641,18 +660,6 @@ ggsave("location_over_googlemap_zoom10.pdf", width = 36, height = 23, units = "c
 ```
 
 
-```{r include = FALSE}
-# reportCard13 <- read_sav(here::here("data", "rc13-spss-data.sav"))
-```
-
-```{r include = FALSE}
-# reportCard13 <- reportCard13 %>% filter(DistNAME == "City of Chicago SD 299")
-# reportCard13 <- reportCard13 %>% mutate(YEAR = "2013")
-# report_card_vars <- data.frame(var.name=names(reportCard13), attr(reportCard13,"var.labels"))
-```
-
-
-
 
 ```{r message=FALSE, warning=FALSE}
 voter_turnout15 <- read_csv(here::here("data", "voter_turnout_city_council_2015.csv"), col_names = FALSE, skip=8)
@@ -703,56 +710,74 @@ rm(voter_turnout11, voter_turnout15)
 ```
 
 
-```{r fig.width=8, fig.height=16}
 
- merge(voterTurnout, wardSides, by="WARD") %>% filter(PRECINCT=="Total") %>% 
-  ggplot(aes(x=as.factor(YEAR), y=TURNOUT, group=as.factor(WARD))) + 
-    geom_line(size=2, alpha=0.5, color="grey", show.legend = FALSE) +
-    # geom_point(aes(color = as.factor(YEAR)),alpha=0.75, size=5, show.legend = FALSE) +
-  geom_label(
-      # data = merge(voterTurnout, wardSides, by="WARD") %>% filter(PRECINCT=="Total", YEAR == 2011), 
-            aes(label = paste0("Ward ", WARD), color = SIDE), 
-            label.padding = unit(0.05, "lines"), 
-            label.size = 0.0,
-            fontface = "bold",
-            size = 4) +  
-  geom_text_repel(
-      data = merge(voterTurnout, wardSides, by="WARD") %>% filter(PRECINCT=="Total", YEAR == 2011),
-            aes(label = paste0(TURNOUT, "%")),
-            color = "darkgray",
+```{r}
+turnout <- merge(voterTurnout, wardSides, by="WARD") %>% filter(PRECINCT=="Total") %>% 
+  group_by(YEAR, SIDE) %>% summarise(MEAN_TURNOUT = round(mean(TURNOUT, na.rm = TRUE), 1)) %>% 
+  spread(YEAR, MEAN_TURNOUT) %>% mutate(DIFFERENCE = `2015` - `2011`) %>% 
+  gather("YEAR", "TURNOUT", -SIDE, -DIFFERENCE) %>% 
+  mutate(DIFFERENCE = ifelse(YEAR==2011, NA, DIFFERENCE)) %>% 
+  dplyr::select(YEAR, everything()) %>% 
+  arrange(SIDE, YEAR)
+                                    
+```
+
+
+```{r}
+turnoutDiff <- voterTurnout %>%filter(PRECINCT=="Total", YEAR %in% c(2011, 2015)) %>% dplyr::select(WARD, TURNOUT, YEAR) %>% 
+  group_by(YEAR, WARD) %>%
+  spread(YEAR, TURNOUT) %>% mutate(DIFFERENCE = `2015` - `2011`) %>% 
+  gather("YEAR", "TURNOUT", -WARD, -DIFFERENCE) %>% 
+  mutate(DIFFERENCE = ifelse(YEAR==2011, NA, DIFFERENCE)) %>% 
+  dplyr::select(YEAR, WARD, TURNOUT, DIFFERENCE) %>% 
+  arrange(YEAR, WARD) %>% group_by(WARD) %>% merge(., wardSides, by="WARD")
+``` 
+
+
+```{r fig.width=8}
+  ggplot(turnout, aes(x=as.factor(YEAR), y=TURNOUT, group=as.factor(SIDE))) + 
+  geom_line(size=1.5, alpha=0.75, color="grey", show.legend = FALSE) +
+  geom_line(data = filter(turnout, (DIFFERENCE > -0)||(is.na(DIFFERENCE))), aes(colour=SIDE), size=1.5, show.legend=FALSE) +
+  # geom_label(data = turnoutDiff %>% group_by(YEAR, SIDE) %>% summarise(MEAN_TURNOUT = round(mean(TURNOUT, na.rm=TRUE),1)),
+  #           aes(label = paste0(MEAN_TURNOUT, "%"), group=as.factor(SIDE)), 
+  #           color = "darkgray",
+  #           label.padding = unit(0.05, "lines"),  
+  #           label.size = 0.0,
+  #           fontface = "bold",
+  #           size = 4) + 
+  # geom_line(aes(group=as.factor(WARD), color=SIDE), size=0.5, alpha=0.25, show.legend = FALSE) +
+  geom_label_repel(data = turnout %>% filter(YEAR == 2011),
+            aes(label = paste0(SIDE), color = SIDE),
             hjust = "left",
             nudge_x = -.25,
-            direction = "y",
+            force=5,
+            direction = "both",
             fontface = "bold",
             point.padding	= 3,
-            size = 5) +
-  geom_text_repel(
-    data = merge(voterTurnout, wardSides, by="WARD") %>% filter(PRECINCT=="Total", YEAR == 2015),
-            aes(label = paste0(TURNOUT, "%")),
-            color = "darkgray",
+            size = 5,
+            show.legend = FALSE) +
+  geom_label_repel(data = turnout %>% filter(YEAR == 2015),
+            aes(label = paste0(SIDE), color = SIDE),
             hjust = "right",
             nudge_x = .25,
-            direction = "y",
+            force = 5,
+            direction = "both",
             fontface = "bold",
             point.padding	= 3,
-            size = 5) +
+            size = 5,
+            show.legend = FALSE) +
   scale_x_discrete(position = "top") +
-   coord_cartesian(ylim=c(23.5, 60)) +
-  theme_minimal() + 
-  theme(axis.text.x.top = element_text(size=18, vjust = -10, face="bold"),
+   # coord_cartesian(ylim=c(23.5, 60)) +
+  theme_modest() + 
+  theme(axis.text.x.top = element_text(size=15, vjust = -8, face="bold"),
           axis.title.y = element_blank(),
           axis.title.x = element_blank(),
-          # axis.text.y = element_blank(),
-          axis.ticks.x=element_blank(),
-          panel.grid.minor.y=element_blank(),
-          panel.grid.minor.x=element_blank(),
-          # panel.grid.major.y=element_blank(),
-          panel.grid.major.x=element_blank(),
-          panel.border=element_blank(),
-        plot.subtitle = element_text(size = 20, face = "bold.italic", hjust="0.5"),
-        plot.title = element_text(size = 30, face = "bold", hjust="0.5"),
-        plot.caption = element_text(size = 15)) +   
-  labs(title="City-Wide Drop in Voter Turnout Could be Affecting Alderman Motivation \nto Fight Deinvestment", 
+          axis.text.y = element_blank(),
+  #         axis.ticks.x=element_blank(),
+          panel.grid.minor=element_blank(),
+  #         # panel.grid.major.y=element_blank(),
+          panel.grid.major.x=element_blank()) +
+  labs(title="Highest Voter Turnout Could be Affecting Alderman Motivation \nto Fight Deinvestment", 
          subtitle="Change in Ward Voter Turnout Between Chicago City Council Elections", 
          caption="Source: Chicago Board of Election Commissioners", color="Chicago Area")
          # shape="Election Year", color="Chicago Area") 
