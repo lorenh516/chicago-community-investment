@@ -1,37 +1,15 @@
-## Welcome to GitHub Pages
+## Chicago Community Investment
 
-You can use the [editor on GitHub](https://github.com/lorenh516/chicago-community-investment/edit/master/README.md) to maintain and preview the content for your website in Markdown files.
+### Background
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+This quarter I'm conducting an exploration of the systematic de-investment of Chicago communities. In the year and a half I've spent in Chicago, I've heard a lot about how gentrification of neighborhoods and rehabilitation of neighborhood are approached in different ways in communities based on their demographic makeups. Specifically, I've heard that local government and local businesses are more likely to pause investment in infrastructure and services to a neighborhood comprised of predominantly Black residents in order to drive inhabitants out of a community, and only then begin investmenting in it again, often led by developers with an aim to draw new residents that change the socioeconomic demographics of the neighborhood. In contrast, anecdotally in other communities of color, for example, Hispanic communities, gentrification is executed more quietly, with investment ramping up along the edge(s) of the community followed by a slow takeover by other cultures and socioeconomic classes, pushing out residents who’ve inhabited the neighborhood for decades. 
 
-### Markdown
+As Chicago is notably one of the most segregated cities in the United States, I believe it will be an interesting forum for such an analysis, and that the city’s segregated neighborhoods comprise a “natural experiment” of sorts on the myriad effects of systemic disinvestment of communities. I will execute this exploration utilizing datasets on: 
+- Business licenses in Chicago to track the entry and exit of businesses into neighborhoods of different demographics
+- Voter turnout, in the case there is correlation between democratic participaiton and city investment
+- Food access and the prevalence of fast food restaurants and grocery stores,
+- Take-up or increase in amounts spent on residents of a neighborhood by safety net programs such as SNAP and Medicaid as community staples such as schools, where millions of students access subsidized, (arguably) nutritious food, are defunded and establishments like fairly-priced neighborhood groceries disappear. 
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+### Goal 
 
-```markdown
-Syntax highlighted code block
-
-# Header 1
-## Header 2
-### Header 3
-
-- Bulleted
-- List
-
-1. Numbered
-2. List
-
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
-```
-
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
-
-### Jekyll Themes
-
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/lorenh516/chicago-community-investment/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://help.github.com/categories/github-pages-basics/) or [contact support](https://github.com/contact) and we’ll help you sort it out.
+I will attempt to show the economic infeasibility of the de-investment phenomenon, as monies are still spent on defunded communities through different channels, and to encourage local governments to maintain services to neighborhoods of all demographics.
