@@ -59,58 +59,78 @@ monochromatic_C6C3FF <- c(
 "#c6c3ff",
 "#deddff",
 "#f6f6ff")
+
+diverging_teal <- read_ase(here::here("BrBG_9.ase"), use_names = FALSE)
+diverging_teal[7] <- "#E5E5E5"
+diverging_teal[5] <- "#c6c3ff"
+diverging_teal[6] <- "#9AEADE"
+diverging_teal[3] <- "#B5B5B5"
+diverging_teal[2] <- "#E8B45B"
+diverging_teal[1] <- "#E8B45B"
+names(diverging_teal) <-  c("cocoa", "honeymustard", "darkgray", "sand", "lavender", "seafoam", "palegray", "teal", "darkteal")
 ```
 
-
-```{r include=FALSE}
-# dr1iff <- sasxport.get(here("data", "DR1IFF_I.XPT"))
-```
-
-
-```{r include=FALSE}
-# ipums_food_sec <- read.delim(here("data", "cps_00001.dat"))
-```
-
-```{r include=FALSE}
-# ddi <- read_ipums_ddi(here("data", "cps_00001.xml"))
-# ipums_food_sec <- read_ipums_micro(ddi)
-# View(ipums_food_sec)
-```
-
-
-```{r include=FALSE}
-# metadata <- data.frame(attr(ipums_food_sec, "names"), attr(ipums_food_sec, "variable.labels"))
-# names(metadata) <- c("var.name", "variable.label")
-```
-
-```{r include=FALSE}
-# library(SAScii)
-# TANF09.instructions <- here("data", "tanf09", "input_TANF09a.sas")
-# 
-# TANF09.infile.location <- here("data", "tanf09", "TANF09A.TXT")
-# 
-# #store file as an R data frame
-# tanf09 <- 
-# 	read.SAScii ( 
-# 		TANF09.infile.location, 
-# 		TANF09.instructions, 
-# 		zipped = F,
-# 		lrecl=1210)
+```{r}
+diverging_teal["darkgray"]
 ```
 
 
 
 ```{r include=FALSE}
-#store file as an R data frame
-# tanf.fwf.parameters <-  parse.SAScii(here("data", "tanf09", "input_TANF09c.sas"), beginline = 1)
-# tanf09c <- 
-# 	read.SAScii ( 
-# 		fn= here("data", "tanf09", "TANF09C.TXT"), 
-# 		sas_ri=here("data", "tanf09", "input_TANF09c.sas"), 
-# 		beginline=3,
-# 		zipped = F,
-# 		lrecl=721)
+# make it easy to select colors by name, thanks Dr. Simon J!
+# Attribution: https://drsimonj.svbtle.com/creating-corporate-colour-palettes-for-ggplot2
+get_dt_cols <- function(...) {
+  cols <- c(...)
+  if (is.null(cols))
+    return (diverging_teal)
+  diverging_teal[cols]
+}
+```
 
+```{r}
+# set groupings of colors as palettes
+dt_palettes <- list(
+  `main`  = get_dt_cols("teal", "lavendar", "honeymustard"),
+  `cool`  = get_dt_cols("darkteal", "teal", "seafoam",
+                          "lavender"),
+  `desert`   = get_dt_cols("chai", "sand", "honeymustard", "cocoa"),
+  `mixed` = get_dt_cols("cocoa", "honeymustard", "sand", "lavender", "seafoam", "teal", "darkteal"),
+  `grey`  = get_dt_cols("palegray", "darkgray")
+)
+```
+
+
+
+
+```{r include=FALSE}
+# function for uilitizing palettes
+dt_pal <- function(palette = "main", reverse = FALSE, ...) {
+  pal <- dt_palettes[[palette]]
+  if (reverse) { pal <- rev(pal) }
+  # pass alpha, other color arguments to colorRampPalette
+  colorRampPalette(pal, ...)
+}
+
+# function for applying palettes to borders and fills in ggplot2
+scale_color_dt <- function(palette = "main", discrete = TRUE, reverse = FALSE, ...) {
+  pal <- dt_pal(palette = palette, reverse = reverse)
+
+  if (discrete) {
+    discrete_scale("colour", paste0("dt_", palette), palette = pal, ...)
+  } else {
+    scale_color_gradientn(colours = pal(256), ...)
+  }
+}
+
+scale_fill_dt <- function(palette = "main", discrete = TRUE, reverse = FALSE, ...) {
+  pal <- dt_pal(palette = palette, reverse = reverse)
+
+  if (discrete) {
+    discrete_scale("fill", paste0("dt_", palette), palette = pal, ...)
+  } else {
+    scale_fill_gradientn(colours = pal(256), ...)
+  }
+}
 ```
 
 
@@ -226,7 +246,10 @@ bus_licenses %>% group_by(activity_date, WARD) %>% summarise(business_count = n(
   ggplot() + geom_line(aes(x=activity_date, y=business_count, colour=as.factor(WARD))) +
   gghighlight(min(business_count), max_highlight = 3L) +
   labs(y="Business Count", x="Activity Date", colour="Ward", title="Chicago Ward Business Presence", caption="Data Source: Chicago Open Data Portal") + 
-  theme_modest()
+  scale_color_dt() +
+  theme_modest() + 
+  theme(panel.grid.major.x = element_blank(),
+        panel.grid.minor = element_blank())
 ```
 
 ```{r check-2012-spike}
@@ -461,82 +484,81 @@ bus_licenses <- bus_licenses %>% mutate(activity_wk = lubridate::as_date(cut(act
 ```
 
 
-```{r fig.width=10}
-loop_colors <- c("2" = "#4e96c8",
-        "42" = "#b0ddfd",
-        "43" = "#62bcfb",
-        "44" = "#91d0fc")
-bus_licenses %>% filter(activity_date >= "2013-1-1", WARD %in% c(2, 42, 43, 44), active==1) %>% 
-    group_by(activity_wk, WARD) %>% summarise(business_count = n()) %>% 
-  ggplot() + 
-   geom_line(aes(x=ymd(activity_wk), y=business_count, color=as.factor(WARD)), show.legend = FALSE, alpha=0.5) + 
-  scale_color_manual(values=loop_colors) +
-  geom_label_repel(data = bus_licenses %>% filter(activity_date >= "2013-1-1",
-    WARD %in% c(2, 42, 43, 44), active==1) %>% group_by(WARD, activity_wk) %>%
-    summarise(business_count = n()) %>% filter(business_count ==
-    max(business_count)) %>% slice(which.max(business_count)),
-    aes(x=ymd(activity_wk), y=business_count, label=WARD, color=as.factor(WARD)), show.legend = FALSE) +
-  theme_modest() +
-  scale_x_date(expand=c(0,0))
+```{r fig.width=10, include=FALSE}
+# loop_colors <- c("2" = "#4e96c8",
+#         "42" = "#b0ddfd",
+#         "43" = "#62bcfb",
+#         "44" = "#91d0fc")
+# bus_licenses %>% filter(activity_date >= "2013-1-1", WARD %in% c(2, 42, 43, 44), active==1) %>% 
+#     group_by(activity_wk, WARD) %>% summarise(business_count = n()) %>% 
+#   ggplot() + 
+#    geom_line(aes(x=ymd(activity_wk), y=business_count, color=as.factor(WARD)), show.legend = FALSE, alpha=0.5) + 
+#   scale_color_manual(values=loop_colors) +
+#   geom_label_repel(data = bus_licenses %>% filter(activity_date >= "2013-1-1",
+#     WARD %in% c(2, 42, 43, 44), active==1) %>% group_by(WARD, activity_wk) %>%
+#     summarise(business_count = n()) %>% filter(business_count ==
+#     max(business_count)) %>% slice(which.max(business_count)),
+#     aes(x=ymd(activity_wk), y=business_count, label=WARD, color=as.factor(WARD)), show.legend = FALSE) +
+#   theme_modest() +
+#   scale_x_date(expand=c(0,0))
 ```
 
 
-```{r post-2012-lic, warning=FALSE, fig.width=10}
+```{r post-2012-lic, warning=FALSE, fig.width=10, include=FALSE}
 
 # add column for loop1, loop2, loop3, loop4, pilsen, garfield, 
 # then group = ward, color= new var + scale_color_manual
 # geom_line(filter(data, ward %in% c(ward1, ward2, ward3, loop4), aes(color=ward)))
 # or else, window function on length of license
 
-bus_licenses %>% mutate(bus_licenses, nbrhd_callout = ifelse(WARD == 42, "Ward 42", ifelse(WARD==2, "Ward 2", ifelse(WARD==43), "Ward 43"))
-                        )
-bus_licenses %>% filter(activity_date >= "2013-1-1", !is.na(WARD), !WARD %in% c(2, 42, 43, 44), active==1) %>%
-  group_by(activity_wk, WARD) %>% summarise(business_count = n()) %>% 
-  ggplot() +   
-  geom_line(aes(x=ymd(activity_wk), y=business_count, colour="grey")) +
-  gghighlight(max(business_count), max_highlight = 2, label_key = WARD) + 
-   geom_line(filter(data, ward %in% c("loop1", "loop2", "loop3", "loop4", "pilsen", "garfield")),
-    aes(x=ymd(activity_wk), y=business_count, color=WARD), show.legend = FALSE, alpha=0.5) + 
-  geom_label_repel(data = bus_licenses %>% filter(activity_date >= "2013-1-1",
-    WARD %in% c(2, 42, 43, 44), active==1) %>% group_by(WARD, activity_wk) %>%
-    summarise(business_count = n()) %>% filter(business_count ==
-    max(business_count)) %>% slice(which.max(business_count)),
-    aes(x=ymd(activity_wk), y=business_count, label=WARD), color="#62bcfb", show.legend = FALSE) +
-  labs(y="Number of Business Licenses", x="Weekly Licenses Issued or Renewed", colour="Chicago Council Ward", caption="Data Source: Chicago Open Data Portal") +
-theme_modest() + 
-theme(axis.title = element_text(size = 10, face = "bold"), 
-      plot.title = element_text(size = 15, face = "bold")) +
- scale_x_date(expand=c(0,0)) +
-# scale_y_continuous(limits = c(0,250), expand = c(0, 0)) +
-coord_cartesian(ylim=c(0,280), clip = "off") + 
-annotate("text", x = ymd("2013-6-1"), y = 275, hjust = 0, parse=TRUE, 
-         label=expression(bold("New Business beyond ") *  phantom(bold("Loop Area (Wards 2, 42, 43, 44)")) * phantom(bold(" Concentrated in ")) * phantom(bold("Pilsen (27)")) * phantom(bold(" and ")) * phantom(bold("East Garfield Park (25)")) ), 
-        color = "black", size = 7) +   
-annotate("text", x = ymd("2013-6-1"), y = 275, hjust = 0, parse=TRUE, 
-         label=expression( phantom(bold("New Business beyond ")) * bold("Loop Area (Wards 2, 42, 43, 44)") * phantom(bold(" Concentrated in ")) * phantom(bold("Pilsen (27)")) * phantom(bold(" and ")) * phantom(bold("East Garfield Park (25)")) ), 
-        color = "#62bcfb", size = 7) + 
-annotate("text", x = ymd("2013-6-1"), y = 275, hjust = 0, parse=TRUE, 
-         label=expression( phantom(bold("New Business beyond ")) * phantom(bold("Loop Area (Wards 2, 42, 43, 44)")) * bold(" Concentrated in ") * phantom(bold("Pilsen (27)")) * phantom(bold(" and ")) * phantom(bold("East Garfield Park (25)")) ), 
-        color = "black", size = 7) + 
-annotate("text", x = ymd("2013-6-1"), y = 275, hjust = 0, parse=TRUE, 
-         label=expression( phantom(bold("New Business beyond ")) * phantom(bold("Loop Area (Wards 2, 42, 43, 44)")) * phantom(bold(" Concentrated in ")) * bold("Pilsen (27)") * phantom(bold(" and ")) * phantom(bold("East Garfield Park (25)")) ), 
-        color = "#1FBFC3", size = 7) + 
-annotate("text", x = ymd("2013-6-1"), y = 275, hjust = 0, parse=TRUE, 
-         label=expression( phantom(bold("New Business beyond ")) * phantom(bold("Loop Area (Wards 2, 42, 43, 44)")) * phantom(bold(" Concentrated in ")) * phantom(bold("Pilsen (27)")) * bold(" and ") * phantom(bold("East Garfield Park (25)")) ), 
-        color = "black", size = 7) + 
-annotate("text", x = ymd("2013-6-1"), y = 275, hjust = 0, parse=TRUE, 
-         label=expression( phantom(bold("New Business beyond ")) * phantom(bold("Loop Area (Wards 2, 42, 43, 44)")) * phantom(bold(" Concentrated in ")) * phantom(bold("Pilsen (27)")) * phantom(bold(" and ")) * bold("East Garfield Park (25)") ), 
-        color = "#F67770", size = 7) + 
-  
-annotate("text", x=ymd("2015-7-1"), y=265, label=expression("New Business Entry and Renewal limited to Gentrifying Neighborhoods"), 
-         color = "black", size=7, fontface = "bold.italic") 
+# bus_licenses %>% mutate(bus_licenses, nbrhd_callout = ifelse(WARD == 42, "Ward 42", ifelse(WARD==2, "Ward 2", ifelse(WARD==43), "Ward 43"))
+#                         )
+# bus_licenses %>% filter(activity_date >= "2013-1-1", !is.na(WARD), !WARD %in% c(2, 42, 43, 44), active==1) %>%
+#   group_by(activity_wk, WARD) %>% summarise(business_count = n()) %>% 
+#   ggplot() +   
+#   geom_line(aes(x=ymd(activity_wk), y=business_count, colour="grey")) +
+#   gghighlight(max(business_count), max_highlight = 2, label_key = WARD) + 
+#    geom_line(filter(data, ward %in% c("loop1", "loop2", "loop3", "loop4", "pilsen", "garfield")),
+#     aes(x=ymd(activity_wk), y=business_count, color=WARD), show.legend = FALSE, alpha=0.5) + 
+#   geom_label_repel(data = bus_licenses %>% filter(activity_date >= "2013-1-1",
+#     WARD %in% c(2, 42, 43, 44), active==1) %>% group_by(WARD, activity_wk) %>%
+#     summarise(business_count = n()) %>% filter(business_count ==
+#     max(business_count)) %>% slice(which.max(business_count)),
+#     aes(x=ymd(activity_wk), y=business_count, label=WARD), color="#62bcfb", show.legend = FALSE) +
+#   labs(y="Number of Business Licenses", x="Weekly Licenses Issued or Renewed", colour="Chicago Council Ward", caption="Data Source: Chicago Open Data Portal") +
+# theme_modest() + 
+# theme(axis.title = element_text(size = 10, face = "bold"), 
+#       plot.title = element_text(size = 15, face = "bold")) +
+#  scale_x_date(expand=c(0,0)) +
+# # scale_y_continuous(limits = c(0,250), expand = c(0, 0)) +
+# coord_cartesian(ylim=c(0,280), clip = "off") + 
+# annotate("text", x = ymd("2013-6-1"), y = 275, hjust = 0, parse=TRUE, 
+#          label=expression(bold("New Business beyond ") *  phantom(bold("Loop Area (Wards 2, 42, 43, 44)")) * phantom(bold(" Concentrated in ")) * phantom(bold("Pilsen (27)")) * phantom(bold(" and ")) * phantom(bold("East Garfield Park (25)")) ), 
+#         color = "black", size = 7) +   
+# annotate("text", x = ymd("2013-6-1"), y = 275, hjust = 0, parse=TRUE, 
+#          label=expression( phantom(bold("New Business beyond ")) * bold("Loop Area (Wards 2, 42, 43, 44)") * phantom(bold(" Concentrated in ")) * phantom(bold("Pilsen (27)")) * phantom(bold(" and ")) * phantom(bold("East Garfield Park (25)")) ), 
+#         color = "#62bcfb", size = 7) + 
+# annotate("text", x = ymd("2013-6-1"), y = 275, hjust = 0, parse=TRUE, 
+#          label=expression( phantom(bold("New Business beyond ")) * phantom(bold("Loop Area (Wards 2, 42, 43, 44)")) * bold(" Concentrated in ") * phantom(bold("Pilsen (27)")) * phantom(bold(" and ")) * phantom(bold("East Garfield Park (25)")) ), 
+#         color = "black", size = 7) + 
+# annotate("text", x = ymd("2013-6-1"), y = 275, hjust = 0, parse=TRUE, 
+#          label=expression( phantom(bold("New Business beyond ")) * phantom(bold("Loop Area (Wards 2, 42, 43, 44)")) * phantom(bold(" Concentrated in ")) * bold("Pilsen (27)") * phantom(bold(" and ")) * phantom(bold("East Garfield Park (25)")) ), 
+#         color = "#1FBFC3", size = 7) + 
+# annotate("text", x = ymd("2013-6-1"), y = 275, hjust = 0, parse=TRUE, 
+#          label=expression( phantom(bold("New Business beyond ")) * phantom(bold("Loop Area (Wards 2, 42, 43, 44)")) * phantom(bold(" Concentrated in ")) * phantom(bold("Pilsen (27)")) * bold(" and ") * phantom(bold("East Garfield Park (25)")) ), 
+#         color = "black", size = 7) + 
+# annotate("text", x = ymd("2013-6-1"), y = 275, hjust = 0, parse=TRUE, 
+#          label=expression( phantom(bold("New Business beyond ")) * phantom(bold("Loop Area (Wards 2, 42, 43, 44)")) * phantom(bold(" Concentrated in ")) * phantom(bold("Pilsen (27)")) * phantom(bold(" and ")) * bold("East Garfield Park (25)") ), 
+#         color = "#F67770", size = 7) + 
+#   
+# annotate("text", x=ymd("2015-7-1"), y=265, label=expression("New Business Entry and Renewal limited to Gentrifying Neighborhoods"), 
+#          color = "black", size=7, fontface = "bold.italic") 
 
 ```
 
 
-
-```{r save-post-2012-lic}
-ggsave("post2012_licensing.pdf", width = 25, height = 18, units = "cm")
+```{r save-post-2012-lic, include=FALSE}
+# ggsave("post2012_licensing.pdf", width = 25, height = 18, units = "cm")
 ```
 
 
@@ -546,7 +568,7 @@ bus_licenses %>% filter(!is.na(WARD), active==1) %>%
   summarise(business_count = n()) %>% group_by(WARD) %>% arrange(desc(business_count)) %>% 
   ggplot(aes(x=reorder(as.factor(WARD), business_count, FUN = median), y=business_count)) + 
   geom_boxplot(aes(group=as.factor(WARD), fill=as.factor(SIDE)), alpha=0.5) + 
-  geom_label_repel(aes(label=WARD)) + 
+  geom_label_repel(aes(label=as.factor(WARD))) + 
   scale_y_continuous(limits = c(0, 1750)) +
   # scale_x_discrete(breaks=seq(0,50,5)) + 
   # geom_label_repel(aes(group=as.factor(WARD), label=as.factor(WARD))) +
@@ -561,45 +583,6 @@ ggsave("avg_ward_business.pdf", width = 25, height = 18, units = "cm")
 ```
 
 
-```{r include = FALSE}
-school_cols_to_import <- c("RCDTS", "Type",	"School Name", "District",	"City",	"County",	"District Type",	"School Type",	"Grades Served",	"Summative Designation", "Student Enrollment - Total", "Student Enrollment - White %", "Student Enrollment - Black or African American %", "Student Enrollment - Hispanic or Latino %",	"Student Enrollment - Asian %", "Student Enrollment - Low Income %", "Total Number of School Days", "Student Attendance Rate", "Student Chronic Truancy Rate",	"High School Dropout Rate - Total", "High School Dropout Rate - Low Income", "High School 5-Year Graduation Rate - Total", "Avg Class Size - High School", "Avg Class Size – All Grades", "Avg Teaching Exp", "Pupil Teacher Ratio - Elementary", "Pupil Teacher Ratio - High School", "Pupil Certified Staff Ratio", "Pupil Admin Ratio", "Teacher Avg Salary", "Admin Avg Salary", "Teacher Retention Rate", "Principal Turnover within 6 Years",	"Teacher Attendace Rate", "Teacher Evaluation Rate", "Number of Students who took AP classes Grade 9 Total", "Number Low Income of Students who took AP classes Grade 9 Total", "Number of Students who took AP classes Grade 10 Total", "Number Low Income of Students who took AP classes Grade 10 Total", "Number of Students who took AP classes Grade 11 Total", "Number Low Income of Students who took AP classes Grade 11 Total", "Number of Students who took AP classes Grade 12 Total", "Number Low Income of Students who took AP classes Grade 12 Total", "Number of students who took one ore more AP Exams Grade 10", "Number of students who took one ore more AP Exams Grade 11",	"Number of students who took one ore more AP Exams Grade 12")
-```
-
-
-```{r include = FALSE}
-# getCensus(name, vintage = NULL, key = Sys.getenv("CENSUS_KEY"), vars,
-#   region = NULL, regionin = NULL, time = NULL, date = NULL,
-#   period = NULL, monthly = NULL, category_code = NULL,
-#   data_type_code = NULL, naics = NULL, pscode = NULL,
-#   naics2012 = NULL, naics2007 = NULL, naics2002 = NULL,
-#   naics1997 = NULL, sic = NULL)
-# https://hrecht.github.io/censusapi/reference/getCensus.html#arguments
-```
-
-
-```{r include=FALSE}
-# View(listCensusApis())
-
-# View(listCensusMetadata(name = "acs/acs5", vintage = 2016, type = "geography"))
-
-
-# sahie_vars <- listCensusMetadata(name = "timeseries/healthins/sahie", 
-#     type = "variables")
-```
-
-```{r include=FALSE}
-
-
-# acs_income <- getCensus(name = "acs/acs1",
-#     vintage = 2017, 
-#     vars = c("NAME", "SAEMHI_PT", "SAEMHI_MOE", "B19013_001MA"), 
-#     region = "county:031",
-#     regionin = "state:17",
-#     time = "from 2009 to 2019")
-# head(acs_income)
-```
-
-
 ```{r message=FALSE, warning=FALSE}
 
 register_google(key = Sys.getenv("GOOGLEMAPS_KEY"))
@@ -607,27 +590,16 @@ register_google(key = Sys.getenv("GOOGLEMAPS_KEY"))
 
 
 ```{r}
-
-# for (current_year in seq(2009:2019)) {
 license_types <- c("ISSUE" = "New Business Licenses", 
                    "RENEW" = "Business License Renewals")  
 
 bl <- bus_licenses %>% filter(activity_yr >= 2009, active == 1, `APPLICATION TYPE`%in% c('ISSUE', 'RENEW')) %>% 
     distinct(`LICENSE ID`, activity_yr, `APPLICATION TYPE`, LONGITUDE, LATITUDE) 
   
-  # bounds <- rbind( wards2015.df %>% dplyr::select(long, lat) %>% summarise(long = max(long, na.rm = TRUE),
-  #                                                  lat = max(lat, na.rm = TRUE))  ,
-  #       wards2015.df %>% dplyr::select(long, lat) %>% summarise(long = min(long, na.rm = TRUE),
-  #                                                  lat = min(lat, na.rm = TRUE))
-  # )
-
-
-  
   ggmap(get_googlemap(center = c(lon = -87.732125, lat = 41.83379),
                       zoom = 10, scale = 1,
                       maptype ='terrain',
                       color = 'color',
-                      # visible=bounds,
                       key = Sys.getenv("GOOGLEMAPS_KEY"))) + 
     geom_point(data=bl, aes(x=LONGITUDE, y=LATITUDE, color=as.factor(activity_yr)), alpha = 0.05, show.legend = FALSE, na.rm = TRUE) + 
     geom_path(data = wards2015.df, aes(long,lat,group=group), color="black") +
