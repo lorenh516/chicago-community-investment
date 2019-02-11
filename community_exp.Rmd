@@ -42,6 +42,7 @@ library(raster)
 library(rgdal)
 library(rgeos)
 library(maptools)
+library(tigris)
 library(ggmap)
 library(sf)
 ```
@@ -62,7 +63,7 @@ monochromatic_C6C3FF <- c(
 
 diverging_teal <- read_ase(here::here("BrBG_9.ase"), use_names = FALSE)
 diverging_teal[7] <- "#E5E5E5"
-diverging_teal[5] <- "#c6c3ff"
+diverging_teal[5] <- "#A6B5EC"
 diverging_teal[6] <- "#9AEADE"
 diverging_teal[3] <- "#B5B5B5"
 diverging_teal[2] <- "#E8B45B"
@@ -90,9 +91,9 @@ get_dt_cols <- function(...) {
 ```{r}
 # set groupings of colors as palettes
 dt_palettes <- list(
-  `main`  = get_dt_cols("teal", "lavendar", "honeymustard"),
-  `cool`  = get_dt_cols("darkteal", "teal", "seafoam",
-                          "lavender"),
+  `main`  = get_dt_cols("teal", "darkteal", "honeymustard"),
+  `diverging` = get_dt_cols("darkteal", "lavender", "sand", "honeymustard"),
+  `cool`  = get_dt_cols("darkteal", "teal", "seafoam", "lavender"),
   `desert`   = get_dt_cols("chai", "sand", "honeymustard", "cocoa"),
   `mixed` = get_dt_cols("cocoa", "honeymustard", "sand", "lavender", "seafoam", "teal", "darkteal"),
   `grey`  = get_dt_cols("palegray", "darkgray")
@@ -106,7 +107,7 @@ dt_palettes <- list(
 # function for uilitizing palettes
 dt_pal <- function(palette = "main", reverse = FALSE, ...) {
   pal <- dt_palettes[[palette]]
-  if (reverse) { pal <- rev(pal) }
+  if (reverse) pal <- rev(pal)
   # pass alpha, other color arguments to colorRampPalette
   colorRampPalette(pal, ...)
 }
@@ -238,48 +239,48 @@ bus_licenses <- left_join(bus_licenses, wardSides, by="WARD")
 ```
 
 
-
-```{r pre-2015-lic}
+```{r pre-2015-lic, include=FALSE}
 # data exploration
 bus_licenses %>% group_by(activity_date, WARD) %>% summarise(business_count = n()) %>% 
   filter(activity_date < mdy("1/1/2015"), !is.na(WARD)) %>%
   ggplot() + geom_line(aes(x=activity_date, y=business_count, colour=as.factor(WARD))) +
   gghighlight(min(business_count), max_highlight = 3L) +
-  labs(y="Business Count", x="Activity Date", colour="Ward", title="Chicago Ward Business Presence", caption="Data Source: Chicago Open Data Portal") + 
-  scale_color_dt() +
+  labs(y="Business Count", x="Activity Date", colour="Ward", 
+       title="Chicago Ward Business Presence", 
+       caption="Data Source: Chicago Open Data Portal") + 
   theme_modest() + 
   theme(panel.grid.major.x = element_blank(),
-        panel.grid.minor = element_blank())
+        panel.grid.minor = element_blank()) +
+  scale_color_dt() 
 ```
 
-```{r check-2012-spike}
+```{r check-2012-spike, include=FALSE}
 # look into spike around beginning of 2013
 bus_licenses %>% group_by(activity_date, WARD) %>% summarise(bus_count = n()) %>% summarise(max_activity = max(bus_count)) %>% arrange(desc(max_activity))
 ```
 
-```{r pre-2015-licensing}
-# bus_licenses %>% filter(
-#   activity_date < mdy("1/1/2015"), !is.na(WARD), !(activity_date== mdy("12/29/2012")), active==1) %>%
-#   group_by(activity_date, WARD) %>% summarise(business_count = n()) %>% 
-#   ggplot() + geom_line(aes(x=activity_date, y=business_count, colour=as.factor(WARD))) +
-#   gghighlight(min(business_count), max_highlight = 3L) +
-#   labs(y="Business Count", x="Activity Date", colour="Ward", title="Chicago Ward Business Presence (2002-2015)", caption="Data Source: Chicago Open Data Portal")
+```{r pre-2015-licensing, echo=FALSE}
+bus_licenses %>% filter(active==1, activity_date < mdy("1/1/2015"), !is.na(WARD), !(activity_date== mdy("12/29/2012"))) %>%
+  group_by(activity_date, WARD) %>% summarise(business_count = n()) %>% 
+  ggplot() + geom_line(aes(x=activity_date, y=business_count, colour=as.factor(WARD))) +
+  gghighlight(min(business_count), max_highlight = 3L) +
+  labs(y="Business Count", x="Activity Date", colour="Ward", 
+       title="Chicago Ward Business Presence (2002-2015)", 
+       caption="Data Source: Chicago Open Data Portal") + 
+  theme_modest() + 
+  theme(panel.grid.major.x = element_blank(),
+        panel.grid.minor = element_blank()) +
+  scale_color_dt() 
 ```
 
 
 ```{r save-pre-2015-licensing, include=FALSE}
-# ggsave("pre_2015_licensing.pdf", width = 30, height = 15, units = "cm")
+ggsave("pre_2015_licensing.pdf", width = 30, height = 15, units = "cm")
 ```
 
 
-```{r import-former-wards}
+```{r import-former-wards, include=FALSE}
 wardsPre2015 <- sf::st_read(here::here("data","Geofiles - Chicago Zip Code and Neighborhood", "Boundaries - Wards (2003-2015)","geo_export_fa687596-87b6-4059-afac-b28ce789a674.shp"))
-wardsPre2015 <- wardsPre2015 %>% mutate(ctr = sf::st_transform(wardsPre2015, 29101) %>% 
-  st_centroid() %>% 
-  # this is the crs from wards.2015, which has no EPSG code:
-  st_transform(., '+proj=longlat +ellps=WGS84 +no_defs') %>%
-  # add as a second geometry col:
-  st_geometry())
 
 wardsPre2015 <-wardsPre2015 %>% mutate(lon=map_dbl(geometry, ~st_centroid(.x)[[1]]), # add centroid values for labels
                                     lat=map_dbl(geometry, ~st_centroid(.x)[[2]])) # add centroid values for labels
@@ -287,9 +288,14 @@ wardsPre2015 <-wardsPre2015 %>% mutate(lon=map_dbl(geometry, ~st_centroid(.x)[[1
 
 
 
-
 ```{r}
+# run API key
 tidycensus::census_api_key(Sys.getenv("CENSUS_API_KEY"))
+
+# cache census shapefiles
+# tigris_cache_dir(here::here("data", ".tigris_"))
+# options(tigris_use_cache = TRUE)
+# readRenviron('~/.Renviron')
 ```
 
 
@@ -391,14 +397,14 @@ demoConversion <- function(acs_year) {
 ```
 
 
-```{r}
+```{r, include=FALSE}
 # test that census calls working
 getDemos(2013)
 ```
 
 
 
-```{r}
+```{r message=FALSE}
 years <- list(2012, 2013, 2014, 2015, 2016, 2017)
 
 multi_year <-
@@ -406,7 +412,7 @@ multi_year <-
   map2(.y = years, ~ mutate(.x, id = .y))
 
 all_demos <- reduce(multi_year, rbind)
-# rm(multi_year)
+rm(multi_year)
 ```
 
 ```{r fortify-mapping, message=FALSE}
@@ -421,16 +427,9 @@ wards.2015.acs.proj <- wards.2015.acs.proj %>% mutate(long=map_dbl(geometry, ~st
 # all.demos.Chi <- st_intersection(all_demos, wards.2015.acs.proj)
 ```
 
-```{r}
-min(wards.2015.acs.proj$long)
-median(wards.2015.acs.proj$long)
-max(wards.2015.acs.proj$long)
-```
-
-
 
 ```{r facet_wrap_demo_info, message=FALSE, warning=FALSE, fig.width=10}
-chiCentralLongitude <- -87.68008
+chiCentralLongitude <- median(wards.2015.acs.proj$long)
 
 ggplot(st_intersection(all_demos, wards.2015.acs.proj) %>% filter(!is.na(max_pct))) +
   geom_sf(aes(fill=predominant_race, alpha=max_pct), lwd = 0) +
@@ -468,8 +467,8 @@ ggplot(st_intersection(all_demos, wards.2015.acs.proj) %>% filter(!is.na(max_pct
   facet_wrap( ~ id) + labs(
     title = "Latinx Populations Being Edged out\nof Central, Waterfront Neighborhoods",
     subtitle = "Chicago Racial and Ethnic Group Movement by Census Tract Since 2012",
-    caption = "Source: U.S. Census Bureau", fill = "Predominant Race in Tract"
-  )
+    caption = "Source: U.S. Census Bureau", fill = "Predominant Race in Tract") + 
+  scale_color_dt("diverging")
   
 ```
 
