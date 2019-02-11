@@ -10,7 +10,8 @@ output:
 
 ```{r Housekeeping, echo=TRUE, message=FALSE, warning=FALSE, include=FALSE}
 # Housekeeping (clear workspace, start output file, load packages)
-rm(list=ls())
+# rm(list=ls())
+
 # data cleaning, augmenting, manipulation
 library(tidyverse)
 library(dplyr)
@@ -63,7 +64,7 @@ monochromatic_C6C3FF <- c(
 
 diverging_teal <- read_ase(here::here("BrBG_9.ase"), use_names = FALSE)
 diverging_teal[7] <- "#E5E5E5"
-diverging_teal[5] <- "#A6B5EC"
+diverging_teal[5] <- "#C6C3FF"
 diverging_teal[6] <- "#9AEADE"
 diverging_teal[3] <- "#B5B5B5"
 diverging_teal[2] <- "#E8B45B"
@@ -187,7 +188,7 @@ theme_map_modest <- function(base_size = 12) {
         panel.grid.major.x=element_blank(),
         panel.border=element_blank(),
         panel.spacing = unit(0,"lines"),
-        plot.margin  =  unit(c(0,0,0,0),"lines")
+        plot.margin  =  unit(c(2,2,2,2),"lines")
     )
 }
 
@@ -288,12 +289,13 @@ wardsPre2015 <-wardsPre2015 %>% mutate(lon=map_dbl(geometry, ~st_centroid(.x)[[1
 
 
 
+
 ```{r}
 # run API key
 tidycensus::census_api_key(Sys.getenv("CENSUS_API_KEY"))
 
 # cache census shapefiles
-# tigris_cache_dir(here::here("data", ".tigris_"))
+# tigris_cache_dir(here::here("data", "tigris_cache"))
 # options(tigris_use_cache = TRUE)
 # readRenviron('~/.Renviron')
 ```
@@ -347,7 +349,6 @@ getDemos <- function(acs_year) {
               state = 17, # IL = 17
               county = 031, # Cook County = 031 FIPS
               geometry = TRUE
-              # options(tigris_use_cache = TRUE)
               )
 }
 ```
@@ -390,7 +391,7 @@ demoConversion <- function(acs_year) {
                                                        ifelse(group_name == 'asian_pct', 'Asian',
                                                        ifelse(group_name == 'latinx_pct', 'Latinx',
                                                        ifelse(group_name == 'other_pct', 'Other')))))) %>% 
-                           dplyr::select(GEOID, NAME, predominant_race, max_pct = pct), by = "GEOID"
+                           dplyr::select(GEOID, NAME, predominant_race, max_pct = pct), by = c("GEOID", "NAME")
                        )
     return(demo_df)
 }
@@ -431,24 +432,36 @@ wards.2015.acs.proj <- wards.2015.acs.proj %>% mutate(long=map_dbl(geometry, ~st
 ```{r facet_wrap_demo_info, message=FALSE, warning=FALSE, fig.width=10}
 chiCentralLongitude <- median(wards.2015.acs.proj$long)
 
-ggplot(st_intersection(all_demos, wards.2015.acs.proj) %>% filter(!is.na(max_pct))) +
+ggplot(st_intersection(all_demos, wards.2015.acs.proj) %>% filter(!is.na(predominant_race))) +
   geom_sf(aes(fill=predominant_race, alpha=max_pct), lwd = 0) +
+  scale_fill_dt("diverging", reverse=TRUE) +
   scale_alpha(range = c(0.35, 0.9), guide="none") + 
   geom_sf(data = wards.2015.acs.proj, color="black", fill=NA) +
-  geom_text_repel(data=wards.2015.acs.proj %>% filter(ward %in% c(4, 9, 10, 13, 14, 22, 18, 33, 34), long < chiCentralLongitude), 
+    geom_text_repel(data=wards.2015.acs.proj %>% filter(ward %in% c(10, 18)), 
                   aes(x=long, y=lat, label=ward),
-                  nudge_x = -.75,
-                  segment.size = 0.25,
-                  segment.color = "grey",
+                  face="bold",
+                  force = 5,
+                  size = 8,
+                  direction = "both",
+                  hjust=0) +
+  geom_text_repel(data=wards.2015.acs.proj %>% filter(ward %in% c(9, 13, 14, 22, 33, 34)), 
+                  aes(x=long, y=lat, label=ward),
+                  nudge_x = -.35,
+                  segment.size = 0.5,
+                  segment.color = get_dt_cols("cocoa"),
+                  face="bold",
+                  size = 8,
                   force = 5,
                   direction = "both",
                   hjust=0) +
-  geom_text_repel(data = wards.2015.acs.proj %>% filter(ward %in% c(4, 9, 10, 13, 14, 22, 18, 33, 34), long > chiCentralLongitude), 
+  geom_text_repel(data = wards.2015.acs.proj %>% filter(ward %in% c(4, 11)), 
                   aes(x=long, y=lat, label=ward),
-                  nudge_x = .75,
-                  segment.size = 0.25,
-                  segment.color = "grey",
-                  force = 5,
+                  nudge_x = .15,
+                  segment.size = 0.5,
+                  segment.color = get_dt_cols("cocoa"),
+                  face="bold",
+                  size = 8,
+                  force = 10,
                   direction = "both",
                   hjust = 1) +
   coord_sf(datum = NA) +
@@ -465,10 +478,9 @@ ggplot(st_intersection(all_demos, wards.2015.acs.proj) %>% filter(!is.na(max_pct
   #       plot.title = element_text(size = 30, face = "bold", hjust="0.5"),
   #       plot.caption = element_text(size = 15)) +
   facet_wrap( ~ id) + labs(
-    title = "Latinx Populations Being Edged out\nof Central, Waterfront Neighborhoods",
+    title = "Latinx Populations Edged out of Central, Waterfront Neighborhoods",
     subtitle = "Chicago Racial and Ethnic Group Movement by Census Tract Since 2012",
-    caption = "Source: U.S. Census Bureau", fill = "Predominant Race in Tract") + 
-  scale_color_dt("diverging")
+    caption = "Source: U.S. Census Bureau", fill = "Predominant Race in Tract")
   
 ```
 
@@ -567,7 +579,8 @@ bus_licenses %>% filter(!is.na(WARD), active==1) %>%
   summarise(business_count = n()) %>% group_by(WARD) %>% arrange(desc(business_count)) %>% 
   ggplot(aes(x=reorder(as.factor(WARD), business_count, FUN = median), y=business_count)) + 
   geom_boxplot(aes(group=as.factor(WARD), fill=as.factor(SIDE)), alpha=0.5) + 
-  geom_label_repel(aes(label=as.factor(WARD))) + 
+  scale_fill_dt("mixed") +
+  geom_label_repel(aes(x=reorder(as.factor(WARD), business_count, FUN = median), y=median(business_count), label=as.factor(WARD))) + 
   scale_y_continuous(limits = c(0, 1750)) +
   # scale_x_discrete(breaks=seq(0,50,5)) + 
   # geom_label_repel(aes(group=as.factor(WARD), label=as.factor(WARD))) +
@@ -601,6 +614,7 @@ bl <- bus_licenses %>% filter(activity_yr >= 2009, active == 1, `APPLICATION TYP
                       color = 'color',
                       key = Sys.getenv("GOOGLEMAPS_KEY"))) + 
     geom_point(data=bl, aes(x=LONGITUDE, y=LATITUDE, color=as.factor(activity_yr)), alpha = 0.05, show.legend = FALSE, na.rm = TRUE) + 
+    scale_color_dt("diverging") +
     geom_path(data = wards2015.df, aes(long,lat,group=group), color="black") +
     geom_polygon(data = wards2015.df, aes(long,lat,group=group), fill=NA) + 
     labs(y="Latitude", x="Longitude", colour="Year", title="Money in the Middle", 
