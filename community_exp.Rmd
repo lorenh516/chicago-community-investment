@@ -199,12 +199,12 @@ theme_set(theme_modest(base_size = 12))
 bus_licenses <-  readRDS(here::here("data", "bus_licenses.Rda"))
 ```
 
-```{r view-zip-problems}
+```{r view-zip-problems, include=FALSE}
 # problems(bus_licenses)
 ```
 
 
-```{r check-zip-integrity}
+```{r check-zip-integrity, include=FALSE}
 # investigate nonstandard zip codes
 # looks like int'l businesses
 
@@ -212,7 +212,7 @@ bus_licenses <-  readRDS(here::here("data", "bus_licenses.Rda"))
 ```
 
 
-```{r add-lic-cols}
+```{r add-lic-cols, include=FALSE}
 # bus_licenses <- mutate(bus_licenses, 
 #                        active=ifelse(grepl("AAI",`LICENSE STATUS`),1,0),
 #                        app_review = difftime(mdy(`LICENSE APPROVED FOR ISSUANCE`,tz="America/Chicago"), mdy(`APPLICATION REQUIREMENTS COMPLETE`,tz="America/Chicago"),unit="days"),
@@ -230,7 +230,7 @@ wardSides <- read_csv(here::here("data", "wardSides.csv"))
 
 
 
-```{r}
+```{r, include=FALSE}
 # bus_licenses <- bus_licenses %>% mutate(activity_wk = lubridate::as_date(cut(activity_date, breaks = "week", start.on.monday = FALSE, origin = lubridate::origin)))
 # bus_licenses <- left_join(bus_licenses, wardSides, by="WARD")
 # saveRDS(bus_licenses, file = here::here("data", "bus_licenses.Rda"))
@@ -287,7 +287,7 @@ bus_licenses %>% filter(active==1, activity_date < mdy("1/1/2015"), !is.na(WARD)
 
 
 
-```{r}
+```{r include=FALSE}
 # run API key
 tidycensus::census_api_key(Sys.getenv("CENSUS_API_KEY"))
 
@@ -298,7 +298,7 @@ tidycensus::census_api_key(Sys.getenv("CENSUS_API_KEY"))
 ```
 
 
-```{r}
+```{r  include=FALSE}
 # want to know: how population changing/ not changing across tracts - race, age, income, poverty status, safety net takeup
 getDemos <- function(acs_year) {
   tidycensus::get_acs(geography = "tract", 
@@ -350,7 +350,7 @@ getDemos <- function(acs_year) {
 ```
 
 
-```{r}
+```{r  include=FALSE}
 
 demoConversion <- function(acs_year) {
   demo_df <- getDemos(acs_year=acs_year)
@@ -401,7 +401,7 @@ demoConversion <- function(acs_year) {
 
 
 
-```{r message=FALSE}
+```{r message=FALSE,  include=FALSE}
 # years <- list(2012, 2013, 2014, 2015, 2016, 2017)
 # 
 # multi_year <-
@@ -412,17 +412,17 @@ demoConversion <- function(acs_year) {
 # rm(multi_year)
 ```
 
-```{r}
+```{r  include=FALSE}
 # saveRDS(all_demos, file = here::here("data", "all_demos_chi.Rda"))
 ```
 
 
-```{r fortify-mapping, message=FALSE}
+```{r fortify-mapping, message=FALSE, include=FALSE}
 
 # wards.2015 <- sf::st_read(here::here("data","Geofiles - Chicago Zip Code and Neighborhood","Boundaries - Wards (2015-)","geo_export_0bb2e9fd-20ca-415b-a96a-7722d72c1b41.shp"))
 ```
 
-```{r}
+```{r  include=FALSE}
 # all_demos <-st_transform(all_demos, crs =  st_crs(wards.2015))
 # saveRDS(all_demos, file = here::here("data", "all_demos_chi_proj.Rda"))
 # 
@@ -445,7 +445,7 @@ wards.2015 <-  readRDS(here::here("data", "wards2015_sf.Rda"))
 ```
 
 
-```{r facet_wrap_demo_info, message=FALSE, warning=FALSE, fig.width=10}
+```{r facet_wrap_demo_info, message=FALSE, warning=FALSE, fig.width=15, fig.height=17}
 chiCentralLongitude <- median(wards.2015$long)
 
 ggplot(st_intersection(all_demos.Chi, wards.2015) %>% filter(!is.na(predominant_race))) +
@@ -501,7 +501,7 @@ ggsave("ward_demographics.pdf", width = 30, height = 25, units = "cm")
 ```
 
 
-```{r message=FALSE, warning=FALSE}
+```{r message=FALSE, warning=FALSE, include=FALSE}
 # voter_turnout15 <- read_csv(here::here("data", "voter_turnout_city_council_2015.csv"), col_names = FALSE, skip=8)
 # voter_turnout15 <- voter_turnout15 %>% mutate(WARD = ifelse(grepl("WARD", voter_turnout15$X1), as.numeric(gsub("WARD ", "", X1)), NA),
 #                                               X4 = as.numeric(gsub("%", "", X4)),
@@ -514,14 +514,14 @@ ggsave("ward_demographics.pdf", width = 30, height = 25, units = "cm")
 # voter_turnout15 %>% dplyr::select(X5, X6) %>% distinct()
 ```
 
-```{r}
+```{r include=FALSE}
 # voter_turnout15 <- voter_turnout15 %>% dplyr::select(-c(X5, X6))
 # names(voter_turnout15) <- sapply(c("Precinct","Registered","Ballots","Turnout", "WARD", "YEAR"), toupper)
 # voter_turnout15 <- voter_turnout15 %>% filter(PRECINCT !="Precinct", !grepl("WARD", PRECINCT), !is.na(PRECINCT))
 ```
 
 
-```{r message=FALSE, warning=FALSE}
+```{r message=FALSE, warning=FALSE, include=FALSE}
 # voter_turnout11 <- read_csv(here::here("data", "voter_turnout_city_council_2011.csv"), col_names = FALSE, skip=8)
 # voter_turnout11 <- voter_turnout11 %>% mutate(WARD = ifelse(grepl("WARD", voter_turnout11$X1), as.numeric(gsub("WARD ", "", X1)), NA),
 #                                               X4 = as.numeric(gsub("%", "", X4)),
@@ -530,19 +530,19 @@ ggsave("ward_demographics.pdf", width = 30, height = 25, units = "cm")
 ```
 
 
-```{r}
+```{r include=FALSE}
 # double-check columns that look empty
 # voter_turnout11 %>% dplyr::select(X5, X6) %>% distinct()
 ```
 
-```{r}
+```{r include=FALSE}
 # voter_turnout11 <- voter_turnout11 %>% dplyr::select(-c(X5, X6))
 # names(voter_turnout11) <- sapply(c("Precinct","Registered","Ballots","Turnout", "WARD", "YEAR"), toupper)
 # voter_turnout11 <- voter_turnout11 %>% filter(PRECINCT !="Precinct", !grepl("WARD", PRECINCT), !is.na(PRECINCT))
 ```
 
 
-```{r}
+```{r include=FALSE}
 # voterTurnout <- bind_rows(voter_turnout11, voter_turnout15)
 # voterTurnout <- voterTurnout %>% 
 #   mutate(TURNOUT = round((as.numeric(gsub(",", "", BALLOTS)) / as.numeric(gsub(",", "", REGISTERED))) * 100,1))
@@ -551,7 +551,7 @@ ggsave("ward_demographics.pdf", width = 30, height = 25, units = "cm")
 
 
 
-```{r}
+```{r include=FALSE}
 # turnoutSides <- merge(voterTurnout, wardSides, by="WARD") %>% filter(PRECINCT=="Total") %>% 
 #   group_by(YEAR, SIDE) %>% summarise(MEAN_TURNOUT = round(mean(TURNOUT, na.rm = TRUE), 1)) %>% 
 #   spread(YEAR, MEAN_TURNOUT) %>% mutate(DIFFERENCE = `2015` - `2011`) %>% 
@@ -564,7 +564,7 @@ ggsave("ward_demographics.pdf", width = 30, height = 25, units = "cm")
 ```
 
 
-```{r}
+```{r include=FALSE}
 # turnoutDiff <- voterTurnout %>%filter(PRECINCT=="Total", YEAR %in% c(2011, 2015)) %>% dplyr::select(WARD, TURNOUT, YEAR) %>% 
 #   group_by(YEAR, WARD) %>%
 #   spread(YEAR, TURNOUT) %>% mutate(DIFFERENCE = `2015` - `2011`) %>% 
@@ -577,13 +577,10 @@ ggsave("ward_demographics.pdf", width = 30, height = 25, units = "cm")
 ``` 
 
 
-```{r}
-turnoutSides <-  readRDS(here::here("data", "sides_turnout.Rda"))
-turnoutDiff <-  readRDS(here::here("data", "wards_turnout.Rda"))
-```
+```{r slopegraph, fig.width=10, fig.height=12}
+  turnoutSides <-  readRDS(here::here("data", "sides_turnout.Rda"))
+  turnoutDiff <-  readRDS(here::here("data", "wards_turnout.Rda"))
 
-
-```{r slopegraph, fig.width=10, fig.height=15}
   ggplot(turnoutSides, aes(x=as.factor(YEAR), y=TURNOUT, group=as.factor(SIDE))) + 
   geom_line(size=1.5, alpha=0.75, color="grey", show.legend = FALSE) +
   geom_line(data = filter(turnoutSides, (DIFFERENCE > -0)||(is.na(DIFFERENCE))), aes(colour=SIDE), size=1.5, show.legend=FALSE) +
@@ -631,8 +628,6 @@ turnoutDiff <-  readRDS(here::here("data", "wards_turnout.Rda"))
   labs(title="Highest Voter Turnout In Wards Facing Deinvestment", 
          subtitle="Change in Voter Turnout Between 2011 and 2015 Chicago City Council Elections", 
          caption="Source: Chicago Board of Election Commissioners", color="Chicago Area")
-         # shape="Election Year", color="Chicago Area") 
-
 ```
 
 
@@ -641,7 +636,7 @@ ggsave("ward_election_turnout2011_2015.pdf", width = 36, height = 23, units = "c
 ```
 
 
-```{r avg-monthly-lic, warning=FALSE, fig.width=15, fig.height=20}
+```{r avg-monthly-lic, warning=FALSE, fig.width=15, fig.height=12}
 bus_licenses %>% filter(!is.na(WARD), active==1) %>%
   group_by(activity_month, activity_yr, WARD, SIDE) %>% 
   summarise(business_count = n()) %>% group_by(WARD) %>% arrange(desc(business_count)) %>% 
@@ -678,12 +673,12 @@ ggsave("avg_ward_business.pdf", width = 25, height = 18, units = "cm")
 ```
 
 
-```{r message=FALSE, warning=FALSE, include=FALSE}
+```{r register-google-api, message=FALSE, warning=FALSE, include=FALSE}
 
 register_google(key = Sys.getenv("GOOGLEMAPS_KEY"))
 ```
 
-```{r}
+```{r ggmap-shapefiles}
 wards.shp.2015 <- here::here("data","Geofiles - Chicago Zip Code and Neighborhood","Boundaries - Wards (2015-)","geo_export_0bb2e9fd-20ca-415b-a96a-7722d72c1b41.shp")
 wards2015 <- shapefile(wards.shp.2015)
 wards2015@data <- mutate(wards2015@data, id = rownames(wards2015@data))
@@ -692,7 +687,7 @@ wards2015.df <- merge(wards2015.points, wards2015@data, by="id")
 ```
 
 
-```{r ggmapping, message=FALSE, warning=FALSE, fig.width=10}
+```{r ggmapping, message=FALSE, warning=FALSE, fig.width=15, fig.height=24}
 license_types <- c("ISSUE" = "New Business Licenses", 
                    "RENEW" = "Business License Renewals")  
 
@@ -715,15 +710,17 @@ bl <- bus_licenses %>% filter(activity_yr >= 2009, active == 1, `APPLICATION TYP
     theme_modest() + 
     facet_grid(. ~ `APPLICATION TYPE`, labeller=as_labeller(license_types)) +
     theme(
-      # panel.border = element_blank(),
-      # axis.text.y = element_blank(),
-      # panel.grid.major.y = element_blank(),
-      # panel.grid.minor.y = element_blank(),
-      # axis.text.x = element_blank(),
-      # panel.grid.major.x = element_blank(),
-      # panel.grid.minor.x = element_blank(),
-      plot.subtitle = element_text(size = 10, margin=margin(t=20)),
-      plot.title = element_text(size = 15, face = "bold")
+      panel.border = element_blank(),
+      axis.text.y = element_blank(),
+      panel.grid.major.y = element_blank(),
+      panel.grid.minor.y = element_blank(),
+      axis.title = element_blank(),
+      axis.text.x = element_blank(),
+      panel.grid.major.x = element_blank(),
+      panel.grid.minor.x = element_blank(),
+      plot.title = element_text(size = 20, face = "bold", hjust="0.5", margin = margin(t = 15)),
+      plot.subtitle = element_text(size = 15,  hjust="0.5", margin = margin(t = 20)),
+      plot.caption = element_text(size = 15)
     ) +
     scale_x_continuous(limits = c(wards2015.df %>% dplyr::select(long) %>% min() - 0.1, wards2015.df %>% dplyr::select(long) %>% max() + 0.05), expand = c(0, 0)) +
     scale_y_continuous(limits = c(wards2015.df %>% dplyr::select(lat) %>% min() - 0.1, wards2015.df %>% dplyr::select(lat) %>% max()) + 0.05, expand = c(0, 0))
