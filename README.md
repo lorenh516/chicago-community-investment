@@ -14,4 +14,4 @@ As Chicago is notably one of the most segregated cities in the United States, I 
 
 I will attempt to show the economic infeasibility of the de-investment phenomenon, as monies are still spent on defunded communities through different channels, and to encourage local governments to maintain services to neighborhoods of all demographics.
 
-Visit Site(https://lorenh516.github.io/chicago-community-investment/)
+[Visit Site](https://lorenh516.github.io/chicago-community-investment/)
