@@ -1,0 +1,86 @@
+---
+title: "Identifying Ward Sides"
+output: html_notebook
+---
+
+```{r}
+
+library(readxl)
+library(haven)
+library(tidyverse)
+library(lubridate)
+library(here)
+
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+```{r}
+communityWard <- read_csv(here::here("data", "Crimes_-_2001_to_present.csv"))
+communityWard <- communityWard %>% mutate(Year = lubridate::year(lubridate::mdy_hms(Date))) 
+communityWard <- communityWard %>% filter(Year > 2012)
+```
+
+```{r}
+communityWard <- communityWard %>% filter(`Community Area` > 0) %>% 
+  dplyr::select(Year, `Community Area`, Ward) %>% arrange(Year, Ward, `Community Area`)
+```
+
+
+```{r}
+communityWard <- communityWard %>% unique()
+```
+
+```{r}
+farNorth <- c(76, 10, 9, 11, 12, 13, 14, 4, 2, 77, 1, 3)
+northWest <- c(17, 18, 19, 15, 20, 16)
+north <- c(21, 22, 5, 6, 7)
+west <- c(25, 23, 26, 27, 29, 30, 24, 28, 31)
+central <- c(8, 32, 33)
+southSide <- c(60, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 69)
+southWest <- c(56, 57, 58, 59, 61, 62, 63, 64, 65, 66, 67, 68)
+farSouthWest <- c(70, 71, 72, 73, 74, 75)
+farSouthEast <- c(44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55)
+```
+
+```{r}
+communityWard <- communityWard %>% 
+  mutate(Side = ifelse(
+    (`Community Area` %in% farNorth), "Far North Side",
+    ifelse((`Community Area` %in% northWest), "Northwest Side", 
+    ifelse((`Community Area` %in% north), "North Side",
+    ifelse((`Community Area` %in% west), "West Side",
+    ifelse((`Community Area` %in% central), "Central",
+    ifelse((`Community Area` %in% southSide), "South Side",
+    ifelse((`Community Area` %in% southWest), "Southwest Side",
+    ifelse((`Community Area` %in% farSouthWest), "Far Southwest",
+    ifelse((`Community Area` %in% farSouthEast), "Far Southeast", NA)))))))))                
+         )
+```
+
+```{r}
+communityWard <- communityWard %>% select(Year, Ward, Side) %>% group_by(Ward, Side) %>% summarise(n = n()) %>% filter(n == max(n), !is.na(Ward))
+```
+
+```{r}
+communityWard %>% filter(Ward %in% unlist(communityWard[duplicated(communityWard$Ward), 1]))
+```
+
+```{r}
+communityWard <- communityWard %>% mutate(Side = ifelse(Ward == 42, "Central", 
+                                 ifelse(Ward == 43, "North Side",
+                                 ifelse(Ward == 46, "Far North Side",
+                                 ifelse(Ward == 47, "North Side", 
+                                 Side))))) %>% unique() %>% dplyr::select(Ward, Side)
+colnames(communityWard) <- sapply(colnames(communityWard), toupper)
+```
+
+
+```{r}
+communityWard
+```
+
+
+```{r}
+write_csv(communityWard, path=here::here("data", "wardSides.csv"))
+```
+
