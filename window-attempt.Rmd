@@ -1,0 +1,283 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+ 
+
+```{r}
+library(Lahman)
+library(lubridate)
+library(tidyverse)
+library(haven)
+library(here)
+library(ggplot2)
+```
+
+
+```{r include = FALSE}
+# identify unique licensing instance column 
+bus_licenses %>% filter(`ACCOUNT NUMBER` == 1)
+```
+
+```{r}
+# identify unique licensing instance column (cont'd)
+bus_licenses %>% dplyr::select(`ID`, `ACCOUNT NUMBER`, `APPLICATION TYPE`)  %>% 
+  group_by(`ID`, `ACCOUNT NUMBER`, `APPLICATION TYPE`) %>% summarise(count = n()) %>% 
+  arrange(`ACCOUNT NUMBER`, desc(count))
+```
+
+
+
+```{r}
+# for every date in data set, count how many issued, 
+bus_licenses %>% distinct(`ACCOUNT NUMBER`, `DOING BUSINESS AS NAME`, activity_date, `LICENSE STATUS`, `APPLICATION TYPE`, activity_date) %>% arrange(`ACCOUNT NUMBER`, activity_date) 
+
+
+# how many renewed, how many revoked 
+# For every day in your ranges of dates, filter the dataframe to dates within one year of that time. Then add all the renewed and new business licenses within that time frame.
+# (Assuming they expire after one year without renewal).
+# For each date, that's going to get you the total number of licenses, righT?
+# That's what doing this with windowing would do as well, just more efficiently with group_by / lag / summarize /
+#   Ok, so for each date, filter by created before, has not yet expired, sum? Created before = licenses issued before
+# And then i could just subtract renewals
+```
+
+
+```{r}
+bus_licenses %>% dplyr::select(activity_date) %>% summarise(earliest_date = min(activity_date),
+                                                            latest_date = max(activity_date))
+```
+
+
+```{r}
+bus_licenses %>% filter((`LICENSE STATUS` != "AAI")& (!is.na(`LICENSE TERM EXPIRATION DATE`)))
+
+# check if any non-approved licenses in data set (no, only approvals)
+is.na(bus_licenses$`DATE ISSUED`) %>% sum()
+```
+
+
+```{r}
+# for each ward, for each day, check how many issued, how many renewed, how many expired, how many revoked
+bus_licenses %>% filter((activity_date == ymd("2002-01-02")) & (`LICENSE STATUS` == AI) ) %>% 
+  distinct(`ACCOUNT NUMBER`, `DOING BUSINESS AS NAME`, activity_date, `LICENSE STATUS`, `APPLICATION TYPE`, activity_date) %>% arrange(`ACCOUNT NUMBER`, activity_date) 
+
+bus_copy <- bus_licenses
+
+
+
+bus_copy <- bus_copy %>% filter(`LICENSE STATUS` == "AAI") %>% 
+  mutate(activity_date=lubridate::mdy(`LICENSE TERM EXPIRATION DATE`),
+         activity_month = lubridate::as_date(
+           cut(activity_date, breaks = "month", start.on.monday = FALSE, origin = lubridate::origin)
+           ),
+         activity_yr = lubridate::year(activity_date),
+         activity_wk = lubridate::as_date(
+           cut(activity_date, breaks = "week", start.on.monday = FALSE, origin = lubridate::origin)
+           ),
+         `LICENSE STATUS` = "EXPIRED",
+         `APPLICATION TYPE` = "EXP")
+
+
+ bus_licenses <- bus_licenses %>%
+  mutate(activity_month = lubridate::as_date(
+           cut(activity_date, breaks = "month", start.on.monday = FALSE, origin = lubridate::origin)))
+
+ 
+ 
+bus_copy <- rbind(bus_licenses, bus_copy) 
+
+
+bus_copy %>% arrange(`ACCOUNT NUMBER`, ID, `LICENSE ID`, activity_date) 
+
+
+
+# check if any of the businesses with expiries (which are also the new issueances and renewals in the dataset) 
+# are included twice under a revocation or cancellation
+# note that ID wraps up all the LICENSE IDs related to each other
+bus_copy %>% filter(`LICENSE STATUS` != "AAI") %>% group_by(`ACCOUNT NUMBER`, ID, `LICENSE ID`) %>% 
+  filter(n()>1) %>% 
+  dplyr::select(`ACCOUNT NUMBER`, ID, `LICENSE ID`, `LICENSE STATUS`, `DATE ISSUED`, activity_date)
+
+# No rows indicates all revocation or cancellation happened for pre-existing businesses
+```
+
+
+
+```{r}
+# # divide into 2: 
+# bus_licenses %>% group_by(`ACCOUNT NUMBER`) %>% slice(which.min(activity_date)) %>% arrange(`LEGAL NAME`) 
+# # ~164K unique business account numbers in dataset    
+# 
+# # existing businesses: businesses that first time in data set, LICENSE STATUS != AAI
+# # new businesses: first LICENSE STATUS is AAI
+# new_bus <- bus_licenses %>% filter(
+#   `ACCOUNT NUMBER` %in% unlist(bus_licenses %>% group_by(`ACCOUNT NUMBER`) %>% 
+#                            slice(which.min(activity_date)) %>% 
+#                            arrange(`LEGAL NAME`)  %>% 
+#                            filter((`LICENSE STATUS` == "AAI")) %>% 
+#                            dplyr::select(`ACCOUNT NUMBER`))
+#                 
+ # )
+```
+
+```{r}
+# businesses prior to 2012
+# base_date <-  lubridate::ymd("2012-01-01")
+# 
+# bus_licenses %>%
+#  dplyr::select(activity_date, term_end, `ACCOUNT NUMBER`, ID, `LICENSE ID`, `LEGAL NAME`, 
+#                `DOING BUSINESS AS NAME`, WARD, SIDE, `LICENSE STATUS`, `APPLICATION TYPE`, 
+#                `BUSINESS ACTIVITY ID`, `LATITUDE`, `LONGITUDE`, license_term, 
+#                `BUSINESS ACTIVITY`, `DATE ISSUED`, `LICENSE TERM EXPIRATION DATE`, 
+#                `LICENSE STATUS CHANGE DATE`, activity_date) %>%  
+#   
+#   arrange(`ACCOUNT NUMBER`, ID, `LICENSE ID`, activity_date) %>% 
+# 
+#   filter((`DATE ISSUED` <= base_date) & (term_end > base_date)) %>%
+#            group_by(WARD) %>% summarise(active_business = n())
+```
+
+```{r}
+library(foreach)
+library(doParallel)
+library(parallel)
+
+# determine number cores available
+numCores <- detectCores()
+```
+
+
+```{r include = FALSE}
+# example
+x <- iris[which(iris[,5] != "setosa"), c(1,5)]
+trials <- 10000
+system.time({
+  r <- foreach(icount(trials), .combine=rbind) %dopar% {
+    ind <- sample(100, 100, replace=TRUE)
+    result1 <- glm(x[ind,2]~x[ind,1], family=binomial(logit))
+    coefficients(result1)
+  }
+})
+```
+
+
+
+```{r}
+bus_licenses <-  readRDS(here::here("data", "bus_licenses.Rda"))
+
+# add date comparison columns and convert to date type
+bus_licenses <- bus_licenses %>% 
+  mutate(`DATE ISSUED` = lubridate::mdy(`DATE ISSUED`),
+            term_end = lubridate::mdy(ifelse(`LICENSE STATUS` %in% c('AAC','REV'), `LICENSE STATUS CHANGE DATE`,
+                                          `LICENSE TERM EXPIRATION DATE`)),
+         activity_month = lubridate::as_date(
+           cut(activity_date, breaks = "month", start.on.monday = FALSE, origin = lubridate::origin)
+           ),
+         activity_yr = lubridate::year(activity_date),
+         activity_wk = lubridate::as_date(
+           cut(activity_date, breaks = "week", start.on.monday = FALSE, origin = lubridate::origin)
+           )
+         )
+
+
+# for each date, filter by created before, has not yet expired, sum? Created before = licenses issued before
+
+  dateCount <- function(date) {
+    
+    compare_date <-  lubridate::ymd(date)
+    
+    countByWard <- bus_licenses %>%
+     dplyr::select(activity_date, term_end, `ACCOUNT NUMBER`, 
+                   ID, `LICENSE ID`, `LEGAL NAME`, 
+                   `DOING BUSINESS AS NAME`, WARD, SIDE, 
+                   `LICENSE STATUS`, `APPLICATION TYPE`, 
+                   `BUSINESS ACTIVITY ID`, `LATITUDE`, `LONGITUDE`, 
+                   license_term, 
+                   `BUSINESS ACTIVITY`, `DATE ISSUED`, 
+                   `LICENSE TERM EXPIRATION DATE`, 
+                   `LICENSE STATUS CHANGE DATE`, activity_date) %>%  
+      
+      arrange(`ACCOUNT NUMBER`, ID, `LICENSE ID`, activity_date) %>% 
+    
+      filter((`DATE ISSUED` <= compare_date) & 
+               (term_end > compare_date) & 
+               (!is.na(WARD)) & 
+               (`APPLICATION TYPE` %in% c('ISSUE', 'RENEW', 'C_LOC'))) %>% 
+        
+       group_by(SIDE, WARD, `APPLICATION TYPE`) %>% 
+      summarise(active_businesses = n()) %>% 
+      mutate(count_date = compare_date)
+
+  return (countByWard)
+}
+
+
+# all_days_count <- dateCount("2012-01-01", "2019-01-01")
+
+# saveRDS(all_days_count, file = here::here("data", "dateCountList.Rda"))
+# 
+# output <- bind_rows(all_days_count)
+# 
+# saveRDS(output, file = here::here("data", "all_wards_all_dates.Rda"))
+
+```
+
+
+```{r}
+
+
+ all_dates <-  seq(ymd("2012-01-01"), ymd("2019-01-01"), by = '1 day')
+ 
+ all_days_count <-  vector("list", length(all_dates))
+ 
+registerDoParallel(numCores)
+ 
+ output_j <- foreach (i = 1:length(all_dates),  .combine=rbind) %dopar% { 
+   all_days_count[i] <- dateCount(all_dates[i])
+ }
+ 
+saveRDS(all_days_count, file = here::here("data", "dateCountList.Rda"))
+
+saveRDS(output_j, file = here::here("data", "j_all_wards_all_dates.Rda"))
+ 
+stopImplicitCluster()
+```
+
+
+## Business Activity by Chicago Side Over Time
+```{r}
+output_j <-  readRDS(here::here("data", "j_all_wards_all_dates.Rda"))
+
+allDatesCount.df <- output_j %>% expand(SIDE, WARD, `APPLICATION TYPE`, count_date) %>% 
+ full_join(output_j) %>%  arrange(SIDE, WARD, `APPLICATION TYPE`, count_date) %>% 
+  mutate(
+    activity_wk = lubridate::as_date(
+      cut(count_date, breaks = "week", start.on.monday = FALSE, origin = lubridate::origin)),
+   activity_month = lubridate::as_date(
+      cut(count_date, breaks = "month", start.on.monday = FALSE, origin = lubridate::origin)),
+   activity_qtr = lubridate::as_date(
+      cut(count_date, breaks = "quarter", start.on.monday = FALSE, origin = lubridate::origin)) 
+   )
+```
+
+
+
+```{r fig.height=12, fig.width=15, warning=FALSE}
+allDatesCount.df %>% filter(`APPLICATION TYPE` %in% c("ISSUE", "RENEW")) %>% group_by(SIDE, activity_qtr) %>% 
+  summarise(active_businesses = sum(active_businesses)) %>% arrange(activity_qtr, desc(active_businesses)) %>%
+              ggplot(aes(x=activity_qtr, y=active_businesses, group=SIDE)) +   
+  geom_bar(aes(x=activity_qtr, y=active_businesses, group=SIDE, fill=SIDE), stat = "identity") +
+  scale_fill_dt("main") +
+  geom_text(aes(label=active_businesses), size = 4.5, position = position_stack(vjust = 0.5), color="white") +
+  scale_y_continuous(labels = scales::comma) +
+  scale_x_date(date_labels = "%b %y", 
+                date_breaks = "1 year", limits = c(ymd("2012-01-01"), ymd("2018-12-31"))) +
+  theme_modest() + 
+  theme(legend.position = c(0.5, 0.9),
+        legend.direction = "horizontal",
+        axis.title.x = element_blank(),
+        plot.margin = unit(c(2,2,2,2),"cm")) +
+      labs(y="Number of Business Licenses Issued or Renewed", colour="Chicago Council Ward", caption="Data Source: Chicago Open Data Portal",  title="Business Activity Stagnant in Northwest, Far Southwest, Far Southeast", subtitle = "Minimal New and Renewing Businesses Since 2012 in Three Chicago Areas", fill="Chicago Area") 
+```
+

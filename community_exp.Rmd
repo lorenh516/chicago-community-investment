@@ -1,5 +1,6 @@
 ---
 title: "Chicago Community Investment Exploration"
+author: Loren Hinkson
 output:
     html_document:
       df_print: paged
@@ -62,16 +63,18 @@ monochromatic_C6C3FF <- c(
 "#deddff",
 "#f6f6ff")
 
-diverging_teal <- read_ase(here::here("BrBG_9.ase"), use_names = FALSE)
-diverging_teal[7] <- "#E5E5E5"
-diverging_teal[5] <- "#8a89c1"
-diverging_teal[6] <- "#9AEADE"
-diverging_teal[4] <- "#FADC89"
-diverging_teal[3] <- "#B5B5B5"
-diverging_teal[2] <- "#E8B45B"
-diverging_teal[1] <- "#E8B45B"
-diverging_teal[10] <- "#FA8260"
-names(diverging_teal) <-  c("cocoa", "honeymustard", "darkgray", "sand", "lavender", "seafoam", "palegray", "teal", "darkteal", "rust")
+diverging_teal <- c('navy' = '#2d3d61',
+                    'darkteal' = '#2d4f5a',
+                    'forest' = '#2d615f',
+                    'plankton' = '#2d706e',
+                    'ocean' = '#318791',
+                    'mauve' = '#996768',
+                    'cocoa' = '#b5725a',
+                    'honeymustard' = '#d59349',
+                    'goldenrod' = '#edb834',
+                    'darkgray' = 'B5B5B5',
+                    'palegray' = '#E5E5E5')
+
 ```
 
 
@@ -87,14 +90,14 @@ get_dt_cols <- function(...) {
 }
 ```
 
-```{r}
+```{r include=FALSE}
 # set groupings of colors as palettes
 dt_palettes <- list(
-  `main`  = get_dt_cols("teal", "darkteal", "honeymustard"),
-  `diverging` = get_dt_cols("darkteal", "lavender", "sand", "honeymustard"),
-  `cool`  = get_dt_cols("darkteal", "teal", "seafoam", "lavender"),
-  `desert`   = get_dt_cols("sand", "honeymustard", "rust", "cocoa"),
-  `mixed` = get_dt_cols("cocoa", "rust","honeymustard", "sand", "lavender", "seafoam", "teal", "darkteal"),
+  `main`  = get_dt_cols("navy", "forest", "mauve", "goldenrod"),
+  `diverging` = get_dt_cols("darkteal", "plankton", "mauve", "cocoa", "godenroad"),
+  `cool`  = get_dt_cols("navy","darkteal", "forest", "plankton", "ocean"),
+  `desert`   = get_dt_cols("mauve", "goldenrod", "cocoa", "honeymustard"),
+  `mixed` = get_dt_cols("navy",  "mauve", "forest", "goldenrod", "darkteal",  "cocoa", "plankton", "honeymustard"),
   `grey`  = get_dt_cols("palegray", "darkgray")
 )
 ```
@@ -135,8 +138,8 @@ scale_fill_dt <- function(palette = "main", discrete = TRUE, reverse = FALSE, ..
 
 
 
-```{r set_theme}
-theme_modest <- function(base_size = 12,
+```{r set_theme, message=FALSE, warning=FALSE, include=FALSE}
+theme_modest <- function(base_size = 22,
                                   base_family = "Roboto",
                                   base_line_size = base_size / 25,
                                   base_rect_size = base_size / 25) {
@@ -145,24 +148,26 @@ theme_modest <- function(base_size = 12,
                 base_family = base_family,
                 base_line_size = base_line_size)  %+replace%
     theme(
-        axis.title = element_text(size = rel(0.85)),
-        axis.text = element_text(size = rel(0.6)),
+        axis.title = element_text(size = rel(1.25)),
+        axis.text = element_text(size = rel(1)),
         axis.ticks=element_line(colour="grey", size=0.5),
         panel.grid.major = element_line(colour="grey", size=0.4),
         panel.grid.minor = element_line(colour="lightgrey", size=0.25),
         legend.box = NULL, 
-        legend.text = element_text(size = rel(0.75)),
+        legend.title = element_text(size = rel(1.25)),
+        legend.text = element_text(size = rel(1)),
         legend.key.height = NULL,
         legend.key.width = NULL,
+        legend.key.size = unit(35, "pt"),
         legend.key = element_rect(fill = NA, colour = NA),
         legend.background = element_rect(colour = NA, fill=NA), 
         legend.position = "right",
         legend.justification = "center", 
         plot.background = element_rect(colour = NA, fill=NA),
         plot.margin = unit(c(0,0,0,0),"lines"),
-        plot.title = element_text(size = rel(1.5), face = "bold", hjust="0.5",  margin = margin(t = 15)),
-        plot.subtitle = element_text(size = rel(1.25), face = "bold", hjust="0.5",  margin = margin(t = 15)),
-        plot.caption = element_text(size = rel(0.75), hjust = 1),
+        plot.title = element_text(size = rel(2.5), face = "bold", hjust="0.5",  margin = margin(t = 15)),
+        plot.subtitle = element_text(size = rel(2), face = "bold", hjust="0.5",  margin = margin(t = 15)),
+        plot.caption = element_text(size = rel(1.25), hjust = 1),
         strip.background = element_rect(colour = NA, fill=NA),
         strip.text = element_text(face = "bold", size = rel(1.25)),
         panel.spacing = unit(0,"lines"),
@@ -195,30 +200,31 @@ theme_set(theme_modest(base_size = 12))
 
 
 ```{r import-licenses, message=FALSE, warning=FALSE}
+# import business licenses data
 # bus_licenses <- read_csv(here::here("data", "Business_Licenses.csv"))
 bus_licenses <-  readRDS(here::here("data", "bus_licenses.Rda"))
-```
 
-```{r view-zip-problems, include=FALSE}
+
+# view problems report
 # problems(bus_licenses)
-```
 
 
-```{r check-zip-integrity, include=FALSE}
-# investigate nonstandard zip codes
-# looks like int'l businesses
-
+# investigate nonstandard zip codes flagged -- looks like int'l businesses operating in Chicago
+# opting not not to remove
 # bind_cols(bus_licenses[unlist(problems(bus_licenses)[, 'row']), c('LICENSE ID', 'LEGAL NAME', 'DOING BUSINESS AS NAME', 'ADDRESS', 'CITY', 'STATE', 'BUSINESS ACTIVITY')], problems(bus_licenses)[, 'actual']) %>% arrange(ADDRESS) %>% distinct(`DOING BUSINESS AS NAME`, `BUSINESS ACTIVITY`, ADDRESS, CITY, STATE, actual)
 ```
 
 
 ```{r add-lic-cols, include=FALSE}
+# add columns for 
 # bus_licenses <- mutate(bus_licenses, 
 #                        active=ifelse(grepl("AAI",`LICENSE STATUS`),1,0),
 #                        app_review = difftime(mdy(`LICENSE APPROVED FOR ISSUANCE`,tz="America/Chicago"), mdy(`APPLICATION REQUIREMENTS COMPLETE`,tz="America/Chicago"),unit="days"),
 #                        license_term = difftime(mdy(`LICENSE TERM EXPIRATION DATE`,tz="America/Chicago"), mdy(`LICENSE TERM START DATE`,tz="America/Chicago"),unit="days"),
 #                        activity_date = mdy(ifelse(is.na(`LICENSE STATUS CHANGE DATE`), `DATE ISSUED`, `LICENSE STATUS CHANGE DATE`),tz="America/Chicago"),
-#                        activity_month = lubridate::month(activity_date),
+                      # activity_month = lubridate::as_date(
+                      #  cut(activity_date, breaks = "month", start.on.monday = FALSE, origin = lubridate::origin)
+                      #  ),
 #                        activity_yr = lubridate::year(activity_date)
 #                        )
 ```
@@ -254,27 +260,29 @@ bus_licenses %>% group_by(activity_date, WARD) %>% summarise(business_count = n(
 
 ```{r check-2012-spike, include=FALSE}
 # look into spike around beginning of 2013
-bus_licenses %>% group_by(activity_date, WARD) %>% summarise(bus_count = n()) %>% summarise(max_activity = max(bus_count)) %>% arrange(desc(max_activity))
+# bus_licenses %>% group_by(activity_date, WARD) %>% summarise(bus_count = n()) %>% summarise(max_activity = max(bus_count)) %>% arrange(desc(max_activity))
 ```
 
-```{r pre-2015-licensing, echo=FALSE}
-bus_licenses %>% filter(active==1, activity_date < mdy("1/1/2015"), !is.na(WARD), !(activity_date== mdy("12/29/2012"))) %>%
-  group_by(activity_date, WARD) %>% summarise(business_count = n()) %>% 
-  ggplot() + geom_line(aes(x=activity_date, y=business_count, colour=as.factor(WARD))) +
-  gghighlight(min(business_count), max_highlight = 3L) +
-  labs(y="Business Count", x="Activity Date", colour="Ward", 
-       title="Chicago Ward Business Presence (2002-2015)", 
-       caption="Data Source: Chicago Open Data Portal") + 
-  theme_modest() + 
-  theme(panel.grid.major.x = element_blank(),
-        panel.grid.minor = element_blank()) +
-  scale_color_dt() 
+```{r pre-2015-licensing, echo=FALSE, include=FALSE}
+# bus_licenses %>% filter(active==1, activity_date < mdy("1/1/2015"), !is.na(WARD), !(activity_date== mdy("12/29/2012"))) %>%
+#   group_by(activity_date, WARD) %>% summarise(business_count = n()) %>% 
+#   ggplot() + geom_line(aes(x=activity_date, y=business_count, colour=as.factor(WARD))) +
+#   gghighlight(min(business_count), max_highlight = 3L) +
+#   labs(y="Business Count", x="Activity Date", colour="Ward", 
+#        title="Chicago Ward Business Presence (2002-2015)", 
+#        caption="Data Source: Chicago Open Data Portal") + 
+#   theme_modest() + 
+#   theme(panel.grid.major.x = element_blank(),
+#         panel.grid.minor = element_blank()) +
+#   scale_color_dt() 
 ```
 
 
 ```{r save-pre-2015-licensing, include=FALSE}
 # ggsave("pre_2015_licensing.pdf", width = 30, height = 15, units = "cm")
 ```
+
+
 
 
 ```{r import-former-wards, include=FALSE}
@@ -423,37 +431,43 @@ demoConversion <- function(acs_year) {
 ```
 
 ```{r  include=FALSE}
+# match census sf object to Chicago wards projection
 # all_demos <-st_transform(all_demos, crs =  st_crs(wards.2015))
+
 # saveRDS(all_demos, file = here::here("data", "all_demos_chi_proj.Rda"))
-# 
-# # wards.2015.acs.proj <- st_transform(wards.2015, crs = st_crs(all_demos))
-# # wards.2015.acs.proj <- wards.2015.acs.proj %>% mutate(long=map_dbl(geometry, ~st_centroid(.x)[[1]]), # add centroid values for labels
-# #                                                       lat=map_dbl(geometry, ~st_centroid(.x)[[2]])) # add centroid values for labels
-# 
+
+# add centroid values for labels
 # wards.2015 <- wards.2015  %>% mutate(long=map_dbl(geometry, ~st_centroid(.x)[[1]]), # add centroid values for labels
-#                                                       lat=map_dbl(geometry, ~st_centroid(.x)[[2]])) # add centroid values for labels
+#                                                       lat=map_dbl(geometry, ~st_centroid(.x)[[2]]))
 # 
 # saveRDS(wards.2015, file = here::here("data", "wards2015_sf.Rda"))
 # 
+# limit Census data to tracts within Chicago ward boundaries
 # # all.demos.Chi <- st_intersection(all_demos, wards.2015.acs.proj)
 ```
 
-```{r}
+
+In the last decade, underepresented minority populations in Chicago have been increasingly relegated to lower income areas in the South and West of the City. 
+```{r facet_wrap_demo_info, message=FALSE, warning=FALSE, fig.width=15, fig.height=17}
+
 # all_demos <-  readRDS(here::here("data", "all_demos_chi.Rda"))
 all_demos.Chi <- readRDS(here::here("data", "all_demos_chi_proj.Rda"))
 wards.2015 <-  readRDS(here::here("data", "wards2015_sf.Rda"))
-```
 
 
-```{r facet_wrap_demo_info, message=FALSE, warning=FALSE, fig.width=15, fig.height=17}
-chiCentralLongitude <- median(wards.2015$long)
-
+# plot intersection of Census tracts with chicago wards
 ggplot(st_intersection(all_demos.Chi, wards.2015) %>% filter(!is.na(predominant_race))) +
+  
+  # color based on predominant race based on Census, shaded by percentage of that race
   geom_sf(aes(fill=predominant_race, alpha=max_pct), lwd = 0) +
   scale_fill_dt("diverging", reverse=TRUE) +
   scale_alpha(range = c(0.35, 0.9), guide="none") + 
+  
+  # outline Chicago wards over data
   geom_sf(data = wards.2015, color="black", fill=NA) +
-    geom_text_repel(data=wards.2015 %>% filter(ward %in% c(10, 18)), 
+  
+  # label wards with the most movement
+  geom_text_repel(data=wards.2015 %>% filter(ward %in% c(10, 18)), 
                   aes(x=long, y=lat, label=ward),
                   fontface="bold",
                   force = 5,
@@ -488,6 +502,8 @@ ggplot(st_intersection(all_demos.Chi, wards.2015) %>% filter(!is.na(predominant_
         plot.title = element_text(size = 20, face = "bold", hjust="0.5", margin = margin(t = 15)),
         plot.subtitle = element_text(size = 15, margin = margin(t = 15)),
         plot.caption = element_text(size = 15)) +
+  
+  # plot each year separately
   facet_wrap( ~ id) + labs(
     title = "Latinx Populations in Chicago\nPushed to South, West Neighborhoods",
     subtitle = "Chicago Racial and Ethnic Group Movement\nby Census Tract Since 2012 (5 year averages)",
@@ -500,58 +516,209 @@ ggplot(st_intersection(all_demos.Chi, wards.2015) %>% filter(!is.na(predominant_
 ggsave("ward_demographics.pdf", width = 30, height = 25, units = "cm")
 ```
 
+## Business Activity by Chicago Side Over Time
+```{r bus-stagnation,  warning=FALSE, fig.width=15, fig.height=12}
+output_j <-  readRDS(here::here("data", "j_all_wards_all_dates.Rda"))
+
+allDatesCount.df <- output_j %>% expand(SIDE, WARD, `APPLICATION TYPE`, count_date) %>% 
+ full_join(output_j) %>%  arrange(SIDE, WARD, `APPLICATION TYPE`, count_date) %>% 
+  mutate(
+    activity_wk = lubridate::as_date(
+      cut(count_date, breaks = "week", start.on.monday = FALSE, origin = lubridate::origin)),
+   activity_month = lubridate::as_date(
+      cut(count_date, breaks = "month", start.on.monday = FALSE, origin = lubridate::origin)),
+   activity_qtr = lubridate::as_date(
+      cut(count_date, breaks = "quarter", start.on.monday = FALSE, origin = lubridate::origin)) 
+   )
+
+allDatesCount.df %>% filter(`APPLICATION TYPE` %in% c("ISSUE", "RENEW")) %>% group_by(SIDE, activity_qtr) %>% 
+  summarise(active_businesses = sum(active_businesses)) %>% arrange(activity_qtr, desc(active_businesses)) %>%
+              ggplot(aes(x=activity_qtr, y=active_businesses, group=SIDE)) +   
+  geom_bar(aes(x=activity_qtr, y=active_businesses, group=SIDE, fill=SIDE), stat = "identity") +
+  scale_fill_dt("main") +
+  geom_text(aes(label=active_businesses), size = 4.5, position = position_stack(vjust = 0.5), color="white") +
+  scale_y_continuous(labels = scales::comma) +
+  scale_x_date(date_labels = "%b %y", 
+                date_breaks = "1 year", limits = c(ymd("2012-01-01"), ymd("2018-12-31"))) +
+  theme_modest() + 
+  theme(legend.position = c(0.5, 0.9),
+        legend.direction = "horizontal",
+        axis.title.x = element_blank(),
+        plot.margin = unit(c(2,2,2,2),"cm")) +
+      labs(y="Number of Business Licenses Issued or Renewed", colour="Chicago Council Ward", caption="Data Source: Chicago Open Data Portal",  title="Business Activity Stagnant in Northwest, Far Southwest, Far Southeast", subtitle = "Minimal New and Renewing Businesses Since 2012 in Three Chicago Areas", fill="Chicago Area") 
+```
+
+
+## Mapping Chicago's Forgotten Economies
+```{r ggmapping, message=FALSE, warning=FALSE, fig.width=15, fig.height=24}
+register_google(key = Sys.getenv("GOOGLEMAPS_KEY"))
+
+
+# read in Chicago ward geos in ggmap-compatible format
+wards.shp.2015 <- here::here("data","Geofiles - Chicago Zip Code and Neighborhood","Boundaries - Wards (2015-)","geo_export_0bb2e9fd-20ca-415b-a96a-7722d72c1b41.shp")
+wards2015 <- shapefile(wards.shp.2015)
+wards2015@data <- mutate(wards2015@data, id = rownames(wards2015@data))
+wards2015.points <- fortify(wards2015, region="id")
+wards2015.df <- merge(wards2015.points, wards2015@data, by="id")
+
+
+
+# name license types
+license_types <- c("ISSUE" = "New Business Licenses", 
+                   "RENEW" = "Business License Renewals")  
+
+# filter for 2012+ issuances and licenses 
+# count each business only once per year)
+bl <- bus_licenses %>% filter(activity_yr >= 2012, active == 1, `APPLICATION TYPE`%in% c('ISSUE', 'RENEW')) %>% 
+    distinct(`LICENSE ID`, activity_yr, `APPLICATION TYPE`, LONGITUDE, LATITUDE) 
+  
+# pull in Chicago terrain map from Google Maps
+  ggmap::ggmap(ggmap::get_googlemap(center = c(lon = -87.732125, lat = 41.83379),
+                      zoom = 10, scale = 1,
+                      maptype ='terrain',
+                      color = 'color',
+                      key = Sys.getenv("GOOGLEMAPS_KEY"))) + 
+    
+    # layer licenses over each other at extremely low alpha
+    geom_point(data=bl, aes(x=LONGITUDE, y=LATITUDE, color=as.factor(activity_yr)), alpha = 0.05, show.legend = FALSE, na.rm = TRUE) + 
+    
+    # add Chicago Ward boundaries
+    geom_path(data = wards2015.df, aes(long,lat,group=group), color="black") +
+    geom_polygon(data = wards2015.df, aes(long,lat,group=group), fill=NA) + 
+    scale_color_dt("desert") +
+    labs(y="Latitude", x="Longitude", colour="Year", title="Money in the Middle", 
+         subtitle="Virtually No New Business Entry, Renwal in Chicago Wards 9, 10, 18, or 41 since\n2009", 
+         caption = "Data Source: City of Chicago Department of Business Affairs and Consumer Protection"
+         ) +
+    theme_modest() + 
+    facet_grid(. ~ `APPLICATION TYPE`, labeller=as_labeller(license_types)) +
+    theme(
+      panel.border = element_blank(),
+      axis.text.y = element_blank(),
+      panel.grid.major.y = element_blank(),
+      panel.grid.minor.y = element_blank(),
+      axis.title = element_blank(),
+      axis.text.x = element_blank(),
+      panel.grid.major.x = element_blank(),
+      panel.grid.minor.x = element_blank(),
+      plot.title = element_text(face = "bold", hjust="0.5", margin = margin(t = 15)),
+      plot.subtitle = element_text(hjust="0.5", margin = margin(t = 20))
+    ) +
+    
+    # zoom graph to outer ward boundaries
+    scale_x_continuous(limits = c(wards2015.df %>% dplyr::select(long) %>% min() - 0.1, wards2015.df %>% dplyr::select(long) %>% max() + 0.05), expand = c(0, 0)) +
+    scale_y_continuous(limits = c(wards2015.df %>% dplyr::select(lat) %>% min() - 0.1, wards2015.df %>% dplyr::select(lat) %>% max()) + 0.05, expand = c(0, 0))
+```
+
+
+
+```{r include=FALSE}
+ggsave("location_over_googlemap_zoom10.pdf", width = 36, height = 23, units = "cm")
+```
+
+
+
+
+
+```{r avg-monthly-lic, warning=FALSE, fig.width=15, fig.height=12}
+# filter for business license issuances and renewals, and create a monthly count
+bus_licenses %>% filter(!is.na(WARD), active==1,  activity_date > mdy("1/1/2012")) %>%
+  group_by(activity_month, activity_yr, WARD, SIDE) %>% 
+  summarise(business_count = n()) %>% group_by(WARD) %>% arrange(desc(business_count)) %>% 
+  
+  # plot boxplot of median monthly issuances and renewals for each ward
+  ggplot(aes(x=reorder(WARD, business_count, FUN = median), y=business_count)) + 
+  
+  # color by Chicago Side
+  geom_boxplot(aes(group=as.factor(WARD), fill=as.factor(SIDE)), alpha=0.5) + 
+  scale_fill_dt("diverging") +
+  
+  # label each each box by corresponding Ward, just above the median (8 pt)
+  geom_text(data = bus_licenses %>% filter(!is.na(WARD), active==1) %>%
+                    group_by(activity_month, activity_yr, WARD, SIDE) %>% 
+                    summarise(business_count = n()) %>% group_by(WARD) %>% 
+                    arrange(desc(business_count)) %>% 
+                    summarise(median_issuances = median(business_count)) %>% 
+                    arrange(median_issuances),
+                   aes(x=as.factor(WARD), y = median_issuances + 50, group=as.factor(WARD),
+                       label=as.factor(WARD)),
+            color="#6E2C49", fontface="bold", size=6) + 
+  
+  # limit scale to 750, (one Loop ward's outliers extend ~1000 above other wards)
+  # still very clearly the highest even without all outliers visible
+  scale_y_continuous(limits = c(0, 750)) +
+
+  labs(x="Chicago Council Ward", y="Average Monthly Business Count", caption="Data Source: Chicago Open Data Portal", title="Least New & Surviving Businesses\nin South, West Wards for 15+ Years", subtitle="Calumet Heights, Westlawn Average less than 25 Monthly\nBusiness License Issuances",fill="Chicago Area") + 
+  theme_modest() +
+  theme(
+        plot.margin = unit(c(20, 0, 0, 0), "pt"),
+        panel.grid.major.x = element_blank(),
+        axis.ticks =  element_blank(),
+        axis.text.x = element_blank(),
+        plot.title = element_text(face = "bold", hjust="0.5", margin = margin(t = 15)),
+        plot.subtitle = element_text(margin = margin(t = 15))
+        )
+  
+```
+
+```{r save-new-bus, warning=FALSE, include=FALSE}
+ggsave("avg_ward_business.pdf", width = 25, height = 18, units = "cm")
+```
+
+
+
 
 ```{r message=FALSE, warning=FALSE, include=FALSE}
+# read in 2015 turnout data and format columns for numeric manipulations, add column for year
+
 # voter_turnout15 <- read_csv(here::here("data", "voter_turnout_city_council_2015.csv"), col_names = FALSE, skip=8)
 # voter_turnout15 <- voter_turnout15 %>% mutate(WARD = ifelse(grepl("WARD", voter_turnout15$X1), as.numeric(gsub("WARD ", "", X1)), NA),
 #                                               X4 = as.numeric(gsub("%", "", X4)),
 #                                               YEAR = 2015)
 # voter_turnout15 <- voter_turnout15 %>% fill(WARD)
-```
 
-```{r include=FALSE}
+
 # double-check columns that look empty
 # voter_turnout15 %>% dplyr::select(X5, X6) %>% distinct()
-```
 
-```{r include=FALSE}
+
+# filter out subtitles and intermediate headings
+
 # voter_turnout15 <- voter_turnout15 %>% dplyr::select(-c(X5, X6))
 # names(voter_turnout15) <- sapply(c("Precinct","Registered","Ballots","Turnout", "WARD", "YEAR"), toupper)
 # voter_turnout15 <- voter_turnout15 %>% filter(PRECINCT !="Precinct", !grepl("WARD", PRECINCT), !is.na(PRECINCT))
-```
 
 
-```{r message=FALSE, warning=FALSE, include=FALSE}
+# read in 2011 turnout data and format columns for numeric manipulations, add column for year
+
 # voter_turnout11 <- read_csv(here::here("data", "voter_turnout_city_council_2011.csv"), col_names = FALSE, skip=8)
 # voter_turnout11 <- voter_turnout11 %>% mutate(WARD = ifelse(grepl("WARD", voter_turnout11$X1), as.numeric(gsub("WARD ", "", X1)), NA),
 #                                               X4 = as.numeric(gsub("%", "", X4)),
 #                                               YEAR=2011)
 # voter_turnout11 <- voter_turnout11 %>% fill(WARD)
-```
 
 
-```{r include=FALSE}
 # double-check columns that look empty
 # voter_turnout11 %>% dplyr::select(X5, X6) %>% distinct()
-```
 
-```{r include=FALSE}
+
+# filter out subtitles and intermediate headings
+
 # voter_turnout11 <- voter_turnout11 %>% dplyr::select(-c(X5, X6))
 # names(voter_turnout11) <- sapply(c("Precinct","Registered","Ballots","Turnout", "WARD", "YEAR"), toupper)
 # voter_turnout11 <- voter_turnout11 %>% filter(PRECINCT !="Precinct", !grepl("WARD", PRECINCT), !is.na(PRECINCT))
-```
 
 
-```{r include=FALSE}
+# combine 2011 and 2015 data into one dataset
+
 # voterTurnout <- bind_rows(voter_turnout11, voter_turnout15)
 # voterTurnout <- voterTurnout %>% 
 #   mutate(TURNOUT = round((as.numeric(gsub(",", "", BALLOTS)) / as.numeric(gsub(",", "", REGISTERED))) * 100,1))
 # rm(voter_turnout11, voter_turnout15)
-```
 
 
+# consolidate turnout and change in turnout by Chicago area
 
-```{r include=FALSE}
 # turnoutSides <- merge(voterTurnout, wardSides, by="WARD") %>% filter(PRECINCT=="Total") %>% 
 #   group_by(YEAR, SIDE) %>% summarise(MEAN_TURNOUT = round(mean(TURNOUT, na.rm = TRUE), 1)) %>% 
 #   spread(YEAR, MEAN_TURNOUT) %>% mutate(DIFFERENCE = `2015` - `2011`) %>% 
@@ -561,10 +728,10 @@ ggsave("ward_demographics.pdf", width = 30, height = 25, units = "cm")
 #   arrange(SIDE, YEAR)
 # 
 # saveRDS(turnoutSides, file = here::here("data", "sides_turnout.Rda"))                                  
-```
+ 
 
+# consolidate turnout and change in turnout by Chicago ward
 
-```{r include=FALSE}
 # turnoutDiff <- voterTurnout %>%filter(PRECINCT=="Total", YEAR %in% c(2011, 2015)) %>% dplyr::select(WARD, TURNOUT, YEAR) %>% 
 #   group_by(YEAR, WARD) %>%
 #   spread(YEAR, TURNOUT) %>% mutate(DIFFERENCE = `2015` - `2011`) %>% 
@@ -578,14 +745,21 @@ ggsave("ward_demographics.pdf", width = 30, height = 25, units = "cm")
 
 
 ```{r slopegraph, fig.width=10, fig.height=12}
+# read in turnout and change in turnout by Chicago ward and Chciago Side
   turnoutSides <-  readRDS(here::here("data", "sides_turnout.Rda"))
   turnoutDiff <-  readRDS(here::here("data", "wards_turnout.Rda"))
 
+  # plot average turnout in 2011 and 2015 for each Chicago Side
   ggplot(turnoutSides, aes(x=as.factor(YEAR), y=TURNOUT, group=as.factor(SIDE))) + 
-  geom_line(size=1.5, alpha=0.75, color="grey", show.legend = FALSE) +
-  geom_line(data = filter(turnoutSides, (DIFFERENCE > -0)||(is.na(DIFFERENCE))), aes(colour=SIDE), size=1.5, show.legend=FALSE) +
+  geom_line(aes(colour=SIDE), size=1.5, alpha=0.75, color="grey", show.legend = FALSE) +
+  # geom_line(data = filter(turnoutSides, (DIFFERENCE > -0)||(is.na(DIFFERENCE))), aes(colour=SIDE), size=1.5, show.legend=FALSE) +
   scale_color_dt("mixed", reverse = TRUE) + 
+    
+  # plot each ward's turnout in 2011 and 2015, shaded by Chicago side to provide context for 
+  # distribution within each Side.
   geom_line(data = turnoutDiff, aes(group=as.factor(WARD), color=SIDE), size=0.5, alpha=0.25, show.legend = FALSE) +
+    
+  # add mean turnout (%) for each Side to x-axis
   geom_label(data = turnoutDiff %>% group_by(YEAR, SIDE) %>% summarise(MEAN_TURNOUT = round(mean(TURNOUT, na.rm=TRUE),1)),
             aes(x=as.factor(YEAR), y= MEAN_TURNOUT, label = paste0(MEAN_TURNOUT, "%"), group=as.factor(SIDE)),
             color = "darkgray",
@@ -593,7 +767,9 @@ ggsave("ward_demographics.pdf", width = 30, height = 25, units = "cm")
             label.size = 0.0,
             fontface = "bold",
             size = 4) +
-  geom_label_repel(data = turnoutSides %>% filter(YEAR == 2011),
+
+    # label each Side in line graphs for both 2011 and 2015
+     geom_label_repel(data = turnoutSides %>% filter(YEAR == 2011),
             aes(label = paste0(SIDE), color = SIDE),
             fill=NA,
             hjust = "left",
@@ -615,14 +791,15 @@ ggsave("ward_demographics.pdf", width = 30, height = 25, units = "cm")
             point.padding	= 3,
             size = 5,
             show.legend = FALSE) +
+    
+  # move x-axis text to top of graph
   scale_x_discrete(position = "top") +
    # coord_cartesian(ylim=c(23.5, 60)) +
   theme_modest() + 
-  theme(axis.text.x.top = element_text(size=15, vjust = -8, face="bold"),
+  theme(axis.text.x.top = element_text(size=rel(1.25), vjust = -8, face="bold"),
           axis.title.y = element_blank(),
           axis.title.x = element_blank(),
           axis.text.y = element_blank(),
-          plot.caption = element_text(size = 12),
           panel.grid.minor=element_blank(),
           panel.grid.major=element_blank()) +
   labs(title="Highest Voter Turnout In Wards Facing Deinvestment", 
@@ -634,105 +811,6 @@ ggsave("ward_demographics.pdf", width = 30, height = 25, units = "cm")
 ```{r include=FALSE}
 ggsave("ward_election_turnout2011_2015.pdf", width = 36, height = 23, units = "cm")
 ```
-
-
-```{r avg-monthly-lic, warning=FALSE, fig.width=15, fig.height=12}
-bus_licenses %>% filter(!is.na(WARD), active==1) %>%
-  group_by(activity_month, activity_yr, WARD, SIDE) %>% 
-  summarise(business_count = n()) %>% group_by(WARD) %>% arrange(desc(business_count)) %>% 
-  ggplot(aes(x=reorder(WARD, business_count, FUN = median), y=business_count)) + 
-  geom_boxplot(aes(group=as.factor(WARD), fill=as.factor(SIDE)), alpha=0.5) + 
-  scale_fill_dt("mixed") +
-  geom_text(data = bus_licenses %>% filter(!is.na(WARD), active==1) %>%
-                    group_by(activity_month, activity_yr, WARD, SIDE) %>% 
-                    summarise(business_count = n()) %>% group_by(WARD) %>% arrange(desc(business_count)) %>% 
-                     summarise(median_issuances = median(business_count)) %>% arrange(median_issuances),
-                   aes(x=as.factor(WARD), y = median_issuances + 8, group=as.factor(WARD), label=as.factor(WARD)),
-            color="#6E2C49", fontface="bold") + 
-  scale_y_continuous(limits = c(0, 750)) +
-  # scale_x_discrete(breaks=seq(0,50,5)) + 
-  labs(x="Chicago Council Ward", y="Average Monthly Business Count", caption="Data Source: Chicago Open Data Portal", title="Least New & Surviving Businesses in South, West Wards for 15+ Years", subtitle="Calumet Heights, Westlawn Average less than 25 Business License Issuances per month ",fill="Chicago Area") + 
-  theme_modest() +
-  theme(
-        plot.margin = unit(c(20, 0, 0, 0), "pt"),
-        panel.grid.major.x = element_blank(),
-        axis.ticks =  element_blank(),
-        axis.title =  element_text(size=12),
-        legend.title = element_text(size=15),
-        legend.text = element_text(size=12),
-        axis.text.x = element_blank(),
-        plot.title = element_text(size = 20, face = "bold", hjust="0.5", margin = margin(t = 15)),
-        plot.subtitle = element_text(size = 15, margin = margin(t = 15)),
-        plot.caption = element_text(size = 15)
-        )
-  
-```
-
-```{r save-new-bus, warning=FALSE, include=FALSE}
-ggsave("avg_ward_business.pdf", width = 25, height = 18, units = "cm")
-```
-
-
-```{r register-google-api, message=FALSE, warning=FALSE, include=FALSE}
-
-register_google(key = Sys.getenv("GOOGLEMAPS_KEY"))
-```
-
-```{r ggmap-shapefiles}
-wards.shp.2015 <- here::here("data","Geofiles - Chicago Zip Code and Neighborhood","Boundaries - Wards (2015-)","geo_export_0bb2e9fd-20ca-415b-a96a-7722d72c1b41.shp")
-wards2015 <- shapefile(wards.shp.2015)
-wards2015@data <- mutate(wards2015@data, id = rownames(wards2015@data))
-wards2015.points <- fortify(wards2015, region="id")
-wards2015.df <- merge(wards2015.points, wards2015@data, by="id")
-```
-
-
-```{r ggmapping, message=FALSE, warning=FALSE, fig.width=15, fig.height=24}
-license_types <- c("ISSUE" = "New Business Licenses", 
-                   "RENEW" = "Business License Renewals")  
-
-bl <- bus_licenses %>% filter(activity_yr >= 2009, active == 1, `APPLICATION TYPE`%in% c('ISSUE', 'RENEW')) %>% 
-    distinct(`LICENSE ID`, activity_yr, `APPLICATION TYPE`, LONGITUDE, LATITUDE) 
-  
-  ggmap::ggmap(ggmap::get_googlemap(center = c(lon = -87.732125, lat = 41.83379),
-                      zoom = 10, scale = 1,
-                      maptype ='terrain',
-                      color = 'color',
-                      key = Sys.getenv("GOOGLEMAPS_KEY"))) + 
-    geom_point(data=bl, aes(x=LONGITUDE, y=LATITUDE, color=as.factor(activity_yr)), alpha = 0.05, show.legend = FALSE, na.rm = TRUE) + 
-    geom_path(data = wards2015.df, aes(long,lat,group=group), color="black") +
-    geom_polygon(data = wards2015.df, aes(long,lat,group=group), fill=NA) + 
-    scale_color_dt("desert") +
-    labs(y="Latitude", x="Longitude", colour="Year", title="Money in the Middle", 
-         subtitle="Virtually No New Business Entry, Renwal in Chicago Wards 9, 10, 18, or 41 since\n2009", 
-         caption = "Data Source: City of Chicago Department of Business Affairs and Consumer Protection"
-         ) +
-    theme_modest() + 
-    facet_grid(. ~ `APPLICATION TYPE`, labeller=as_labeller(license_types)) +
-    theme(
-      panel.border = element_blank(),
-      axis.text.y = element_blank(),
-      panel.grid.major.y = element_blank(),
-      panel.grid.minor.y = element_blank(),
-      axis.title = element_blank(),
-      axis.text.x = element_blank(),
-      panel.grid.major.x = element_blank(),
-      panel.grid.minor.x = element_blank(),
-      plot.title = element_text(size = 20, face = "bold", hjust="0.5", margin = margin(t = 15)),
-      plot.subtitle = element_text(size = 15,  hjust="0.5", margin = margin(t = 20)),
-      plot.caption = element_text(size = 15)
-    ) +
-    scale_x_continuous(limits = c(wards2015.df %>% dplyr::select(long) %>% min() - 0.1, wards2015.df %>% dplyr::select(long) %>% max() + 0.05), expand = c(0, 0)) +
-    scale_y_continuous(limits = c(wards2015.df %>% dplyr::select(lat) %>% min() - 0.1, wards2015.df %>% dplyr::select(lat) %>% max()) + 0.05, expand = c(0, 0))
-```
-
-
-
-```{r include=FALSE}
-ggsave("location_over_googlemap_zoom10.pdf", width = 36, height = 23, units = "cm")
-```
-
-
 
 
 
