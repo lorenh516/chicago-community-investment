@@ -103,41 +103,6 @@ bus_copy %>% filter(`LICENSE STATUS` != "AAI") %>% group_by(`ACCOUNT NUMBER`, ID
 ```
 
 
-
-```{r}
-# # divide into 2: 
-# bus_licenses %>% group_by(`ACCOUNT NUMBER`) %>% slice(which.min(activity_date)) %>% arrange(`LEGAL NAME`) 
-# # ~164K unique business account numbers in dataset    
-# 
-# # existing businesses: businesses that first time in data set, LICENSE STATUS != AAI
-# # new businesses: first LICENSE STATUS is AAI
-# new_bus <- bus_licenses %>% filter(
-#   `ACCOUNT NUMBER` %in% unlist(bus_licenses %>% group_by(`ACCOUNT NUMBER`) %>% 
-#                            slice(which.min(activity_date)) %>% 
-#                            arrange(`LEGAL NAME`)  %>% 
-#                            filter((`LICENSE STATUS` == "AAI")) %>% 
-#                            dplyr::select(`ACCOUNT NUMBER`))
-#                 
- # )
-```
-
-```{r}
-# businesses prior to 2012
-# base_date <-  lubridate::ymd("2012-01-01")
-# 
-# bus_licenses %>%
-#  dplyr::select(activity_date, term_end, `ACCOUNT NUMBER`, ID, `LICENSE ID`, `LEGAL NAME`, 
-#                `DOING BUSINESS AS NAME`, WARD, SIDE, `LICENSE STATUS`, `APPLICATION TYPE`, 
-#                `BUSINESS ACTIVITY ID`, `LATITUDE`, `LONGITUDE`, license_term, 
-#                `BUSINESS ACTIVITY`, `DATE ISSUED`, `LICENSE TERM EXPIRATION DATE`, 
-#                `LICENSE STATUS CHANGE DATE`, activity_date) %>%  
-#   
-#   arrange(`ACCOUNT NUMBER`, ID, `LICENSE ID`, activity_date) %>% 
-# 
-#   filter((`DATE ISSUED` <= base_date) & (term_end > base_date)) %>%
-#            group_by(WARD) %>% summarise(active_business = n())
-```
-
 ```{r}
 library(foreach)
 library(doParallel)
@@ -146,21 +111,6 @@ library(parallel)
 # determine number cores available
 numCores <- detectCores()
 ```
-
-
-```{r include = FALSE}
-# example
-x <- iris[which(iris[,5] != "setosa"), c(1,5)]
-trials <- 10000
-system.time({
-  r <- foreach(icount(trials), .combine=rbind) %dopar% {
-    ind <- sample(100, 100, replace=TRUE)
-    result1 <- glm(x[ind,2]~x[ind,1], family=binomial(logit))
-    coefficients(result1)
-  }
-})
-```
-
 
 
 ```{r}
@@ -220,27 +170,34 @@ bus_licenses <- bus_licenses %>%
 # output <- bind_rows(all_days_count)
 # 
 # saveRDS(output, file = here::here("data", "all_wards_all_dates.Rda"))
-
 ```
+
 
 
 ```{r}
 
-
+# generate full list of dates
  all_dates <-  seq(ymd("2012-01-01"), ymd("2019-01-01"), by = '1 day')
  
+# initiate list to store dfs
  all_days_count <-  vector("list", length(all_dates))
  
+# register all 8 cores 
 registerDoParallel(numCores)
  
+# fun for loop to generate df for each date in dataset for each ward and add to list
+# combine into one dataset
  output_j <- foreach (i = 1:length(all_dates),  .combine=rbind) %dopar% { 
    all_days_count[i] <- dateCount(all_dates[i])
  }
  
+# save output of for loop (list)
 saveRDS(all_days_count, file = here::here("data", "dateCountList.Rda"))
 
+# save output of for loop (df)
 saveRDS(output_j, file = here::here("data", "j_all_wards_all_dates.Rda"))
  
+# clear out clustering
 stopImplicitCluster()
 ```
 

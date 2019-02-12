@@ -45,13 +45,13 @@ farSouthEast <- c(44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55)
 ```{r}
 communityWard <- communityWard %>% 
   mutate(Side = ifelse(
-    (`Community Area` %in% farNorth), "Far North Side",
-    ifelse((`Community Area` %in% northWest), "Northwest Side", 
-    ifelse((`Community Area` %in% north), "North Side",
-    ifelse((`Community Area` %in% west), "West Side",
+    (`Community Area` %in% farNorth), "Far North",
+    ifelse((`Community Area` %in% northWest), "Northwest", 
+    ifelse((`Community Area` %in% north), "North",
+    ifelse((`Community Area` %in% west), "West",
     ifelse((`Community Area` %in% central), "Central",
-    ifelse((`Community Area` %in% southSide), "South Side",
-    ifelse((`Community Area` %in% southWest), "Southwest Side",
+    ifelse((`Community Area` %in% southSide), "South",
+    ifelse((`Community Area` %in% southWest), "Southwest",
     ifelse((`Community Area` %in% farSouthWest), "Far Southwest",
     ifelse((`Community Area` %in% farSouthEast), "Far Southeast", NA)))))))))                
          )
@@ -67,9 +67,9 @@ communityWard %>% filter(Ward %in% unlist(communityWard[duplicated(communityWard
 
 ```{r}
 communityWard <- communityWard %>% mutate(Side = ifelse(Ward == 42, "Central", 
-                                 ifelse(Ward == 43, "North Side",
-                                 ifelse(Ward == 46, "Far North Side",
-                                 ifelse(Ward == 47, "North Side", 
+                                 ifelse(Ward == 43, "North",
+                                 ifelse(Ward == 46, "Far North",
+                                 ifelse(Ward == 47, "North", 
                                  Side))))) %>% unique() %>% dplyr::select(Ward, Side)
 colnames(communityWard) <- sapply(colnames(communityWard), toupper)
 ```

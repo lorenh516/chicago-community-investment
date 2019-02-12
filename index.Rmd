@@ -91,8 +91,8 @@ get_dt_cols <- function(...) {
 ```{r include=FALSE}
 # set groupings of colors as palettes
 dt_palettes <- list(
-  `main`  = get_dt_cols("navy", "mauve", "goldenrod"),
-  `diverging` = get_dt_cols("navy", "plankton", "mauve", "honeymustard","cocoa",  "goldenrod"),
+  `main`  = get_dt_cols("navy", "mauve", "plankton", "goldenrod"),
+  `diverging` = get_dt_cols("navy", "darkteal", "honeymustard", "ocean",  "forest", "mauve"),
   `cool`  = get_dt_cols("navy","darkteal", "forest", "plankton", "ocean"),
   `desert`   = get_dt_cols("mauve", "goldenrod", "cocoa", "honeymustard"),
   `mixed` = get_dt_cols("navy",  "mauve", "goldenrod", "darkteal", "forest", "cocoa", "plankton", "honeymustard"),
@@ -201,7 +201,6 @@ theme_set(theme_modest(base_size = 12))
 # import business licenses data
 # bus_licenses <- read_csv(here::here("data", "Business_Licenses.csv"))
 bus_licenses <-  readRDS(here::here("data", "bus_licenses.Rda"))
-
 
 # view problems report
 # problems(bus_licenses)
@@ -446,7 +445,7 @@ demoConversion <- function(acs_year) {
 
 
 In the last decade, underepresented minority populations in Chicago have been increasingly relegated to lower income areas in the South and West of the City. 
-```{r facet_wrap_demo_info, message=FALSE, warning=FALSE, fig.width=15, fig.height=20}
+```{r facet_wrap_demo_info, message=FALSE, warning=FALSE, fig.width=20, fig.height=25}
 
 # all_demos <-  readRDS(here::here("data", "all_demos_chi.Rda"))
 all_demos.Chi <- readRDS(here::here("data", "all_demos_chi_proj.Rda"))
@@ -457,9 +456,9 @@ wards.2015 <-  readRDS(here::here("data", "wards2015_sf.Rda"))
 ggplot(st_intersection(all_demos.Chi, wards.2015) %>% filter(!is.na(predominant_race))) +
   
   # color based on predominant race based on Census, shaded by percentage of that race
-  geom_sf(aes(fill=predominant_race, alpha=max_pct), lwd = 0) +
-  scale_fill_dt("diverging") +
-  scale_alpha(range = c(0.35, 0.9), guide="none") + 
+  geom_sf(aes(fill=predominant_race, alpha=medianIncome), lwd = 0) +
+  scale_fill_dt("diverging", reverse = TRUE) +
+  scale_alpha(range = c(0.5, 1), guide="none") + 
   
   # outline Chicago wards over data
   geom_sf(data = wards.2015, color="black", fill=NA) +
@@ -495,8 +494,8 @@ ggplot(st_intersection(all_demos.Chi, wards.2015) %>% filter(!is.na(predominant_
   coord_sf(datum = NA) +
   theme_map_modest() + 
   theme(plot.margin = unit(c(20, 0, 0, 0), "pt"),
-        plot.title = element_text(face = "bold", hjust="0.5", margin = margin(t = 15)),
-        plot.subtitle = element_text(margin = margin(t = 15)),
+        plot.title = element_text(size = 30, face = "bold", hjust="0.5", margin = margin(t = 15)),
+        plot.subtitle = element_text(size = 25, margin = margin(t = 15)),
         plot.caption = element_text(hjust=1)) +
   
   # plot each year separately
@@ -514,10 +513,10 @@ ggsave("ward_demographics.pdf", width = 30, height = 25, units = "cm")
 
 ## Business Activity by Chicago Side Over Time
 ```{r bus-stagnation, fig.height=12, fig.width=15, message=FALSE, warning=FALSE}
-output_j <-  readRDS(here::here("data", "j_all_wards_all_dates.Rda"))
+all_wards_all_dates <-  readRDS(here::here("data", "all_wards_all_dates.Rda"))
 
-allDatesCount.df <- output_j %>% expand(SIDE, WARD, `APPLICATION TYPE`, count_date) %>% 
- full_join(output_j) %>%  arrange(SIDE, WARD, `APPLICATION TYPE`, count_date) %>% 
+allDatesCount.df <- all_wards_all_dates %>% expand(SIDE_CLEAN, WARD, `APPLICATION TYPE`, count_date) %>% 
+ full_join(all_wards_all_dates) %>%  arrange(SIDE_CLEAN, WARD, `APPLICATION TYPE`, count_date) %>% 
   mutate(
     activity_wk = lubridate::as_date(
       cut(count_date, breaks = "week", start.on.monday = FALSE, origin = lubridate::origin)),
@@ -527,12 +526,14 @@ allDatesCount.df <- output_j %>% expand(SIDE, WARD, `APPLICATION TYPE`, count_da
       cut(count_date, breaks = "quarter", start.on.monday = FALSE, origin = lubridate::origin)) 
    )
 
-allDatesCount.df %>% filter(`APPLICATION TYPE` %in% c("ISSUE", "RENEW")) %>% group_by(SIDE, activity_qtr) %>% 
-  summarise(active_businesses = sum(active_businesses)) %>% arrange(activity_qtr, desc(active_businesses)) %>%
-              ggplot(aes(x=activity_qtr, y=active_businesses, group=SIDE)) +   
-  geom_bar(aes(x=activity_qtr, y=active_businesses, group=SIDE, fill=SIDE), stat = "identity") +
+allDatesCount.df %>% filter(`APPLICATION TYPE` %in% c("ISSUE", "RENEW")) %>% group_by(SIDE_CLEAN, activity_qtr) %>% 
+  summarise(active_businesses = sum(active_businesses)) %>% 
+  # mutate(SIDE_CLEAN <- factor(SIDE_CLEAN, levels=c("Far Southwest","Far Southeast","Northwest","South","Southwest","Central",  "Far North", "North", "West"))) %>%
+              ggplot(aes(x=activity_qtr, y=active_businesses, group=forcats::fct_rev(SIDE_CLEAN))) +   
+  geom_bar(aes(x=activity_qtr, y=active_businesses, fill=forcats::fct_rev(SIDE_CLEAN)), stat = "identity") +
   scale_fill_dt() +
-  geom_text(aes(label=active_businesses), size = 2.5, position = position_stack(vjust = 0.5), color="white") +
+  geom_text(aes(label=active_businesses), 
+            size = 3, position = position_stack(vjust = 0.5), color="white") +
   scale_y_continuous(labels = scales::comma) +
   scale_x_date(date_labels = "%b %y", 
                 date_breaks = "1 year", limits = c(ymd("2012-01-01"), ymd("2018-12-31"))) +
@@ -543,7 +544,7 @@ allDatesCount.df %>% filter(`APPLICATION TYPE` %in% c("ISSUE", "RENEW")) %>% gro
         legend.title = element_blank(),
         axis.title.x = element_blank(),
         plot.margin = unit(c(2,2,2,2),"cm")) +
-      labs(y="Number of Business Licenses Issued or Renewed", colour="Chicago Council Ward", caption="Data Source: Chicago Open Data Portal",  title="Business Activity Stagnant in Northwest, Far Southwest,\nFar Southeast", subtitle = "Minimal New and Renewing Businesses Since 2012 in Three Chicago Areas", fill="Chicago Area") 
+      labs(y="Number of Business Licenses Issued or Renewed", colour="Chicago Council Ward", caption="Data Source: Chicago Open Data Portal",  title="Business Activity Stagnant in Far Southwest, Far Southeast", subtitle = "Minimal New and Renewing Businesses Since 2012 in Two Chicago Areas", fill="Chicago Area") 
 ```
 
 
@@ -638,7 +639,7 @@ bus_licenses %>% filter(!is.na(WARD), active==1,  activity_date >= mdy("1/1/2012
                     summarise(median_issuances = median(business_count)) %>% 
                     arrange(median_issuances),
                    aes(x=as.factor(SIDE), y = median_issuances + 300, group=as.factor(SIDE),
-                       label=as.factor(SIDE), nudge_x = 0.25, direction= "y"),
+                       label=as.factor(SIDE), nudge_x = 0.5, direction= "y"),
             color="#6E2C49", fontface="bold", size=5) + 
   
   # limit scale to 750, (one Loop ward's outliers extend ~1000 above other wards)
