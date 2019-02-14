@@ -4,8 +4,8 @@ output: html_notebook
 ---
 
 
-```{r include = FALSE}
-# pipe shortcut: *Cmd+Shift+M* 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache=TRUE)
 ```
 
 
@@ -171,7 +171,7 @@ rc18 <- mutate(rc18, YEAR="2018")
 colnames(rc18) <- sapply(colnames(rc18), toupper)
 ```
 
-```{r}
+```{r include=FALSE}
 rc18 <- rc18 %>% rename(
   "SCHOOL ID (R-C-D-T-S)" = "RCDTS",
   "SCHOOL TYPE NAME" = "SCHOOL TYPE",
@@ -254,12 +254,12 @@ rc18 <- rc18 %>% filter(grepl("City of Chicago", `DISTRICT NAME`)) %>%
   dplyr::select(id_info, matches(paste(rc_key_phrases,collapse="|")), -contains("IEP"), -contains("TWO OR MORE"), -contains("OTHER"), -contains("ALASKA"), -contains("NUMBER EL"), -contains(" - SUBREGION"), -contains(" - DISTRICT"))
 ```
 
-```{r}
+```{r include=FALSE}
 # check for column name changes from previous years
 setdiff(colnames(full_term), colnames(rc18))
 ```
 
-```{r}
+```{r include=FALSE}
 # check for newly introduced columns in 2018
 setdiff(colnames(rc18), colnames(full_term))
 ```
@@ -623,6 +623,25 @@ all_budgets <- left_join(all_budgets, id_overlap, by = c("unitNum" = "Finance_ID
 all_budgets <- all_budgets %>% rename("Unit_Name" = "Unit Name")
 
 keep_albudgets_cols <- colnames(all_budgets)
+
+# matching on finance unit number matches 4,444 of 8,189 rows (654 schools)
+dim(all_budgets %>% filter(!is.na(School_ID)))
+dim(all_budgets %>% filter(!is.na(School_ID)) %>% distinct(Unit))
+
+#1462 unites in budget
+all_budgets  %>% distinct(Unit)
+
+# attempting to also match on school name only matches 1 more row
+inner_join(all_budgets, 
+          id_overlap %>% 
+            dplyr::select(contains('_ID'), contains("Long_Name"), contains("Address"), contains("Latitude"), contains("Longitude")) , 
+          by = c("Unit_Name" = "Long_Name")) %>% 
+  # filter(!is.na(School_ID.y) & is.na(School_ID.x))
+
+%>% 
+  dplyr::select( contains('_ID'), contains("long_name"),contains("address"), 
+                 contains("latitude"), contains("longitude"), everything()) 
+
 ```
 
 
@@ -710,7 +729,7 @@ ALL_SCHOOL_INFO <- bind_rows(ES2013, HS2013) %>%
 ```
 
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 colnames(ALL_SCHOOL_INFO)
 ```
 
@@ -718,32 +737,34 @@ colnames(ALL_SCHOOL_INFO)
 ```{r}
 
 
-ALL_SCHOOL_INFO <-  ALL_SCHOOL_INFO %>% mutate(
-                           School_ID = ifelse(is.na(School_ID), `School ID`, School_ID),
-                           ZIP = ifelse(!is.na(ZIP), ZIP, 
-                                        ifelse(!is.na(Zip), Zip, 
-                                        ifelse(!is.na(`ZIP Code`), `ZIP Code`,
-                                        ZIP) )),
-                           Longitude = ifelse(is.na(Longitude), School_Longitude,
-                                                     Longitude),
-                           Latitude = ifelse(is.na(Latitude), School_Latitude,
-                                                    Latitude),
-                           Address = ifelse(is.na(Address), `Street Address`,
-                                            Address),
-                           Long_Name = ifelse(!is.na(Long_Name), Long_Name,
-                                       ifelse(!is.na(`School Name`),`School Name`,
-                                       ifelse(!is.na(`Name of School`),`Name of School`,
-                                              Long_Name))),
-                           One_Year_Dropout_Rate_Year_2_Pct = ifelse(is.na(One_Year_Dropout_Rate_Year_2_Pct) & YEAR == 2013,
-                                                                     `One-Year DropOut Rate Percentage 2013`,
-                                                                     One_Year_Dropout_Rate_Year_2_Pct),
-                           Student_Attendance_Year_2_Pct = ifelse(is.na(Student_Attendance_Year_2_Pct) & YEAR == 2013,
-                                                                  `Student Attendance Percentage 2013`,
-                                                                  Student_Attendance_Year_2_Pct),
-                           Teacher_Attendance_Year_2_Pct = ifelse(is.na(Teacher_Attendance_Year_2_Pct) & YEAR == 2013,
-                                                                  `Teacher Attendance Percentage 2013`,
-                                                                  Teacher_Attendance_Year_2_Pct)
-)
+ALL_SCHOOL_INFO <-  ALL_SCHOOL_INFO %>% 
+  mutate(
+   School_ID = ifelse(is.na(School_ID), `School ID`, School_ID),
+   ZIP = ifelse(!is.na(ZIP), ZIP, 
+                ifelse(!is.na(Zip), Zip, 
+                ifelse(!is.na(`ZIP Code`), `ZIP Code`,
+                ZIP) )),
+   Longitude = ifelse(is.na(Longitude), School_Longitude,
+                             Longitude),
+   Latitude = ifelse(is.na(Latitude), School_Latitude,
+                            Latitude),
+   Address = ifelse(is.na(Address), `Street Address`,
+                    Address),
+   
+   Long_Name = ifelse(!is.na(Long_Name), Long_Name,
+               ifelse(!is.na(`School Name`),`School Name`,
+               ifelse(!is.na(`Name of School`),`Name of School`,
+                      Long_Name))),
+   One_Year_Dropout_Rate_Year_2_Pct = ifelse(
+         is.na(One_Year_Dropout_Rate_Year_2_Pct) & YEAR == 2013, 
+         `One-Year DropOut Rate Percentage 2013`, One_Year_Dropout_Rate_Year_2_Pct),
+   
+  Student_Attendance_Year_2_Pct = ifelse(
+        is.na(Student_Attendance_Year_2_Pct) & YEAR == 2013, `Student Attendance Percentage 2013`, Student_Attendance_Year_2_Pct),
+  
+Teacher_Attendance_Year_2_Pct = ifelse(
+      is.na(Teacher_Attendance_Year_2_Pct) & YEAR == 2013, 
+      `Teacher Attendance Percentage 2013`, Teacher_Attendance_Year_2_Pct))
 
 # saveRDS(ALL_SCHOOL_INFO, file = here::here("data", "ALL_SCHOOL_INFO.Rda"))
 # ALL_SCHOOL_INFO <-  readRDS(here::here("data", "ALL_SCHOOL_INFO.Rda"))
@@ -751,21 +772,6 @@ ALL_SCHOOL_INFO <-  ALL_SCHOOL_INFO %>% mutate(
 all_report_cards %>% distinct(`SCHOOL ID (R-C-D-T-S)`, `SCHOOL NAME`, `SCHOOL TYPE NAME`)  %>%
   write_csv("all_report_card_schools.csv")
 
- ALL_SCHOOL_INFO %>% distinct(School_ID, Long_Name, Address, Latitude, Longitude, ZIP) %>%
-   write_csv("ALL_SCHOOL_LIST.csv")
-                               anti_join(all_report_cards, by=c("Long_Name" = "SCHOOL NAME")) %>% 
-          anti_join(all_budgets, by=c("Long_Name" = "Long_Name"))
- 
-  ALL_SCHOOL_INFO %>% distinct(School_ID, Long_Name, Address) %>%
-                               right_join(all_budgets, by=c("Long_Name" = "Long_Name"))
- 
-  ALL_SCHOOL_INFO %>% distinct(School_ID, `School ID`, Long_Name, `School Name`, Address, `Street Address`) %>%
-                               semi_join(all_report_cards, by=c("Long_Name" = "SCHOOL NAME"))
-
-
-all_report_cards %>% semi_join(ALL_SCHOOL_INFO %>% 
-                                 distinct(School_ID, `School ID`, Long_Name, `School Name`, Address, `Street Address`),
-                               by=c("SCHOOL NAME" = "Long_Name")) %>% unique()
 ```
 
 
@@ -774,7 +780,7 @@ all_report_cards %>% semi_join(ALL_SCHOOL_INFO %>%
 read_csv(here::here("data", "rc_v2", "matchup_school_ids.csv"))
 ```
 
-```{r message=FALSE, warning=FALSE}
+```{r message=FALSE, warning=FALSE, include=FALSE, eval=FALSE}
 # 1462 unique schools in budgets dataframe
 dim(all_budgets  %>% distinct(unitNum))
 
@@ -843,12 +849,6 @@ length(setdiff(
   ))
 
 
-# add in additional matches from ALL_SCHOOL_INFO to get School IDs
-all_budgets <- left_join(all_budgets, ALL_SCHOOL_INFO %>% filter(!is.na(Long_Name)) %>% 
-                           dplyr::select(School_ID, Long_Name) %>% distinct(Long_Name), 
-                         by=c("Long_Name" = "Long_Name"))
-
-
 # 7 matching on name not in mached by ID
 length(setdiff(
   # in this
@@ -857,7 +857,18 @@ length(setdiff(
   unlist(inner_join(all_budgets, read_csv(here::here("data", "rc_v2", "matchup_school_ids.csv")) %>% filter(!is.na(School_ID)) %>% dplyr::select(School_ID, Long_Name, `SCHOOL ID (R-C-D-T-S)` ), by=c("School_ID" = "School_ID"))  %>% distinct(School_ID))
 
   ))
- 
+
+```
+
+```{r eval=FALSE}
+# join data tables for analysis
+
+# add in additional matches from ALL_SCHOOL_INFO to get School IDs
+all_budgets <- left_join(all_budgets, ALL_SCHOOL_INFO %>% filter(!is.na(Long_Name)) %>% 
+                           dplyr::select(School_ID, Long_Name) %>% distinct(Long_Name), 
+                         by=c("Long_Name" = "Long_Name"))
+
+
 # add RCDTS to all_budgets for joining with report card data 
 all_budgets <- left_join(all_budgets, read_csv(here::here("data", "rc_v2", "matchup_school_ids.csv")) %>%
                            filter(!is.na(School_ID)) %>% 
@@ -875,9 +886,10 @@ school_data <- left_join(all_report_cards, all_budgets, by=c("SCHOOL ID (R-C-D-T
 
 
 
-saveRDS(school_data, file = here::here("data", "combined_school_data.Rda"))
+# saveRDS(school_data, file = here::here("data", "combined_school_data.Rda"))
 
 ```
+
 
 ```{r message=FALSE}
 # read in combined school report card and budget dataset
@@ -897,9 +909,9 @@ school_data <- school_data %>%
    PREV_YR = as.numeric(YEAR) - 1,
    TWO_YR_PRIOR = as.numeric(YEAR) - 2) %>% 
   dplyr::select(YEAR, PREV_YR, TWO_YR_PRIOR, School_ID, WARD, NAME_WARD_JOIN, 
-                CY_BUDGET = `Proposed Budget`, SCHOOL_TOTAL_ENROLLMENT =  `SCHOOL TOTAL ENROLLMENT`,
+                CY_BUDGET = `Proposed Budget`, 
+                SCHOOL_TOTAL_ENROLLMENT =  `SCHOOL TOTAL ENROLLMENT`,
                 AVG_SPEND_PER_STUDENT, everything())
-
 
 school_data <- left_join(school_data, read_csv(here::here("data", "wardSides.csv")),
                          by="WARD") %>% 
@@ -907,60 +919,273 @@ school_data <- left_join(school_data, read_csv(here::here("data", "wardSides.csv
 ```
 
 
-```{r  fig.height=12, fig.width=15,}
-school_data %>% 
-  ggplot(group=as.factor(SIDE)) +
-  geom_line(aes(x=AVG_SPEND_PER_STUDENT, y=YEAR)) +
-  geom_point(aes(x=AVG_SPEND_PER_STUDENT, y=YEAR, color=SIDE, size=SCHOOL_TOTAL_ENROLLMENT)) +
-    scale_fill_dt(na.value=get_dt_cols("palegray")) +
+```{r fig.height=12, fig.width=15, message=FALSE, warning=FALSE}
+
+  ggplot(school_data) +
+  # geom_line(aes(x=AVG_SPEND_PER_STUDENT, y=as.factor(YEAR))) +
+  geom_point(aes(x=AVG_SPEND_PER_STUDENT, y=as.factor(YEAR), 
+                 color=SIDE, size=SCHOOL_TOTAL_ENROLLMENT)) +
+  scale_size_continuous(range = c(3,6)) +
+    scale_color_dt(na.value=get_dt_cols("palegray")) +
   theme_modest() +
   theme(legend.text = element_text(size=rel(1)),
         legend.title = element_text(size=rel(1))) 
+```
+
+
+```{r fig.height=12, fig.width=15, message=FALSE, warning=FALSE}    
+# remove trailing white space from school types column    
+school_data <- school_data %>% 
+  mutate(`SCHOOL TYPE NAME` = str_trim(`SCHOOL TYPE NAME`))
+
+# make sure all charter schools are included in school types column
+school_data <- 
+  school_data %>% mutate(
+    `SCHOOL TYPE NAME` = ifelse(str_detect(pattern="C$", `SCHOOL ID (R-C-D-T-S)`),
+                                "CHARTERSCH", `SCHOOL TYPE NAME`)
+    )
+    
+# make sure all years have all school types
+school_data %>% distinct(YEAR, `SCHOOL TYPE NAME`)
+
+# check whether there are schools which could be matched to ward, that aren't
+school_data %>% filter(!is.na(School_Latitude) & is.na(WARD))
+
+
+st_as_sf(
+  # isolate school IDs, geolocation info (address, latitude, longitude)
+  school_data %>% 
+           dplyr::select(`SCHOOL ID (R-C-D-T-S)`, School_ID, `SCHOOL_NAME`, Address, School_Latitude, School_Longitude), 
+         coords = c(School_Latitude, School_Longitude), 
+  agr = c(`SCHOOL ID (R-C-D-T-S)` = "identity", 
+          School_ID = "identity", 
+          `SCHOOL_NAME` = "identity", 
+          Address = "constant"))
+```
+
+
+
+
+
+
+
+```{r}
+# enable mapping by max race in school
+school_data <- left_join(school_data %>% 
+                           dplyr::select(-predominant_race, -max_pct), 
+                         school_data %>% 
+                           dplyr::select(YEAR, `SCHOOL ID (R-C-D-T-S)`, 
+                                         School_ID, 
+                                         `SCHOOL - BLACK %`,
+                                         `SCHOOL - WHITE %`,
+                                        `SCHOOL - HISPANIC %`,
+                                        `SCHOOL - ASIAN %`) %>%
+              group_by(YEAR, `SCHOOL ID (R-C-D-T-S)`) %>% 
+              gather(group_name, pct, -`SCHOOL ID (R-C-D-T-S)`, -School_ID, -YEAR) %>% 
+           # sanity check to make sure all races in output to start before slicing
+             # arrange(YEAR, `SCHOOL ID (R-C-D-T-S)`)  %>% 
+                         slice(which.max(pct)) %>% 
+                         mutate(
+                           predominant_race = ifelse(
+                           group_name == 'SCHOOL - BLACK %', 'Black',
+                           ifelse(group_name == 'SCHOOL - WHITE %', 'White',
+                           ifelse(group_name == 'SCHOOL - ASIAN %', 'Asian',
+                           ifelse(group_name == 'SCHOOL - HISPANIC %', 'Latinx',
+                                  'Other')
+                           )))
+                           ) %>%
+              dplyr::select(`SCHOOL ID (R-C-D-T-S)`, YEAR, 
+                            predominant_race, max_pct = pct), 
+          by = c("SCHOOL ID (R-C-D-T-S)", "YEAR")) %>% 
+  dplyr::select(front_cols, ENROLLMENT_RANGE, SPEND_RANGE, 
+                predominant_race, max_pct, everything())
+    
 
 ```
 
 
-```{r  fig.height=12, fig.width=15,}
 
-all_demos <-  readRDS(here::here("data", "all_demos_chi.Rda"))
 
-wards_w_all_demos <- st_join(wards.2015, all_demos)
-  
-  group_by(id, SIDE) %>% summarise(mean_takeup = mean(takeupSNAP_pct, na.rm=TRUE))
+```{r fig.height=12, fig.width=15, message=FALSE, warning=FALSE}
+library(ggridges)
+library(cowplot)
 
-school_data %>% group_by(YEAR, SIDE) %>% 
-  summarise(median_spend = median(AVG_SPEND_PER_STUDENT)) %>% 
-  ggplot(aes(y=median_spend, x=as.numeric(YEAR))) +
+school_data %>%        
+  ggplot(aes(x = AVG_SPEND_PER_STUDENT, y = as.factor(YEAR))) +
+      geom_density_ridges( mapping = aes(x = AVG_SPEND_PER_STUDENT,
+                            y = as.factor(YEAR), color=predominant_race, 
+                            size=3), fill=NA) +
+  scale_color_dt("diverging", reverse = TRUE, na.value=get_dt_cols("palegray")) +
+    scale_x_continuous(labels = scales::dollar, limits=c(0,20000)) + 
+  theme_modest() + 
+  labs(title = "2018 School Funding Update Increased Spread of Annual Spend per Student", fontface='bold')
+
+
+library(ggbeeswarm)
+
+school_data %>%        
+  ggplot(aes(`LOW-INCOME SCHOOL %`, predominant_race)) +
+      geom_beeswarm(cex = 1.2, priority="density", groupOnX=FALSE, aes(color=predominant_race)) +
+  scale_color_dt("diverging", reverse = TRUE, na.value=get_dt_cols("palegray")) +
+  # scale_x_continuous(breaks=c(0, 25, 50, 75, 100)) +
+  theme_modest() + 
+  labs(title = "Greater Low-Income Percentage In Non-White Schools", fontface='bold')
+
+
+school_data %>% group_by(`SCHOOL ID (R-C-D-T-S)`, predominant_race) %>% summarise(med_LI_pct = mean(`LOW-INCOME SCHOOL %`, na.rm = TRUE)) %>%  
+  ggplot(aes(predominant_race, med_LI_pct, color=factor(predominant_race))) +
+      geom_quasirandom(varwidth=TRUE) +
+  scale_color_dt("diverging", reverse = TRUE, na.value=get_dt_cols("palegray")) +
+  # scale_x_continuous(breaks=c(0, 25, 50, 75, 100)) +
+  theme_modest() + 
+  labs(title = "Non-White Schools Exponentially Greater Percentages of Low-Income Students", fontface='bold')
+
+```
+
+```{r fig.height=12, fig.width=15, message=FALSE, warning=FALSE}
+facet_sides_labels <- as_labeller(c(`Far North` = "Far North Side", 
+                   `Far Southeast` = "Far Southeast Side",
+                   `Far Southwast` = "Far Southwast Side",
+                   North = "North Side",
+                   Northwest= "Northwest Side",
+                   South = "South Side",
+                   Southwest = "Southwest Side",
+                   West = "West Side",
+                   `NA` = "Side Unavailable"))
+
+#                                       
+# 
+# facet_sides_labels2 <- c("Far North" = "Far North Side", 
+#                    "Far Southeast" = "Far Southeast Side",
+#                    "Far Southwast" = "Far Southwast Side",
+#                    "North" = "North Side",
+#                    "Northwest"= "Northwest Side",
+#                    "South" = "South Side",
+#                    "Southwest" = "Southwest Side",
+#                    "West" = "West Side",
+#                    "NA" = "Side Information Not Available") 
+#  
+# 
+# 
+both_plots <- plot_grid(
+school_data %>%
+  ggplot(aes(x = AVG_SPEND_PER_STUDENT, y = as.factor(YEAR))) +
+      geom_density_ridges( mapping = aes(x = AVG_SPEND_PER_STUDENT,
+                            y = as.factor(YEAR), fill=predominant_race)) +
+  scale_fill_dt(reverse = TRUE, na.value=get_dt_cols("palegray")) +
+    scale_x_continuous(labels = scales::dollar, limits=c(0,20000)) +
+  theme_modest(),
+NULL,
+  school_data %>%
+ggplot(aes(x = AVG_SPEND_PER_STUDENT, y = as.factor(YEAR))) +
+      geom_density_ridges(
+                          mapping = aes(x = AVG_SPEND_PER_STUDENT,
+                            y = as.factor(YEAR), fill=predominant_race) ) +
+  scale_fill_dt("main", reverse = TRUE, na.value=get_dt_cols("palegray")) +
+    scale_x_continuous(labels = scales::dollar) +
+  theme_modest() +
+  facet_wrap(SIDE ~ ., labeller = facet_sides_labels),
+ncol = 1, rel_heights =  c(1, 0.1, 1), align = 'v')
+
+title <- ggdraw() + draw_label("2018 School Funding Update Increased Spread of Annual Spend per Student", fontface='bold', size=50)
+plot_grid(title, both_plots, ncol=1, rel_heights=c(0.1, 1))
+```
+
+
+
+```{r  fig.height=12, fig.width=15, eval=FALSE}
+# all_demos <-  readRDS(here::here("data", "all_demos_chi.Rda"))
+
+beg_mid_end <- all_demos %>% filter(YEAR %in% c(2015, 2012, 2017))
+
+
+
+  ggplot(st_join(wards.2015, beg_mid_end, largest=TRUE) ) + 
+    geom_sf(aes(fill=medianIncome), alpha=0.5) + 
+  scale_fill_dt("cool", discrete=FALSE, reverse=TRUE, na.value=get_dt_cols("palegray")) +
+  geom_sf(aes(color=predominant_race), fill=NA, lwd=3) +
+  scale_color_dt("diverging", discrete=TRUE, na.value=get_dt_cols("palegray"))  +
+  theme_map_modest() + 
+    facet_wrap(~ YEAR)
+
+```
+
+
+
+```{r fig.height=12, fig.width=15}
+school_data %>% 
+  filter(!is.na(SPEND_RANGE)) %>%
+  ggplot(aes(SPEND_RANGE)) +
   # geom_line(aes(y=AVG_SPEND_PER_STUDENT, x=YEAR)) +
-  geom_line(aes(group=as.factor(SIDE), colour=SIDE)) +
-    scale_color_dt(na.value=get_dt_cols("palegray")) +
-  geom_line(
+  geom_bar(aes(group=as.factor(predominant_race), fill=predominant_race)) +
+    scale_fill_dt(na.value=get_dt_cols("palegray")) +
+
   theme_modest() +
   theme(legend.text = element_text(size=rel(1)),
-        legend.title = element_text(size=rel(1))) 
-
-```
-
-```{r  fig.width=10, message=FALSE, warning=FALSE}
-school_data <- school_data %>%
-  mutate(SCHOOL_TOTAL_ENROLLMENT = as.numeric(gsub(",","",SCHOOL_TOTAL_ENROLLMENT)),
-         YEAR = as.numeric(YEAR),
-         PREV_YR = as.numeric(PREV_YR),
-         TWO_YR_PRIOR = as.numeric(TWO_YR_PRIOR))
-# cut(SCHOOL_TOTAL_ENROLLMENT, breaks=5, ordered_result = TRUE)
-school_data %>% 
-  ggplot(aes(x=AVG_SPEND_PER_STUDENT, y=SCHOOL_TOTAL_ENROLLMENT, group=as.factor(SIDE))) +
-  geom_point(aes(color=SIDE), position="jitter",size=8) +
-    scale_color_dt(na.value=get_dt_cols("palegray")) +
-  scale_y_continuous(limits = c(0, 5000)) +
-  theme_modest() +
-  theme(legend.text = element_text(size=rel(1)),
-        legend.title = element_text(size=rel(1))) 
+        legend.title = element_text(size=rel(1))
+        ) +
+  facet_wrap(~YEAR)
 ```
 
 
 
 ```{r}
+left_join(just_demos, as.data.frame(wards_w_all_demos) %>% distinct(WARD, GEOID), by="GEOID", na_matches="never")
+```
+
+
+```{r  fig.height=12, fig.width=15,  message=FALSE, warning=FALSE}
+school_data <- school_data %>%
+  mutate(
+    SCHOOL_TOTAL_ENROLLMENT = as.numeric(gsub(",","",SCHOOL_TOTAL_ENROLLMENT)),
+   YEAR = as.numeric(YEAR),
+   PREV_YR = as.numeric(PREV_YR),
+   TWO_YR_PRIOR = as.numeric(TWO_YR_PRIOR))
+
+
+front_cols <- c("YEAR", "School_ID", "WARD", "SIDE", "SCHOOL_NAME", "NAME_WARD_JOIN", "CY_BUDGET", "SCHOOL_TOTAL_ENROLLMENT")
+
+school_data <- school_data %>% 
+  mutate(ENROLLMENT_RANGE = cut(SCHOOL_TOTAL_ENROLLMENT, breaks=c(0, 500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, Inf), labels=c("0-499", "500-999", "1,000-1,499", "1,500-1,999", "2,000-2,499", "2,500-2,999", "3,000-3,499", "3,500-3,999", "4,000-4,499", "4,500-4,999", "5,000+"), ordered_result = TRUE),
+         SPEND_RANGE = cut(AVG_SPEND_PER_STUDENT, breaks=c(0, 2500, 5000, 75000, 10000, 12500, 15000, Inf), labels=c("0-2,499", "2,500-4,999", "5,000-7,499", "7,500-9,999", "10,000-12,499", "12,500-14,999", "15,000+"), ordered_result = TRUE)) %>%
+  dplyr::select(one_of(front_cols), ENROLLMENT_RANGE,SPEND_RANGE, everything())
+
+
+
+
+
+school_data %>% group_by(YEAR, predominant_race, ENROLLMENT_RANGE) %>% summarise(median_spend = median(AVG_SPEND_PER_STUDENT)) %>%
+  ggplot(aes(x=median_spend, y=ENROLLMENT_RANGE, group=as.factor(predominant_race))) +
+  geom_point(aes(color=SIDE), position="jitter",size=6) +
+    scale_color_dt(na.value=get_dt_cols("palegray")) +
+  theme_modest() +
+  theme(legend.text = element_text(size=rel(1)),
+        legend.title = element_text(size=rel(1))) +
+  facet_wrap(~YEAR)
+```
+
+
+
+```{r}
+OVERALL AVERAGE CLASS SIZE - SCHOOL
+```
+
+
+```{r fig.height=12, fig.width=15}
+school_data %>% 
+  group_by(YEAR, predominant_race) %>% 
+  summarise(median_class_size = median(`OVERALL AVERAGE CLASS SIZE - SCHOOL`),
+            num_schools = n()) %>%
+  ggplot() +
+  geom_line(aes(x=as.numeric(YEAR), y=median_class_size, group=as.factor(predominant_race), color=predominant_race)) +
+    scale_color_dt(na.value=get_dt_cols("palegray")) +
+  theme_modest() +
+  theme(legend.text = element_text(size=rel(1)),
+        legend.title = element_text(size=rel(1)))
+```
+
+
+```{r echo=TRUE}
 colnames(school_data)
 ```
 

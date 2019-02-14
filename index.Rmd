@@ -61,7 +61,8 @@ monochromatic_C6C3FF <- c(
 "#deddff",
 "#f6f6ff")
 
-diverging_teal <- c('navy' = '#2d3d61',
+diverging_teal <- c(
+                    # 'navy' = '#2d3d61',
                     'darkteal' = '#2d4f5a',
                     'forest' = '#2d615f',
                     'plankton' = '#2d706e',
@@ -91,11 +92,11 @@ get_dt_cols <- function(...) {
 ```{r include=FALSE}
 # set groupings of colors as palettes
 dt_palettes <- list(
-  `main`  = get_dt_cols("navy", "mauve", "plankton", "goldenrod"),
-  `diverging` = get_dt_cols("navy", "darkteal", "honeymustard", "ocean",  "forest", "mauve"),
-  `cool`  = get_dt_cols("navy","darkteal", "forest", "plankton", "ocean"),
+  `main`  = get_dt_cols("ocean", "mauve", "plankton", "goldenrod"),
+  `diverging` = get_dt_cols("darkteal", "honeymustard", "ocean",  "forest", "mauve"),
+  `cool`  = get_dt_cols("darkteal", "forest", "plankton", "ocean"),
   `desert`   = get_dt_cols("mauve", "goldenrod", "cocoa", "honeymustard"),
-  `mixed` = get_dt_cols("navy",  "mauve", "goldenrod", "darkteal", "forest", "cocoa", "plankton", "honeymustard"),
+  `mixed` = get_dt_cols("mauve", "goldenrod", "darkteal", "forest", "cocoa", "plankton", "honeymustard"),
   `grey`  = get_dt_cols("palegray", "darkgray")
 )
 ```
@@ -156,12 +157,12 @@ theme_modest <- function(base_size = 22,
         legend.text = element_text(size = rel(0.75)),
         legend.key.height = NULL,
         legend.key.width = NULL,
-        legend.key.size = unit(35, "pt"),
+        legend.key.size = unit(20, "pt"),
         legend.key = element_rect(fill = NA, colour = NA),
         legend.background = element_rect(colour = NA, fill=NA), 
         legend.position = "right",
         legend.justification = "center", 
-        plot.background = element_rect(colour = NA, fill=NA),
+        plot.background = element_rect(colour = NA, fill="#DEDEDE"),
         plot.margin = unit(c(0,0,0,0),"lines"),
         plot.title = element_text(size = rel(1.5), face = "bold", hjust="0.5",  margin = margin(t = 15)),
         plot.subtitle = element_text(size = rel(1.25), face = "bold", hjust="0.5",  margin = margin(t = 15)),
@@ -305,7 +306,7 @@ tidycensus::census_api_key(Sys.getenv("CENSUS_API_KEY"))
 
 ```{r  include=FALSE}
 # want to know: how population changing/ not changing across tracts - race, age, income, poverty status, safety net takeup
-getDemos <- function(acs_year) {
+getDemos <- function(acs_year, geoms=TRUE) {
   tidycensus::get_acs(geography = "tract", 
               variables = c(medianIncome = 'B19013_001',
                             perCapitaIncome = 'B19301_001',
@@ -350,15 +351,15 @@ getDemos <- function(acs_year) {
               year = acs_year,
               state = 17, # IL = 17
               county = 031, # Cook County = 031 FIPS
-              geometry = TRUE)
+              geometry = geoms)
 }
 ```
 
 
 ```{r  include=FALSE}
 
-demoConversion <- function(acs_year) {
-  demo_df <- getDemos(acs_year=acs_year)
+demoConversion <- function(acs_year, geoms = TRUE) {
+  demo_df <- getDemos(acs_year=acs_year, geoms)
   demo_df <- demo_df %>% dplyr::select(-one_of("moe")) %>% spread(variable, estimate)
   demo_df <- demo_df %>% mutate(
                       asian_pct = asianPop/ population,
@@ -381,17 +382,23 @@ demoConversion <- function(acs_year) {
                       immigrant_pct = (naturalized + noncitizen) / citizenshipPop,
                       renting_pct = renters / renterPop,
                       public_transport_pct = publicTransport / transportPop
-                      ) %>% dplyr::select(GEOID, NAME, medianIncome, perCapitaIncome, population, medAgemovedInside, contains("_pct"), geometry, everything())
+                      ) %>% 
+    dplyr::select(GEOID, NAME, medianIncome, perCapitaIncome, population, medAgemovedInside, contains("_pct"), everything())
   
     demo_df <- left_join(demo_df, as.data.frame(demo_df) %>% 
-                           dplyr::select(GEOID, NAME, black_pct, latinx_pct, asian_pct, white_pct, other_pct) %>%
+                           dplyr::select(GEOID, NAME, black_pct, 
+                                         latinx_pct, asian_pct, 
+                                         white_pct, other_pct) %>%
                            group_by(GEOID, NAME) %>% 
                            gather(group_name, pct, -GEOID, -NAME) %>% 
-                           slice(which.max(pct)) %>% mutate(predominant_race = ifelse(group_name == 'black_pct', 'Black',
-                                                       ifelse(group_name == 'white_pct', 'White',
-                                                       ifelse(group_name == 'asian_pct', 'Asian',
-                                                       ifelse(group_name == 'latinx_pct', 'Latinx',
-                                                       ifelse(group_name == 'other_pct', 'Other')))))) %>% 
+                           slice(which.max(pct)) %>% 
+                           mutate(
+                             predominant_race = ifelse(
+                             group_name == 'black_pct', 'Black',
+                             ifelse(group_name == 'white_pct', 'White',
+                             ifelse(group_name == 'asian_pct', 'Asian',
+                             ifelse(group_name == 'latinx_pct', 'Latinx',
+                             ifelse(group_name == 'other_pct', 'Other')))))) %>% 
                            dplyr::select(GEOID, NAME, predominant_race, max_pct = pct), by = c("GEOID", "NAME")
                        )
     return(demo_df)
@@ -407,20 +414,25 @@ getDemos(2017)
 
 
 ```{r message=FALSE,  include=FALSE}
-# years <- list(2012, 2013, 2014, 2015, 2016, 2017, 2018)
-#
-years <- list(2012, 2017)
+years <- list(2012, 2013, 2014, 2015, 2016, 2017)
 multi_year <-
   map(.x = years, .f=demoConversion) %>%
-  map2(.y = years, ~ mutate(.x, id = .y))
+  map2(.y = years, ~ mutate(.x, YEAR = .y))
 
-all_demos_range <- reduce(multi_year, rbind)
-rm(multi_year)
+all_demos <- reduce(multi_year, rbind)
+# all_demos_range <- reduce(multi_year, rbind)
+
+# match census sf object to Chicago wards projection
+all_demos <-st_transform(all_demos, crs =  st_crs(wards.2015))
+
+saveRDS(all_demos, file = here::here("data", "all_demos_chi_proj.Rda"))
 ```
 
 ```{r  include=FALSE}
 # saveRDS(all_demos, file = here::here("data", "all_demos_chi.Rda"))
 ```
+
+
 
 
 ```{r fortify-mapping, message=FALSE, include=FALSE}
@@ -429,20 +441,24 @@ rm(multi_year)
 ```
 
 ```{r  include=FALSE}
-# match census sf object to Chicago wards projection
-# all_demos <-st_transform(all_demos, crs =  st_crs(wards.2015))
 
-all_demos_range <-st_transform(all_demos_range, crs =  st_crs(wards.2015))
-# saveRDS(all_demos, file = here::here("data", "all_demos_chi_proj.Rda"))
+# 
+# all_demos_range <-st_transform(all_demos_range, crs =  st_crs(wards.2015))
+
+
+
 
 # add centroid values for labels
 # wards.2015 <- wards.2015  %>% mutate(long=map_dbl(geometry, ~st_centroid(.x)[[1]]), # add centroid values for labels
 #                                                       lat=map_dbl(geometry, ~st_centroid(.x)[[2]]))
-# 
+# wards.2015 <- merge(wards.2015, read_csv(here::here("data", "wardSides.csv")))
+
 # saveRDS(wards.2015, file = here::here("data", "wards2015_sf.Rda"))
-# 
+
 # limit Census data to tracts within Chicago ward boundaries
-# # all.demos.Chi <- st_intersection(all_demos, wards.2015.acs.proj, largest = TRUE)
+# # all.demos.Chi <- st_intersection(all_demos, wards.2015.acs.proj)
+
+wards_w_demos <- st_join(wards.2015, all_demos_range)
 ```
 
 
@@ -450,16 +466,16 @@ In the last decade, underepresented minority populations in Chicago have been in
 ```{r facet_wrap_demo_info, message=FALSE, warning=FALSE, fig.width=10, fig.height=15}
 
 # all_demos <-  readRDS(here::here("data", "all_demos_chi.Rda"))
-all_demos.Chi <- readRDS(here::here("data", "all_demos_chi_proj.Rda"))
-wards.2015 <-  readRDS(here::here("data", "wards2015_sf.Rda"))
+# all_demos.Chi <- readRDS(here::here("data", "all_demos_chi_proj.Rda"))
+
+# wards.2015 <-  readRDS(here::here("data", "wards2015_sf.Rda"))
 
 
 # plot intersection of Census tracts with chicago wards
-ggplot(st_intersection(all_demos.Chi, wards.2015, largest=TRUE) %>% 
-         filter(!is.na(predominant_race))) +
+ggplot(wards_w_demos) +
   # color based on predominant race based on Census, shaded by percentage of that race
-  geom_sf(aes(fill=predominant_race, alpha=medianIncome), lwd = 0) +
-  scale_fill_dt("diverging", reverse = TRUE) +
+  geom_sf(aes(color=predominant_race, alpha=medianIncome), lwd = 0) +
+  scale_color_dt("diverging", na.value=get_dt_cols("palegrey")) +
   scale_alpha(range = c(0.15, 1), guide="none") + 
   
   # outline Chicago wards over data
@@ -501,12 +517,29 @@ ggplot(st_intersection(all_demos.Chi, wards.2015, largest=TRUE) %>%
         plot.caption = element_text(hjust=1)) +
   
   # plot each year separately
-  facet_wrap( ~ id) + labs(
+  facet_wrap( ~ YEAR) + labs(
     title = "Latinx Populations in Chicago\nPushed to South, West Neighborhoods",
     subtitle = "Chicago Racial and Ethnic Group Movement\nby Census Tract Since 2012 (5 year averages)",
     caption = "Data Source: U.S. Census Bureau", fill = "Predominant Race in Tract")
   
+
 ```
+
+```{r}
+# all_demos <-  readRDS(here::here("data", "all_demos_chi.Rda"))
+
+# wards_w_all_demos <- st_join(wards.2015, st_transform(all_demos, crs =  st_crs(wards.2015)), largest=TRUE)
+
+wards_w_all_demos %>% filter(YEAR %in% c(2012, 2015, 2017)) %>%
+  ggplot() + 
+    geom_sf(aes(fill=medianIncome), alpha=0.5) + 
+  scale_fill_dt("cool", discrete=FALSE, reverse=TRUE, na.value=get_dt_cols("palegray")) +
+  geom_sf(aes(color=predominant_race), fill=NA, lwd=3) +
+  scale_color_dt("diverging", discrete=TRUE, na.value=get_dt_cols("palegray"))  +
+  theme_map_modest() +
+  facet_wrap(~YEAR)
+```
+
 
 
 ```{r save-bus-locs, warning=FALSE, include = FALSE}
@@ -813,6 +846,147 @@ ggsave("ward_election_turnout2011_2015.pdf", width = 36, height = 23, units = "c
 ```
 
 
+
+
+```{r eval=FALSE, include=FALSE}
+multi_year <-
+  map(.x = years, .f=demoConversion, geoms=FALSE) %>%
+  map2(.y = years, ~ mutate(.x, YEAR = .y))
+
+just_demos <- reduce(multi_year, rbind) 
+# all_demos_range <- reduce(multi_year, rbind)
+rm(multi_year)
+
+# saveRDS(just_demos, file = here::here("data", "just_demos.Rda"))
+```
+
+
+```{r message=FALSE}
+# read in combined school report card and budget dataset
+school_data <-  readRDS(here::here("data", "combined_school_data.Rda"))
+
+# confirm all rows matched to a budget have "Proposed Budget column"
+school_data %>% filter(!is.na(School_ID) & is.na(`Proposed Budget`))
+  
+# add ward to rows from schoolsByWard document parsed above
+school_data <- left_join(school_data, 
+                         schoolsByWard %>% 
+                           dplyr::select(School_ID, 
+                                         WARD = Ward, 
+                                         NAME_WARD_JOIN = `Unit Name`), 
+                         by=c("School_ID" = "School_ID")) %>% 
+  dplyr::select(School_ID, WARD, SCHOOL_NAME = `SCHOOL NAME`, NAME_WARD_JOIN, `Proposed Budget`, `SCHOOL TOTAL ENROLLMENT`, everything())
+
+# calculate average spend per student
+school_data <- school_data %>% 
+  mutate(
+    AVG_SPEND_PER_STUDENT = as.numeric( 
+    `Proposed Budget`) / as.numeric(gsub(",","",`SCHOOL TOTAL ENROLLMENT`)),
+    `SCHOOL TOTAL ENROLLMENT` = as.numeric(gsub(",","",`SCHOOL TOTAL ENROLLMENT`)),
+     YEAR = as.numeric(YEAR),
+     PREV_YR = as.numeric(YEAR - 1),
+     TWO_YR_PRIOR = as.numeric(YEAR - 2) ) %>% 
+  dplyr::select(YEAR, PREV_YR, TWO_YR_PRIOR, School_ID, WARD, NAME_WARD_JOIN, 
+                CY_BUDGET = `Proposed Budget`, 
+                SCHOOL_TOTAL_ENROLLMENT = `SCHOOL TOTAL ENROLLMENT`,
+                AVG_SPEND_PER_STUDENT, everything())
+
+
+front_cols <- c("YEAR", "School_ID", "WARD", "SIDE", "SCHOOL_NAME", "NAME_WARD_JOIN", "CY_BUDGET", "SCHOOL_TOTAL_ENROLLMENT")
+
+school_data <- left_join(school_data, read_csv(here::here("data", "wardSides.csv")),
+                         by="WARD") %>% 
+  dplyr::select(one_of(front_cols), everything())
+```
+
+
+```{r  fig.height=12, fig.width=15,}
+school_data %>% 
+  ggplot(group=as.factor(SIDE)) +
+  geom_line(aes(x=AVG_SPEND_PER_STUDENT, y=as.factor(YEAR))) +
+  geom_point(aes(x=AVG_SPEND_PER_STUDENT, y=as.factor(YEAR), 
+                 color=SIDE, size=SCHOOL_TOTAL_ENROLLMENT)) +
+  scale_size_continuous(range = c(3,6))
+    scale_color_dt(na.value=get_dt_cols("palegray")) +
+  theme_modest() +
+  theme(legend.text = element_text(size=rel(1)),
+        legend.title = element_text(size=rel(1))) 
+
+```
+
+
+```{r}
+# all_demos <-  readRDS(here::here("data", "all_demos_chi.Rda"))
+
+# wards_w_all_demos <- st_join(wards.2015, st_transform(all_demos, crs =  st_crs(wards.2015)), largest=TRUE)
+beg_mid_end_wards_all_demos <- wards_w_all_demos %>% filter(YEAR %in% c(2012, 2015, 2017))
+```
+
+
+```{r  fig.height=12, fig.width=15}
+
+beg_mid_end_wards_all_demos %>% filter(YEAR %in% c(2012, 2015, 2017)) %>%
+  ggplot() + 
+    geom_sf(aes(fill=medianIncome), alpha=0.5) + 
+  scale_fill_dt("cool", discrete=FALSE, reverse=TRUE, na.value=get_dt_cols("palegray")) +
+  geom_sf(aes(color=predominant_race), fill=NA, lwd=3) +
+  scale_color_dt("diverging", discrete=TRUE, na.value=get_dt_cols("palegray"))  +
+  theme_map_modest() +
+  facet_wrap(~YEAR)
+
+```
+
+
+
+```{r}
+school_data %>% group_by(YEAR, SIDE) %>% 
+  summarise(median_spend = median(AVG_SPEND_PER_STUDENT)) %>% 
+  ggplot(aes(y=median_spend, x=as.numeric(YEAR))) +
+  # geom_line(aes(y=AVG_SPEND_PER_STUDENT, x=YEAR)) +
+  geom_area(aes(group=as.factor(SIDE), colour=SIDE)) +
+    scale_color_dt(na.value=get_dt_cols("palegray")) +
+  theme_modest() +
+  theme(legend.text = element_text(size=rel(1)),
+        legend.title = element_text(size=rel(1))
+        )
+```
+
+```{r}
+school_data <- school_data %>% 
+  mutate(
+    ENROLLMENT_RANGE = cut(SCHOOL_TOTAL_ENROLLMENT, 
+    breaks=c(0, 500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, Inf),
+    labels=c("0-499", "500-999", "1,000-1,499", "1,500-1,999", 
+             "2,000-2,499", "2,500-2,999", "3,000-3,499", 
+             "3,500-3,999", "4,000-4,499", "4,500-4,999", "5,000+"), 
+    ordered_result = TRUE),
+        SPEND_RANGE = cut(AVG_SPEND_PER_STUDENT, 
+                          breaks=c(0, 2500, 5000, 75000, 10000, 12500, 15000, Inf),
+                          labels=c("0-2,499", "2,500-4,999", "5,000-7,499", 
+                                   "7,500-9,999", "10,000-12,499", "12,500-14,999",
+                                   "15,000+"), 
+                          ordered_result = TRUE)) %>%
+  dplyr::select(one_of(front_cols), ENROLLMENT_RANGE,SPEND_RANGE, everything())
+
+```
+
+
+
+```{r  fig.width=10, message=FALSE, warning=FALSE}
+school_data %>% group_by(YEAR, SIDE, WARD, ENROLLMENT_RANGE) %>% summarise(median_spend = median(AVG_SPEND_PER_STUDENT)) %>%
+  ggplot(aes(x=median_spend, y=ENROLLMENT_RANGE, group=as.factor(WARD))) +
+  geom_point(aes(color=SIDE), position="jitter",size=6) +
+    scale_color_dt(na.value=get_dt_cols("palegray")) +
+  theme_modest() +
+  theme(legend.text = element_text(size=rel(1)),
+        legend.title = element_text(size=rel(1))) +
+  facet_wrap(~YEAR)
+```
+
+```{r}
+left_join(school_data, school_data %>% filter(!is.na(SCHOOL_ID)) %>% 
+            dplyr::select(YEAR, SCHOOL_ID, PRIOR)
+```
 
 
 
