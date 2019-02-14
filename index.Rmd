@@ -381,7 +381,7 @@ demoConversion <- function(acs_year) {
                       immigrant_pct = (naturalized + noncitizen) / citizenshipPop,
                       renting_pct = renters / renterPop,
                       public_transport_pct = publicTransport / transportPop
-                      ) %>% dplyr::select(GEOID, NAME, medianIncome, perCapitaIncome, population, medAgemovedInside, contains("_pct"), geometry)
+                      ) %>% dplyr::select(GEOID, NAME, medianIncome, perCapitaIncome, population, medAgemovedInside, contains("_pct"), geometry, everything())
   
     demo_df <- left_join(demo_df, as.data.frame(demo_df) %>% 
                            dplyr::select(GEOID, NAME, black_pct, latinx_pct, asian_pct, white_pct, other_pct) %>%
@@ -401,20 +401,21 @@ demoConversion <- function(acs_year) {
 
 ```{r echo=TRUE, include=FALSE}
 # test that census calls working
-# getDemos(2013)
+getDemos(2017)
 ```
 
 
 
 ```{r message=FALSE,  include=FALSE}
-# years <- list(2012, 2013, 2014, 2015, 2016, 2017)
-# 
-# multi_year <-
-#   map(.x = years, .f=demoConversion) %>%
-#   map2(.y = years, ~ mutate(.x, id = .y))
-# 
-# all_demos <- reduce(multi_year, rbind)
-# rm(multi_year)
+# years <- list(2012, 2013, 2014, 2015, 2016, 2017, 2018)
+#
+years <- list(2012, 2017)
+multi_year <-
+  map(.x = years, .f=demoConversion) %>%
+  map2(.y = years, ~ mutate(.x, id = .y))
+
+all_demos_range <- reduce(multi_year, rbind)
+rm(multi_year)
 ```
 
 ```{r  include=FALSE}
@@ -431,6 +432,7 @@ demoConversion <- function(acs_year) {
 # match census sf object to Chicago wards projection
 # all_demos <-st_transform(all_demos, crs =  st_crs(wards.2015))
 
+all_demos_range <-st_transform(all_demos_range, crs =  st_crs(wards.2015))
 # saveRDS(all_demos, file = here::here("data", "all_demos_chi_proj.Rda"))
 
 # add centroid values for labels
@@ -440,12 +442,12 @@ demoConversion <- function(acs_year) {
 # saveRDS(wards.2015, file = here::here("data", "wards2015_sf.Rda"))
 # 
 # limit Census data to tracts within Chicago ward boundaries
-# # all.demos.Chi <- st_intersection(all_demos, wards.2015.acs.proj)
+# # all.demos.Chi <- st_intersection(all_demos, wards.2015.acs.proj, largest = TRUE)
 ```
 
 
 In the last decade, underepresented minority populations in Chicago have been increasingly relegated to lower income areas in the South and West of the City. 
-```{r facet_wrap_demo_info, message=FALSE, warning=FALSE, fig.width=20, fig.height=25}
+```{r facet_wrap_demo_info, message=FALSE, warning=FALSE, fig.width=10, fig.height=15}
 
 # all_demos <-  readRDS(here::here("data", "all_demos_chi.Rda"))
 all_demos.Chi <- readRDS(here::here("data", "all_demos_chi_proj.Rda"))
@@ -453,12 +455,12 @@ wards.2015 <-  readRDS(here::here("data", "wards2015_sf.Rda"))
 
 
 # plot intersection of Census tracts with chicago wards
-ggplot(st_intersection(all_demos.Chi, wards.2015) %>% filter(!is.na(predominant_race))) +
-  
+ggplot(st_intersection(all_demos.Chi, wards.2015, largest=TRUE) %>% 
+         filter(!is.na(predominant_race))) +
   # color based on predominant race based on Census, shaded by percentage of that race
   geom_sf(aes(fill=predominant_race, alpha=medianIncome), lwd = 0) +
   scale_fill_dt("diverging", reverse = TRUE) +
-  scale_alpha(range = c(0.5, 1), guide="none") + 
+  scale_alpha(range = c(0.15, 1), guide="none") + 
   
   # outline Chicago wards over data
   geom_sf(data = wards.2015, color="black", fill=NA) +
@@ -494,8 +496,8 @@ ggplot(st_intersection(all_demos.Chi, wards.2015) %>% filter(!is.na(predominant_
   coord_sf(datum = NA) +
   theme_map_modest() + 
   theme(plot.margin = unit(c(20, 0, 0, 0), "pt"),
-        plot.title = element_text(size = 30, face = "bold", hjust="0.5", margin = margin(t = 15)),
-        plot.subtitle = element_text(size = 25, margin = margin(t = 15)),
+        plot.title = element_text(face = "bold", hjust="0.5", margin = margin(t = 15)),
+        plot.subtitle = element_text( margin = margin(t = 15)),
         plot.caption = element_text(hjust=1)) +
   
   # plot each year separately
