@@ -1020,6 +1020,10 @@ school_data %>%
   theme_modest() + 
   labs(title = "2018 School Funding Update Increased Spread of Annual Spend per Student", fontface='bold')
 
+school_data %>% group_by(predominant_race) %>% 
+  summarise(mean_LI = mean(`LOW INCOME SCHOOL %`, na.rm=TRUE),
+            median_LI = median(`LOW INCOME SCHOOL %`))
+
 
 library(ggbeeswarm)
 
@@ -1051,12 +1055,15 @@ school_data %>% group_by(`SCHOOL ID (R-C-D-T-S)`, predominant_race) %>% summaris
        legend.text = element_text(size=rel(1.5)),
        plot.title = element_text(size=rel(2))
        ) +
-  labs(title = "Chicago's public schools display enormous disparity in percentage of low-income students\nbetween majority non-white and majority white schools", 
+  labs(title = "Majority Black and Majority Latinx Schools Have Much Higher Percentages of Low Income Students", 
        x="Predominant Race in School", 
        y="Percentage of Low Income Students", 
        color="Race")
 
 ```
+
+ 
+
 
 On average over the last 5 school years, non-white schools have served significantly higher percentages of low-income students, as determined by free and reduced lunch designation. It seems to follow that these schools would provide more resources for students, however over the same time period, average spend per student remains roughly the same across schools, with an increase in the spread of spending distribution after each of the two recent funding formula changes.
 
