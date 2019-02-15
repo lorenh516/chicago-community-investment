@@ -145,6 +145,7 @@ theme_modest <- function(base_size = 22,
                 base_line_size = base_line_size)  %+replace%
     theme(
         axis.title = element_text(size = rel(1)),
+        axis.title.y = element_text(margin=unit(c(0,0,0,2),"lines")),
         axis.title.x = element_text(margin=unit(c(2,0,0,0), "lines")),
         axis.text = element_text(size = rel(0.75)),
         axis.ticks=element_line(colour="grey", size=0.5),
@@ -161,14 +162,15 @@ theme_modest <- function(base_size = 22,
         legend.position = "right",
         legend.justification = "center", 
         plot.background = element_rect(colour = NA, fill="#fff7ce"),
-        plot.margin = unit(c(2,2,2,2),"lines"),
+        plot.margin = unit(c(3,3,3,3),"lines"),
         plot.title = element_text(size = rel(1.5), face = "bold", hjust="0.5",
                                   margin =unit(c(0,0,1,0), "lines"), family="Ledger"),
         plot.subtitle = element_text(size = rel(1.25), hjust="0.5",  
                                      margin = unit(c(0,0,2,0), "lines"), family="Ledger"),
-        plot.caption = element_text(size = rel(1), hjust = 1),
+        plot.caption = element_text(size = rel(1), hjust = 1, 
+                                    margin = unit(c(2,0,0,0), "lines")),
         strip.background = element_rect(colour = NA, fill=NA),
-        strip.text = element_text(face = "bold", size = rel(1.25)),
+        strip.text = element_text(face = "bold", size = rel(1.25), family = "Ledger"),
         panel.spacing = unit(15,"lines"),
         panel.border=element_blank(),
         complete = TRUE
@@ -565,7 +567,7 @@ ggsave("ward_demographics.pdf", width = 30, height = 25, units = "cm")
 ```
 
 ## Business Activity by Chicago Side Over Time
-```{r bus-stagnation, fig.height=12, fig.width=15, message=FALSE, warning=FALSE}
+```{r bus-stagnation-bar, fig.height=12, fig.width=15, message=FALSE, warning=FALSE}
 
 all_wards_all_dates <-  readRDS(here::here("data", "all_wards_all_dates.Rda"))
 
@@ -591,7 +593,7 @@ allDatesCount.df %>%
                      ifelse(SIDE_CLEAN == "Far Southeast", "Far Southeast Side",
                      SIDE_CLEAN))) %>%
               ggplot(aes(x=activity_qtr, y=active_businesses)) +   
-  geom_bar(aes(x=activity_qtr, y=active_businesses, fill=`APPLICATION TYPE`), stat = "identity", position="dodge") +
+  geom_bar(aes(x=activity_qtr, y=active_businesses, fill=`APPLICATION TYPE`), stat = "identity", position="dodge", show.legend = FALSE) +
   scale_fill_dt() +
   # geom_text(aes(label=active_businesses), 
   #           size = 3, position = position_stack(vjust = 0.5), color="white") +
@@ -604,11 +606,29 @@ allDatesCount.df %>%
         legend.key.size = unit(25, "pt"),
         legend.title = element_blank(),
         panel.grid.minor = element_blank(),
-        
+        panel.grid.major.x = element_blank(),
+        panel.spacing = unit(2, "lines"),
+        strip.text = element_text(family="Ledger"),
+        axis.title.y = element_text(size=rel(1.5), margin=unit(c(0,3,0,0),"lines"), angle=90) ,
         axis.text.x = element_text(hjust = 0, angle=-45),
         axis.title.x = element_blank(),
-        plot.margin = unit(c(2,2,2,2),"lines")) + facet_rep_wrap(~ SIDE_CLEAN, repeat.tick.labels=TRUE) +
-      labs(y="Number of Business Licenses Issued or Renewed", colour="Chicago Council Ward", caption="Data Source: Chicago Open Data Portal",  title="Business Activity Stagnant in Far Southwest, Far Southeast", subtitle = "Minimal New and Renewing Businesses Since 2012 in Two Chicago Areas", fill="Chicago Area") 
+        plot.margin = unit(c(2,4,2,2),"lines")) + facet_rep_wrap(~ SIDE_CLEAN, repeat.tick.labels=TRUE) +
+      labs(y="Number of Business Licenses Issued or Renewed", colour="Chicago Council Ward", caption="Data Source: Chicago Open Data Portal",  title="New Business Never Returns to Far Southeast and Far Southwest Post-Recession", subtitle = "Steady decline in new business entry post-recession in Chicago areas with lowest economic activity pre-recession", fill="Chicago Area") 
+```
+Immediately post-recession in 2013, the amount of [Economic Development for a Growing Economy (EDGE) tax credits granted by Illinois nearly doubled from the prior year](https://www.chicagobusiness.com/article/20171006/NEWS02/171009915/corporate-tax-incentives-back-in-favor-in-illinois), causing a brief spike in new business issuances for every area of the city beyond Central (Loop area), which has experienced fairly constant new business entry since the recession. Thus far, only the West Side of Chicago is approaching 2012 levels of new business, with most other areas of the city remaining fairly constant after EDGE excitement tapered off. In the Far Southeast and Far Southwest Sides, where ecnomic activity (in terms of number of active businesses) was about half the next lowest areas even pre-taper, one must wonder how much growth a neighborhood can experience with a rate of new business entry that has hovered around 500 businesses operating on newly-issued licenses for months. For contrast, the mean number of quarterly new licenses issued in the Central area of the city is just under 700,000, and the mean number of quarterly licenses issued in the Northwest Side is jsut over 85,000.
+
+```{r include=FALSE, echo=TRUE}
+# to look into: relationship between population and new business, can talk about that here. esp. number of new businesses per capita could be more meaningful than raw numbers.
+# Also potentially interesting: population in far SE and far SW also going down?
+
+allDatesCount.df %>% 
+  filter(`APPLICATION TYPE` %in% c("ISSUE", "RENEW")) %>% group_by(SIDE, activity_qtr, `APPLICATION TYPE`) %>% 
+  summarise(active_businesses = sum(active_businesses)) %>% 
+  group_by(SIDE, `APPLICATION TYPE`) %>% 
+  summarise(min_ct = min(active_businesses),
+            median_ct = median(active_businesses),
+            mean_ct = mean(active_businesses, na.rm=TRUE),
+            max_ct = max(active_businesses))
 ```
 
 
