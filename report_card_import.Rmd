@@ -903,19 +903,34 @@ school_data <- left_join(school_data, schoolsByWard %>% dplyr::select(School_ID,
 
 # calculate average spend per student
 school_data <- school_data %>% 
-  mutate(AVG_SPEND_PER_STUDENT = as.numeric( 
-    `Proposed Budget`) / as.numeric(gsub(",","",`SCHOOL TOTAL ENROLLMENT`)),
+  mutate(
+    # remove commas from enrollment column and make sure it's numeric
     SCHOOL_TOTAL_ENROLLMENT = as.numeric(gsub(",","",`SCHOOL TOTAL ENROLLMENT`)),
+    # calculate a basic average spend based on enrollment and budget for each row
+    AVG_SPEND_PER_STUDENT = as.numeric(`Proposed Budget` / `SCHOOL TOTAL ENROLLMENT`),
+   # ensure year columns are all numeric
+   YEAR = as.numeric(YEAR),
    PREV_YR = as.numeric(YEAR) - 1,
-   TWO_YR_PRIOR = as.numeric(YEAR) - 2) %>% 
+   TWO_YR_PRIOR = as.numeric(YEAR) - 2,
+   # remove trailing white space from school types column 
+   `SCHOOL TYPE NAME` = str_trim(`SCHOOL TYPE NAME`),
+   # make sure all charter schools are included in school types column
+   `SCHOOL TYPE NAME` = ifelse(str_detect(pattern="C$", `SCHOOL ID (R-C-D-T-S)`),
+                                "CHARTERSCH", `SCHOOL TYPE NAME`)) %>% 
   dplyr::select(YEAR, PREV_YR, TWO_YR_PRIOR, School_ID, WARD, NAME_WARD_JOIN, 
                 CY_BUDGET = `Proposed Budget`, 
                 SCHOOL_TOTAL_ENROLLMENT =  `SCHOOL TOTAL ENROLLMENT`,
                 AVG_SPEND_PER_STUDENT, everything())
 
+# add Chicago area based on matching generated from Chicago Open Data portal dataset 
+# and UChicago community-area-to-Side matching
 school_data <- left_join(school_data, read_csv(here::here("data", "wardSides.csv")),
                          by="WARD") %>% 
   dplyr::select(YEAR, PREV_YR, TWO_YR_PRIOR, School_ID, WARD, SIDE, everything())
+
+    
+# make sure all years have all school types
+school_data %>% distinct(YEAR, `SCHOOL TYPE NAME`)
 ```
 
 
@@ -934,20 +949,6 @@ school_data <- left_join(school_data, read_csv(here::here("data", "wardSides.csv
 
 
 ```{r fig.height=12, fig.width=15, message=FALSE, warning=FALSE}    
-# remove trailing white space from school types column    
-school_data <- school_data %>% 
-  mutate(`SCHOOL TYPE NAME` = str_trim(`SCHOOL TYPE NAME`))
-
-# make sure all charter schools are included in school types column
-school_data <- 
-  school_data %>% mutate(
-    `SCHOOL TYPE NAME` = ifelse(str_detect(pattern="C$", `SCHOOL ID (R-C-D-T-S)`),
-                                "CHARTERSCH", `SCHOOL TYPE NAME`)
-    )
-    
-# make sure all years have all school types
-school_data %>% distinct(YEAR, `SCHOOL TYPE NAME`)
-
 # check whether there are schools which could be matched to ward, that aren't
 school_data %>% filter(!is.na(School_Latitude) & is.na(WARD))
 
@@ -1036,6 +1037,9 @@ school_data %>%
   labs(title = "Greater Low-Income Percentage In Non-White Schools", fontface='bold')
 
 
+#########################
+##  Quasi-Random Plot  ##
+#########################
 school_data %>% group_by(`SCHOOL ID (R-C-D-T-S)`, predominant_race) %>% summarise(med_LI_pct = mean(`LOW-INCOME SCHOOL %`, na.rm = TRUE)) %>%  
   ggplot(aes(predominant_race, med_LI_pct, color=factor(predominant_race))) +
       geom_quasirandom(varwidth=TRUE, size=4, show.legend = FALSE) +
@@ -1047,7 +1051,7 @@ school_data %>% group_by(`SCHOOL ID (R-C-D-T-S)`, predominant_race) %>% summaris
                              "Majority Latinx Schools", "Majority White Schools")) +
   theme_modest() + 
   theme(axis.text.x.top = element_text(size=rel(2), vjust = -8, face="bold"),
-        axis.text.y = element_text(size=rel(1.5), margin=unit(c(0,0,0,3),"lines")),
+        axis.text.y = element_text(size=rel(1.25), margin=unit(c(0,0,0,3),"lines")),
         axis.title.y = element_text(size=rel(2)),
         axis.title.x = element_blank(),
         legend.title = element_text(size=rel(2)),
