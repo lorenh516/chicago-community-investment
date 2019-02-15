@@ -92,8 +92,8 @@ get_dt_cols <- function(...) {
 ```{r include=FALSE}
 # set groupings of colors as palettes
 dt_palettes <- list(
-  `main`  = get_dt_cols("ocean", "mauve", "plankton", "goldenrod"),
-  `diverging` = get_dt_cols("darkteal", "honeymustard", "ocean",  "forest", "mauve"),
+  `main`  = get_dt_cols("ocean", "mauve", "darkteal", "goldenrod"),
+  `diverging` = get_dt_cols("darkteal", "goldenrod", "forest", "honeymustard", "ocean", "mauve"),
   `cool`  = get_dt_cols("darkteal", "forest", "plankton", "ocean"),
   `desert`   = get_dt_cols("mauve", "goldenrod", "cocoa", "honeymustard"),
   `mixed` = get_dt_cols("mauve", "goldenrod", "darkteal", "forest", "cocoa", "plankton", "honeymustard"),
@@ -148,6 +148,7 @@ theme_modest <- function(base_size = 22,
                 base_line_size = base_line_size)  %+replace%
     theme(
         axis.title = element_text(size = rel(1)),
+        axis.title.x = element_text(margin=unit(c(2,0,0,0), "lines")),
         axis.text = element_text(size = rel(0.75)),
         axis.ticks=element_line(colour="grey", size=0.5),
         panel.grid.major = element_line(colour="grey", size=0.4),
@@ -162,14 +163,17 @@ theme_modest <- function(base_size = 22,
         legend.background = element_rect(colour = NA, fill=NA), 
         legend.position = "right",
         legend.justification = "center", 
-        plot.background = element_rect(colour = NA, fill="#DEDEDE"),
-        plot.margin = unit(c(0,0,0,0),"lines"),
-        plot.title = element_text(size = rel(1.5), face = "bold", hjust="0.5",  margin = margin(t = 15)),
-        plot.subtitle = element_text(size = rel(1.25), face = "bold", hjust="0.5",  margin = margin(t = 15)),
+        plot.background = element_rect(colour = NA, fill="#fff7ce"),
+        plot.margin = unit(c(2,2,2,2),"lines"),
+        plot.title = element_text(size = rel(1.5), face = "bold", hjust="0.5",
+                                  margin =unit(c(0,0,1,0), "lines"), family="Ledger"),
+        plot.subtitle = element_text(size = rel(1.25), 
+                                     face = "bold", hjust="0.5",  
+                                     margin = unit(c(0,0,2,0), "lines")),
         plot.caption = element_text(size = rel(1), hjust = 1),
         strip.background = element_rect(colour = NA, fill=NA),
         strip.text = element_text(face = "bold", size = rel(1.25)),
-        panel.spacing = unit(0,"lines"),
+        panel.spacing = unit(15,"lines"),
         panel.border=element_blank(),
         complete = TRUE
     )
@@ -190,7 +194,7 @@ theme_map_modest <- function(base_size = 12) {
         panel.grid.major.x=element_blank(),
         panel.border=element_blank(),
         panel.spacing = unit(0,"lines"),
-        plot.margin  =  unit(c(2,2,2,2),"lines")
+        plot.margin  =  unit(c(10,10,10,10),"lines")
     )
 }
 
@@ -366,8 +370,10 @@ demoConversion <- function(acs_year, geoms = TRUE) {
                       black_pct = blackPop / population,
                       latinx_pct = latinxPop/ population,
                       white_pct = whitePop/ population,
-                      other_pct = ifelse((population - blackPop - latinxPop - whitePop - asianPop) / population > 0, 
-                                         (population - blackPop - latinxPop - whitePop - asianPop) / population, NA),
+                      other_pct = ifelse(
+                        (population - blackPop - latinxPop - whitePop - asianPop) / population > 0, 
+                        (population - blackPop - latinxPop - whitePop - asianPop) / population, 
+                        NA),
                       below_poverty_pct = belowPovertyPop / population,
                       childMedicaid_pct = (femaleChildMedicaid + maleChildMedicaid) / medicarePop,
                       childMedicare_pct = (femaleChildMedicare + maleChildMedicare) / medicarePop,
@@ -399,25 +405,26 @@ demoConversion <- function(acs_year, geoms = TRUE) {
                              ifelse(group_name == 'asian_pct', 'Asian',
                              ifelse(group_name == 'latinx_pct', 'Latinx',
                              ifelse(group_name == 'other_pct', 'Other')))))) %>% 
-                           dplyr::select(GEOID, NAME, predominant_race, max_pct = pct), by = c("GEOID", "NAME")
+                           dplyr::select(GEOID, NAME, predominant_race, max_pct = pct), 
+                         by = c("GEOID", "NAME")
                        )
     return(demo_df)
 }
 ```
 
 
-```{r echo=TRUE, include=FALSE}
+```{r echo=TRUE, include=FALSE, eval=FALSE}
 # test that census calls working
 getDemos(2017)
 ```
 
 
 
-```{r message=FALSE,  include=FALSE}
+```{r message=FALSE,  eval=FALSE}
 years <- list(2012, 2013, 2014, 2015, 2016, 2017)
 multi_year <-
-  map(.x = years, .f=demoConversion) %>%
-  map2(.y = years, ~ mutate(.x, YEAR = .y))
+  map(.x = years, .f=demoConversion, geoms=TRUE) %>%
+  map2(.y = years, ~ mutate(.x, id = .y))
 
 all_demos <- reduce(multi_year, rbind)
 # all_demos_range <- reduce(multi_year, rbind)
@@ -428,19 +435,13 @@ all_demos <-st_transform(all_demos, crs =  st_crs(wards.2015))
 saveRDS(all_demos, file = here::here("data", "all_demos_chi_proj.Rda"))
 ```
 
-```{r  include=FALSE}
-# saveRDS(all_demos, file = here::here("data", "all_demos_chi.Rda"))
-```
-
-
-
 
 ```{r fortify-mapping, message=FALSE, include=FALSE}
 
 # wards.2015 <- sf::st_read(here::here("data","Geofiles - Chicago Zip Code and Neighborhood","Boundaries - Wards (2015-)","geo_export_0bb2e9fd-20ca-415b-a96a-7722d72c1b41.shp"))
 ```
 
-```{r  include=FALSE}
+```{r  include=FALSE, eval=FALSE}
 
 # 
 # all_demos_range <-st_transform(all_demos_range, crs =  st_crs(wards.2015))
@@ -465,14 +466,14 @@ wards_w_demos <- st_join(wards.2015, all_demos_range)
 In the last decade, underepresented minority populations in Chicago have been increasingly relegated to lower income areas in the South and West of the City. 
 ```{r facet_wrap_demo_info, message=FALSE, warning=FALSE, fig.width=10, fig.height=15}
 
-# all_demos <-  readRDS(here::here("data", "all_demos_chi.Rda"))
+# 
 # all_demos.Chi <- readRDS(here::here("data", "all_demos_chi_proj.Rda"))
 
 # wards.2015 <-  readRDS(here::here("data", "wards2015_sf.Rda"))
-
+# all_demos <-  readRDS(here::here("data", "all_demos_chi.Rda"))
 
 # plot intersection of Census tracts with chicago wards
-ggplot(wards_w_demos) +
+ggplot(st_join(wards.2015, all_demos %>% filter(id %in% c(2012, 2015, 2017)), largest=TRUE)) +
   # color based on predominant race based on Census, shaded by percentage of that race
   geom_sf(aes(color=predominant_race, alpha=medianIncome), lwd = 0) +
   scale_color_dt("diverging", na.value=get_dt_cols("palegrey")) +
@@ -577,6 +578,7 @@ allDatesCount.df %>% filter(`APPLICATION TYPE` %in% c("ISSUE", "RENEW")) %>% gro
         legend.direction = "horizontal",
         legend.key.size = unit(25, "pt"),
         legend.title = element_blank(),
+        axis.text.x = element_text(hjust = 1),
         axis.title.x = element_blank(),
         plot.margin = unit(c(2,2,2,2),"cm")) +
       labs(y="Number of Business Licenses Issued or Renewed", colour="Chicago Council Ward", caption="Data Source: Chicago Open Data Portal",  title="Business Activity Stagnant in Far Southwest, Far Southeast", subtitle = "Minimal New and Renewing Businesses Since 2012 in Two Chicago Areas", fill="Chicago Area") 
@@ -606,6 +608,19 @@ license_types <- c("ISSUE" = "New Business Licenses",
 bl <- bus_licenses %>% filter(activity_yr >= 2012, active == 1, `APPLICATION TYPE`%in% c('ISSUE', 'RENEW')) %>% 
     distinct(`LICENSE ID`, activity_yr, `APPLICATION TYPE`, LONGITUDE, LATITUDE) 
   
+
+
+ggplot(gapminder, aes(gdpPercap, lifeExp, size = pop, colour = country)) +
+  geom_point(alpha = 0.7, show.legend = FALSE) +
+  scale_colour_manual(values = country_colors) +
+  scale_size(range = c(2, 12)) +
+  scale_x_log10() +
+  facet_wrap(~continent) +
+  # Here comes the gganimate specific bits
+  labs(title = 'Year: {frame_time}', x = 'GDP per capita', y = 'life expectancy') +
+  transition_time(year) +
+  ease_aes('linear')
+
 # pull in Chicago terrain map from Google Maps
   ggmap::ggmap(ggmap::get_googlemap(center = c(lon = -87.732125, lat = 41.83379),
                       zoom = 10, scale = 1,
@@ -937,19 +952,20 @@ beg_mid_end_wards_all_demos %>% filter(YEAR %in% c(2012, 2015, 2017)) %>%
 ```
 
 
-
-```{r}
-school_data %>% group_by(YEAR, SIDE) %>% 
-  summarise(median_spend = median(AVG_SPEND_PER_STUDENT)) %>% 
+```{r fig.height=12, fig.width=15}
+school_data %>% group_by(YEAR, SIDE, WARD) %>% 
+  summarise(median_spend = min(AVG_SPEND_PER_STUDENT)) %>% 
   ggplot(aes(y=median_spend, x=as.numeric(YEAR))) +
   # geom_line(aes(y=AVG_SPEND_PER_STUDENT, x=YEAR)) +
-  geom_area(aes(group=as.factor(SIDE), colour=SIDE)) +
-    scale_color_dt(na.value=get_dt_cols("palegray")) +
+  geom_area(aes(group=as.factor(WARD), fill=SIDE)) +
+    scale_fill_dt(na.value=get_dt_cols("palegray")) +
   theme_modest() +
   theme(legend.text = element_text(size=rel(1)),
         legend.title = element_text(size=rel(1))
         )
 ```
+
+
 
 ```{r}
 school_data <- school_data %>% 

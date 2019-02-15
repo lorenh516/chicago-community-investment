@@ -1034,13 +1034,31 @@ school_data %>%
 
 school_data %>% group_by(`SCHOOL ID (R-C-D-T-S)`, predominant_race) %>% summarise(med_LI_pct = mean(`LOW-INCOME SCHOOL %`, na.rm = TRUE)) %>%  
   ggplot(aes(predominant_race, med_LI_pct, color=factor(predominant_race))) +
-      geom_quasirandom(varwidth=TRUE) +
+      geom_quasirandom(varwidth=TRUE, size=4, show.legend = FALSE) +
   scale_color_dt("diverging", reverse = TRUE, na.value=get_dt_cols("palegray")) +
+  scale_y_continuous(labels = function(x) paste0(x, "%")) +
   # scale_x_continuous(breaks=c(0, 25, 50, 75, 100)) +
+  scale_x_discrete(position = "top", 
+                   labels = c("Majority Asian Schools", "Majority Black Schools",
+                             "Majority Latinx Schools", "Majority White Schools")) +
   theme_modest() + 
-  labs(title = "Non-White Schools Exponentially Greater Percentages of Low-Income Students", fontface='bold')
+  theme(axis.text.x.top = element_text(size=rel(2), vjust = -8, face="bold"),
+        axis.text.y = element_text(size=rel(1.5), margin=unit(c(0,0,0,3),"lines")),
+        axis.title.y = element_text(size=rel(2)),
+        axis.title.x = element_blank(),
+        legend.title = element_text(size=rel(2)),
+        legend.key.size =  unit(35, "pt"),
+       legend.text = element_text(size=rel(1.5)),
+       plot.title = element_text(size=rel(2))
+       ) +
+  labs(title = "Chicago's public schools display enormous disparity in percentage of low-income students\nbetween majority non-white and majority white schools", 
+       x="Predominant Race in School", 
+       y="Percentage of Low Income Students", 
+       color="Race")
 
 ```
+
+On average over the last 5 school years, non-white schools have served significantly higher percentages of low-income students, as determined by free and reduced lunch designation. It seems to follow that these schools would provide more resources for students, however over the same time period, average spend per student remains roughly the same across schools, with an increase in the spread of spending distribution after each of the two recent funding formula changes.
 
 ```{r fig.height=12, fig.width=15, message=FALSE, warning=FALSE}
 facet_sides_labels <- as_labeller(c(`Far North` = "Far North Side", 
