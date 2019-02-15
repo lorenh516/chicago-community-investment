@@ -845,8 +845,8 @@ ggsave("avg_ward_business.pdf", width = 25, height = 18, units = "cm")
   turnoutSides <-  readRDS(here::here("data", "sides_turnout.Rda"))
   turnoutDiff <-  readRDS(here::here("data", "wards_turnout.Rda"))
   
-  turnoutDiff %>% group_by
-
+  # turnoutDiff %>% group_by(SIDE, WARD) %>% summarise(z = max(TURNOUT)) %>% filter(SIDE == "Far Southwest")
+  
   # plot average turnout in 2011 and 2015 for each Chicago Side
   ggplot(turnoutSides, aes(x=as.factor(YEAR), y=TURNOUT, group=as.factor(SIDE))) + 
   geom_line(aes(colour=SIDE), size=1.5, show.legend = FALSE) +
@@ -857,51 +857,84 @@ ggsave("avg_ward_business.pdf", width = 25, height = 18, units = "cm")
   geom_line(data = turnoutDiff, aes(group=as.factor(WARD), color=SIDE), size=0.5, alpha=0.35, show.legend = FALSE) +
     
   # add mean turnout (%) for each Side to x-axis
-  geom_label(data = turnoutDiff %>% group_by(YEAR, SIDE) %>% summarise(MEAN_TURNOUT = round(mean(TURNOUT, na.rm=TRUE),1)),
-            aes(x=as.factor(YEAR), y= MEAN_TURNOUT, label = paste0(MEAN_TURNOUT, "%"), group=as.factor(SIDE)),
-            color = "darkgray",
-            label.padding = unit(0.05, "lines"),
-            label.size = 0.0,
-            fontface = "bold",
-            size = 4) +
+  # 2011 labels
+  # geom_label_repel(data = turnoutDiff %>% group_by(YEAR, SIDE) %>% 
+  #                    summarise(MEAN_TURNOUT = round(mean(TURNOUT, na.rm=TRUE),1)) %>% 
+  #                    filter(YEAR == 2011),
+  #           aes(x=as.factor(YEAR), y= MEAN_TURNOUT, label = paste0(MEAN_TURNOUT, "%"), 
+  #               group=as.factor(SIDE), color = SIDE),
+  #           label.padding = unit(0.05, "lines"),
+  #           label.size = 0.0,
+  #           size = rel(10),
+  #           fontface = "bold",
+  #           fill=NA,
+  #           segment.size = 0,
+  #           nudge_y = -0.5,
+  #           nudge_x = 0.025,
+  #           # xlim = c(-Inf, 0.25),
+  #           direction="both",
+  #           force = 3) +
+  #   # 2015 labels  
+  #   geom_label_repel(data = turnoutDiff %>% group_by(YEAR, SIDE) %>% 
+  #                        summarise(MEAN_TURNOUT = round(mean(TURNOUT, na.rm=TRUE),1)) %>% 
+  #                        filter(YEAR == 2015),
+  #           aes(x=as.factor(YEAR), y= MEAN_TURNOUT, label = paste0(MEAN_TURNOUT, "%"), 
+  #               group=as.factor(SIDE), color = SIDE),
+  #           label.padding = unit(0.05, "lines"),
+  #           label.size = 0.0,
+  #           size = rel(10),
+  #           fontface = "bold",
+  #           fill=NA,
+  #           segment.size = 0,
+  #           nudge_y = 0.025,
+  #           nudge_x = 0.025,
+  #           direction="both",
+  #           force = 3) +
 
+  
     # label each Side in line graphs for both 2011 and 2015
      geom_label_repel(data = turnoutSides %>% filter(YEAR == 2011),
-            aes(label = paste0(SIDE), color = SIDE),
+            aes(label = paste0(SIDE, " - ", TURNOUT, "%"), color = SIDE),
             fill=NA,
             hjust = "left",
-            nudge_x = -.25,
-            force=5,
+            nudge_x = -.5,
+            force=10,
             direction = "both",
             fontface = "bold",
+            label.size = 0,
             point.padding	= 3,
-            size = 5,
-            show.legend = FALSE) +
+            size = rel(12),
+            show.legend = FALSE,
+            family="Ledger") +
   geom_label_repel(data = turnoutSides %>% filter(YEAR == 2015),
-            aes(label = paste0(SIDE), color = SIDE),
+            aes(label = paste0(SIDE, " - ", TURNOUT, "%"), color = SIDE),
             fill=NA,
             hjust = "right",
-            nudge_x = .25,
-            force = 7.5,
+            nudge_x = .5,
+            force = 10,
             direction = "both",
             fontface = "bold",
-            point.padding	= 3,
-            size = 5,
-            show.legend = FALSE) +
+            point.padding	= 2.75,
+            label.size = 0,
+            size = rel(12),
+            show.legend = FALSE,
+            family="Ledger") +
   # move x-axis text to top of graph
   scale_x_discrete(position = "top") +
    # coord_cartesian(ylim=c(23.5, 60)) +
   theme_modest() + 
-  theme(axis.text.x.top = element_text(size=rel(1.25), vjust = -8, face="bold"),
+  theme(axis.text.x.top = element_text(size=rel(1.75), vjust = -8, face="bold", family = "Ledger"),
           axis.title.y = element_blank(),
           axis.title.x = element_blank(),
           axis.text.y = element_blank(),
           panel.grid.minor=element_blank(),
-          panel.grid.major=element_blank()) +
-  labs(title="Highest Voter Turnout In Wards Facing Deinvestment", 
-         subtitle="Change in Voter Turnout Between 2011 and 2015 Chicago City Council Elections", 
+          panel.grid.major=element_blank())+
+        # plot.subtitle = element_text(hjust=0.35)) +
+  labs(title="Amid City-Wide Turnout Dropoff, Significantly Higher Voter Activation in Far Southwest Side", 
+         subtitle="Voters in the Far Southeast, which has faced de-investment as determined by a number of factors, have headed to the polls\nat levels far exceeding every other area of the city in the last two City Council elections.", 
          caption="Source: Chicago Board of Election Commissioners", color="Chicago Area") +
-  annotate("text",  x = 1.25, y = 25, label = "*Underlying ward trends visualized\nbehind Chicago Side trendlines", color= get_dt_cols("mauve"), size=6) 
+  annotate("text",  x = 1, y = 25, label = "*Underlying ward trends visualized\nbehind Side trendlines", size=rel(10), family="Ledger") + 
+    annotate("text", x = 0.66, y = 68, label="Ward 19 in the Far Southwest\n Side had voter turnout of nearly\n75% in the 2011 City Council\nElection.", family="Ledger", size=rel(10), hjust=0, color=get_dt_cols("mauve"))
 ```
 
 
