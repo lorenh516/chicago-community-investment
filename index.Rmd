@@ -205,6 +205,9 @@ theme_set(theme_modest(base_size = 12))
 # import business licenses data
 # bus_licenses <- read_csv(here::here("data", "Business_Licenses.csv"))
 bus_licenses <-  readRDS(here::here("data", "bus_licenses.Rda"))
+bus_licenses <- bus_licenses %>% mutate(SIDE = ifelse(SIDE == "Far Southwest", "Far Southwest Side",
+                                               ifelse(SIDE == "Far Southeast", "Far Southeast Side", SIDE)))
+
 
 # view problems report
 # problems(bus_licenses)
@@ -461,22 +464,25 @@ colnames(all_demos)
 
 wards_w_demos <- st_join(wards.2015, all_demos_range)
 wards_selected_demos <- st_join(wards.2015, selected_demos, largest=TRUE, agr = c(
- "GEOID" = "identity", "NAME" = identiy, "medianIncome" = "aggregate", "perCapitaIncome" = "aggregate"       
-"population" = aggregation,              "medAgemovedInside"       "asian_pct"               "black_pct"              
-"latinx_pct"              "white_pct"               "other_pct"               "below_poverty_pct"      
-"childMedicaid_pct"       "childMedicare_pct"       "takeupMedicare_pct"      "takeupMedicaid_pct"     
-"households_kidsSNAP_pct" "takeupSNAP_pct"          "YAmovesInChi_pct"        "movesInChi_pct"         
-"immigrant_pct"           "renting_pct"             "public_transport_pct"    "asianPop"               
-"belowPovertyPop"         "blackPop"                "citizenshipPop"          "femaleChildMedicaid"    
-"femaleChildMedicare"     "femaleMedicaid18_64"     "femaleMedicaid65_up"     "femaleMedicare18_64"    
-"femaleMedicare65_up"     "households"              "householdsKidsSNAP"      "householdsSNAP"         
-"kidsHealthIns"           "latinxPop"               "maleChildMedicaid"       "maleChildMedicare"      
-"maleMedicaid18_64"       "maleMedicaid65_up"       "maleMedicare18_64"       "maleMedicare65_up"      
-"medicaidPop"             "medicarePop"             "mobilityPop"             "movedInside20to24"      
-"movedInside25to29"       "movedInsideCounty"       "naturalized"             "noncitizen"             
-"owners"                  "publicTransport"         "renterPop"               "renters"                
-"transportPop"            "whitePop"                "predominant_race"        "max_pct"                
-"id"                      "geometry"
+ "GEOID" = "identity", "NAME" = "identiy", "id"="identity", "medianIncome" = "aggregate", 
+ "perCapitaIncome" = "aggregate", "population" = "aggregate", "medAgemovedInside" = "aggregate",  
+ "asian_pct" = "aggregate", "black_pct" = "aggregate", "latinx_pct" = "aggregate", "white_pct" = "aggregate",
+ "other_pct" = "aggregate", "below_poverty_pct" = "aggregate", "childMedicaid_pct" = "aggregate", 
+ "childMedicare_pct" = "aggregate", "takeupMedicare_pct" = "aggregate",  "takeupMedicaid_pct" = "aggregate",
+ "households_kidsSNAP_pct" "takeupSNAP_pct" = "aggregate", "YAmovesInChi_pct" = "aggregate", 
+ "movesInChi_pct" = "aggregate", "immigrant_pct" = "aggregate", "renting_pct" = "aggregate", 
+ "public_transport_pct" = "aggregate", "asianPop" = "aggregate", "belowPovertyPop" = "aggregate", 
+ "blackPop" = "aggregate", "citizenshipPop" = "aggregate", "femaleChildMedicaid" = "aggregate", 
+ "femaleChildMedicare" = "aggregate", "femaleMedicaid18_64" = "aggregate", "femaleMedicaid65_up" = "aggregate",
+ "femaleMedicare18_64"  = "aggregate", "femaleMedicare65_up" = "aggregate", "households" = "aggregate",
+ "householdsKidsSNAP","householdsSNAP" = "aggregate", "kidsHealthIns" = "aggregate", "latinxPop" = "aggregate",
+ "maleChildMedicaid" = "aggregate",  "maleChildMedicare" = "aggregate", "maleMedicaid18_64" = "aggregate",
+ "maleMedicaid65_up" = "aggregate", "maleMedicare18_64" = "aggregate", "maleMedicare65_up" = "aggregate",
+ "medicaidPop" = "aggregate", "medicarePop" = "aggregate", "mobilityPop" = "aggregate", 
+ "movedInside20to24" = "aggregate", "movedInside25to29" = "aggregate", "movedInsideCounty" = "aggregate", 
+ "naturalized" = "aggregate", "noncitizen" = "aggregate", "owners" = "aggregate", 
+ "publicTransport" = "aggregate", "renterPop" = "aggregate", "renters" = "aggregate", "transportPop" = "aggregate", 
+ "whitePop" = "aggregate",  "predominant_race" = "aggregate", "max_pct" = "aggregate",    
 ))
 ```
 
@@ -659,16 +665,16 @@ bl <- bus_licenses %>% filter(activity_yr >= 2012, active == 1, `APPLICATION TYP
   
 
 
-ggplot(gapminder, aes(gdpPercap, lifeExp, size = pop, colour = country)) +
-  geom_point(alpha = 0.7, show.legend = FALSE) +
-  scale_colour_manual(values = country_colors) +
-  scale_size(range = c(2, 12)) +
-  scale_x_log10() +
-  facet_wrap(~continent) +
-  # Here comes the gganimate specific bits
-  labs(title = 'Year: {frame_time}', x = 'GDP per capita', y = 'life expectancy') +
-  transition_time(year) +
-  ease_aes('linear')
+# ggplot(gapminder, aes(gdpPercap, lifeExp, size = pop, colour = country)) +
+#   geom_point(alpha = 0.7, show.legend = FALSE) +
+#   scale_colour_manual(values = country_colors) +
+#   scale_size(range = c(2, 12)) +
+#   scale_x_log10() +
+#   facet_wrap(~continent) +
+#   # Here comes the gganimate specific bits
+#   labs(title = 'Year: {frame_time}', x = 'GDP per capita', y = 'life expectancy') +
+#   transition_time(year) +
+#   ease_aes('linear')
 
 # pull in Chicago terrain map from Google Maps
   ggmap::ggmap(ggmap::get_googlemap(center = c(lon = -87.732125, lat = 41.83379),
@@ -676,7 +682,7 @@ ggplot(gapminder, aes(gdpPercap, lifeExp, size = pop, colour = country)) +
                       maptype ='terrain',
                       color = 'color',
                       key = Sys.getenv("GOOGLEMAPS_KEY"))) + 
-    
+    ggplot(data=bl, aes(x=LONGITUDE, y=LATITUDE, color=as.factor(activity_yr))) +
     # layer licenses over each other at extremely low alpha
     geom_point(data=bl, aes(x=LONGITUDE, y=LATITUDE, color=as.factor(activity_yr)), alpha = 0.05, show.legend = FALSE, na.rm = TRUE) + 
     
@@ -724,10 +730,10 @@ bus_licenses %>% filter(!is.na(WARD), active==1,  activity_date >= mdy("1/1/2012
   summarise(business_count = n()) %>% group_by(WARD, SIDE) %>% arrange(desc(business_count)) %>% 
   
   # plot boxplot of median monthly issuances and renewals for each ward
-  ggplot(aes(x=reorder(SIDE, business_count, FUN = median), y=business_count)) + 
+  ggplot(aes(x=reorder(reorder(reorder(SIDE, business_count, FUN = median),WARD),business_count, FUN=median), y=business_count)) + 
   
   # color by Chicago Side
-  geom_boxplot(aes(group=as.factor(SIDE), fill=as.factor(SIDE)), show.legend = FALSE) + 
+  geom_boxplot(aes(group=reorder(as.factor(WARD), SIDE), fill=as.factor(SIDE)), show.legend = FALSE) + 
   scale_fill_dt() +
   
   # label each each box by corresponding Ward, just above the median (8 pt)
@@ -738,20 +744,20 @@ bus_licenses %>% filter(!is.na(WARD), active==1,  activity_date >= mdy("1/1/2012
                     summarise(median_issuances = median(business_count)) %>% 
                     arrange(median_issuances),
                    aes(x=as.factor(SIDE), y = median_issuances + 300, group=as.factor(SIDE),
-                       label=as.factor(SIDE), nudge_x = 0.5, direction= "y"),
-            color="#6E2C49", fontface="bold", size=5) + 
+                       label=as.factor(SIDE), nudge_x=0.05, direction= "y"),
+            color="#6E2C49", fontface="bold", size=5, hjust=0.5) + 
   
   # limit scale to 750, (one Loop ward's outliers extend ~1000 above other wards)
   # still very clearly the highest even without all outliers visible
   scale_y_continuous(limits = c(0, 750)) +
 
-  labs(x="Chicago Council Ward", y="Average Monthly Business Count", caption="Data Source: Chicago Open Data Portal", title="Least New & Surviving Businesses\nin South, West Wards for 15+ Years", subtitle="Calumet Heights, Westlawn Average less than 25 Monthly\nBusiness License Issuances on Average since 2012",fill="Chicago Area") + 
+  labs(x="Chicago Council Ward", y="Average Monthly Business Count", caption="Data Source: Chicago Open Data Portal", title="Least New & Surviving Businesses in South, West Wards for 15+ Years", subtitle="Calumet Heights, Westlawn Average less than 25 Monthly Business License Issuances on Average since 2012",fill="Chicago Area") + 
   theme_modest() +
   theme(
-        plot.margin = unit(c(20, 0, 0, 0), "pt"),
         panel.grid.major.x = element_blank(),
         axis.ticks =  element_blank(),
         axis.text.x = element_blank(),
+        axis.title.y = element_text(margin=margin(0,20,0,0), angle =90, family = "Ledger"),
         plot.caption = element_text(hjust=1),
         plot.subtitle = element_text(margin = margin(t = 15))
         )
@@ -960,6 +966,7 @@ school_data <- school_data %>%
    TWO_YR_PRIOR = as.numeric(YEAR) - 2,
    # remove trailing white space from school types column 
    `SCHOOL TYPE NAME` = str_trim(`SCHOOL TYPE NAME`),
+   SCHOOL_NAME = str_trim(SCHOOL_NAME),
    # make sure all charter schools are included in school types column
    `SCHOOL TYPE NAME` = ifelse(str_detect(pattern="C$", `SCHOOL ID (R-C-D-T-S)`),
                                 "CHARTERSCH", `SCHOOL TYPE NAME`)) %>% 
@@ -1006,7 +1013,7 @@ school_data <- left_join(
         White= mean(`SCHOOL - WHITE %`, na.rm=TRUE),
         Black= mean(`SCHOOL - BLACK %`, na.rm=TRUE),
         Asian= mean(`SCHOOL - ASIAN %`, na.rm=TRUE),
-        Hispanic = mean(`SCHOOL - HISPANIC %`, na.rm=TRUE)) %>% 
+        Latinx = mean(`SCHOOL - HISPANIC %`, na.rm=TRUE)) %>% 
       gather(group_name, pct, -`SCHOOL ID (R-C-D-T-S)`) %>% 
       group_by(`SCHOOL ID (R-C-D-T-S)`) %>% 
       # sanity check to make sure all races in output to start before slicing
@@ -1017,43 +1024,14 @@ school_data <- left_join(
     dplyr::select(front_cols, ENROLLMENT_RANGE, SPEND_RANGE, 
       predominant_race = group_name, max_pct = pct, everything())
   
-  
-  # left_join(school_data,
-  #                        school_data %>% 
-  #                          dplyr::select(YEAR, `SCHOOL ID (R-C-D-T-S)`, 
-  #                                        School_ID, 
-  #                                        `SCHOOL - BLACK %`,
-  #                                        `SCHOOL - WHITE %`,
-  #                                       `SCHOOL - HISPANIC %`,
-  #                                       `SCHOOL - ASIAN %`) %>%
-  #             group_by(YEAR, `SCHOOL ID (R-C-D-T-S)`) %>% 
-  #             gather(group_name, pct, -`SCHOOL ID (R-C-D-T-S)`, -School_ID, -YEAR) %>% 
-  #          # sanity check to make sure all races in output to start before slicing
-  #            # arrange(YEAR, `SCHOOL ID (R-C-D-T-S)`)  %>% 
-  #                        slice(which.max(pct)) %>% 
-  #                        mutate(
-  #                          predominant_race = ifelse(
-  #                          group_name == 'SCHOOL - BLACK %', 'Black',
-  #                          ifelse(group_name == 'SCHOOL - WHITE %', 'White',
-  #                          ifelse(group_name == 'SCHOOL - ASIAN %', 'Asian',
-  #                          ifelse(group_name == 'SCHOOL - HISPANIC %', 'Latinx',
-  #                                 'Other')
-  #                          )))
-  #                          ) %>%
-  #             dplyr::select(`SCHOOL ID (R-C-D-T-S)`, YEAR, 
-  #                           predominant_race, max_pct = pct), 
-  #         by = c("SCHOOL ID (R-C-D-T-S)", "YEAR")) %>% 
-  # dplyr::select(front_cols, ENROLLMENT_RANGE, SPEND_RANGE, 
-  #               predominant_race, max_pct, everything())
-
 
 #########################
 ##  Quasi-Random Plot  ##
 #########################
 school_data %>% group_by(`SCHOOL ID (R-C-D-T-S)`, predominant_race) %>% 
-  summarise(med_LI_pct = mean(`LOW-INCOME SCHOOL %`, na.rm = TRUE),
+  summarise(avg_LI_pct = mean(`LOW-INCOME SCHOOL %`, na.rm = TRUE),
                               school_count = n()) %>%  
-  ggplot(aes(predominant_race, med_LI_pct, color=factor(predominant_race))) +
+  ggplot(aes(predominant_race, avg_LI_pct, color=factor(predominant_race))) +
       geom_quasirandom(varwidth=TRUE, size=3, show.legend = FALSE) +
   scale_color_dt("diverging", reverse = TRUE, na.value=get_dt_cols("palegray")) +
   scale_y_continuous(labels = function(x) paste0(x, "%")) +
@@ -1061,6 +1039,17 @@ school_data %>% group_by(`SCHOOL ID (R-C-D-T-S)`, predominant_race) %>%
   scale_x_discrete(position = "top", 
                    labels = c("Majority Asian Schools", "Majority Black Schools",
                              "Majority Latinx Schools", "Majority White Schools")) +
+  geom_text(
+            data = school_data %>%
+              group_by(`SCHOOL ID (R-C-D-T-S)`, SCHOOL_NAME, predominant_race) %>% 
+              arrange(`SCHOOL ID (R-C-D-T-S)`,  predominant_race) %>% 
+              summarise(avg_LI_pct = mean(`LOW-INCOME SCHOOL %`, na.rm = TRUE)) %>%  
+                filter( 
+                      ((avg_LI_pct < 35) & (predominant_race == "Black")) | 
+                      ((avg_LI_pct < 75) & (predominant_race == "Asian")) |
+                      ((avg_LI_pct < 45) & (predominant_race == "Latinx"))) %>% 
+              distinct(`SCHOOL ID (R-C-D-T-S)`, SCHOOL_NAME, predominant_race, avg_LI_pct),
+            aes(label=SCHOOL_NAME), show.legend = FALSE, hjust=1) +
   theme_modest() + 
   theme(axis.text.x.top = element_text(size=rel(1.75), vjust = -8, face="bold"),
         axis.text.y = element_text(size=rel(1.25), margin=unit(c(0,0,0,3),"lines")),
@@ -1077,13 +1066,38 @@ school_data %>% group_by(`SCHOOL ID (R-C-D-T-S)`, predominant_race) %>%
        color="Race")
 ```
 
+```{r echo=TRUE, include=FALSE}
+# sanity check number of majority white schools out of 721, seems low
+school_data %>% group_by(predominant_race) %>% 
+  distinct(predominant_race, `SCHOOL ID (R-C-D-T-S)`) %>% 
+  arrange(predominant_race, `SCHOOL ID (R-C-D-T-S)`) %>% summarise(schools = n()
+                                                                   )
+```
+
+
 ```{r}
-# sanity check number of majority white students
-school_data %>% group_by(predominant_race) %>% summarise(count = n(),
-                                                         median_LI = median(`LOW INCOME %`))
-
-
-
+ # library(gsubfn)
+school_data %>% 
+  group_by(`SCHOOL ID (R-C-D-T-S)`, SCHOOL_NAME, predominant_race) %>% 
+  arrange(`SCHOOL ID (R-C-D-T-S)`,  predominant_race)  %>% 
+  summarise(avg_LI_pct = mean(`LOW-INCOME SCHOOL %`, na.rm = TRUE)) %>%  
+    filter( 
+          ((avg_LI_pct < 35) & (predominant_race == "Black")) | 
+          ((avg_LI_pct < 75) & (predominant_race == "Asian")) |
+          ((avg_LI_pct < 45) & (predominant_race == "Latinx"))) %>% 
+  distinct(`SCHOOL ID (R-C-D-T-S)`, SCHOOL_NAME, predominant_race, avg_LI_pct) %>%
+  mutate(
+  SCHOOL_NAME_CLEAN = gsub(" Elem", " ", SCHOOL_NAME),
+  SCHOOL_NAME_CLEAN = gsub("Acad", "Academy", SCHOOL_NAME_CLEAN),
+  SCHOOL_NAME_CLEAN = gsub(" School", "", SCHOOL_NAME_CLEAN),
+  SCHOOL_NAME_CLEAN = gsub(" Elem Sch", "", SCHOOL_NAME_CLEAN),
+  SCHOOL_NAME_CLEAN = gsub(" ES", "", SCHOOL_NAME_CLEAN),
+  SCHOOL_NAME_CLEAN = gsub("Ctr", "Center", SCHOOL_NAME_CLEAN),
+  SCHOOL_NAME_CLEAN = str_trim(SCHOOL_NAME_CLEAN),
+  SCHOOL_NAME_CLEAN = paste(SCHOOL_NAME_CLEAN, " Elementary School")) %>% 
+  group_by(`SCHOOL ID (R-C-D-T-S)`, SCHOOL_NAME_CLEAN, predominant_race) %>% 
+  summarise(avg_LI_pct1 = mean(avg_LI_pct))
+  
 ```
 
 
