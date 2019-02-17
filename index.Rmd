@@ -4,8 +4,6 @@ author: Loren Hinkson
 output:
     html_document:
       df_print: paged
-      fig_width: 15
-      fig_height: 12
       code_folding: hide
 ---
 
@@ -147,7 +145,7 @@ theme_modest <- function(base_size = 22,
                 base_family = base_family,
                 base_line_size = base_line_size)  %+replace%
     theme(
-        axis.title = element_text(size = rel(1)),
+        axis.title = element_text(size = rel(0.75)),
         axis.title.y = element_text(margin=unit(c(0,0,0,2),"lines")),
         axis.title.x = element_text(margin=unit(c(2,0,0,0), "lines")),
         axis.text = element_text(size = rel(0.75)),
@@ -155,8 +153,8 @@ theme_modest <- function(base_size = 22,
         panel.grid.major = element_line(colour="grey", size=0.4),
         panel.grid.minor = element_line(colour="lightgrey", size=0.25),
         legend.box = NULL, 
-        legend.title = element_text(size = rel(1.25)),
-        legend.text = element_text(size = rel(0.75)),
+        legend.title = element_text(size = rel(1)),
+        legend.text = element_text(size = rel(0.5)),
         legend.key.height = NULL,
         legend.key.width = NULL,
         legend.key.size = unit(20, "pt"),
@@ -166,11 +164,11 @@ theme_modest <- function(base_size = 22,
         legend.justification = "center", 
         plot.background = element_rect(colour = NA, fill="#fffbe6"),
         plot.margin = unit(c(3,3,3,3),"lines"),
-        plot.title = element_text(size = rel(1.5), face = "bold", hjust="0.5",
+        plot.title = element_text(size = rel(1), face = "bold", hjust="0.5",
                                   margin =unit(c(0,0,1,0), "lines"), family="Ledger"),
-        plot.subtitle = element_text(size = rel(1.25), hjust="0.5",  
+        plot.subtitle = element_text(size = rel(0.75), hjust="0.5",  
                                      margin = unit(c(0,0,2,0), "lines"), family="Ledger"),
-        plot.caption = element_text(size = rel(1), hjust = 1, 
+        plot.caption = element_text(size = rel(0.75), hjust = 1, 
                                     margin = unit(c(2,0,0,0), "lines")),
         strip.background = element_rect(colour = NA, fill=NA),
         strip.text = element_text(face = "bold", size = rel(1.25), family = "Ledger"),
@@ -203,7 +201,7 @@ theme_set(theme_modest(base_size = 12))
 ```
 
 
-```{r import-licenses, message=FALSE, warning=FALSE}
+```{r import-licenses, message=FALSE, warning=FALSE, include=FALSE}
 # import business licenses data
 # bus_licenses <- read_csv(here::here("data", "Business_Licenses.csv"))
 bus_licenses <-  readRDS(here::here("data", "bus_licenses.Rda"))
@@ -249,7 +247,7 @@ bus_licenses <- bus_licenses %>% mutate(SIDE = ifelse(SIDE == "Far Southwest", "
 ```
 
 
-```{r pre-2015-lic, include=FALSE}
+```{r pre-2015-lic, include=FALSE, eval=FALSE}
 # data exploration
 bus_licenses %>% group_by(activity_date, WARD) %>% summarise(business_count = n()) %>% 
   filter(activity_date < mdy("1/1/2015"), !is.na(WARD)) %>%
@@ -424,7 +422,7 @@ getDemos(2017)
 
 
 
-```{r message=FALSE,  eval=FALSE}
+```{r message=FALSE,  include = FALSE, eval=FALSE}
 years <- list(2012, 2013, 2014, 2015, 2016, 2017)
 multi_year <-
   map(.x = years, .f=demoConversion, geoms=TRUE) %>%
@@ -440,7 +438,7 @@ saveRDS(all_demos, file = here::here("data", "all_demos_chi_proj.Rda"))
 ```
 
 
-```{r fortify-mapping, message=FALSE, include=FALSE}
+```{r fortify-mapping, message=FALSE, include=FALSE, eval=FALSE}
 
 # wards.2015 <- sf::st_read(here::here("data","Geofiles - Chicago Zip Code and Neighborhood","Boundaries - Wards (2015-)","geo_export_0bb2e9fd-20ca-415b-a96a-7722d72c1b41.shp"))
 ```
@@ -462,49 +460,53 @@ saveRDS(all_demos, file = here::here("data", "all_demos_chi_proj.Rda"))
 
 # limit Census data to tracts within Chicago ward boundaries
 # # all.demos.Chi <- st_intersection(all_demos, wards.2015.acs.proj)
-colnames(all_demos)
+# colnames(all_demos)
 
-wards_w_demos <- st_join(wards.2015, all_demos_range)
-wards_selected_demos <- st_join(wards.2015, selected_demos, largest=TRUE, agr = c(
- "GEOID" = "identity", "NAME" = "identiy", "id"="identity", "medianIncome" = "aggregate", 
- "perCapitaIncome" = "aggregate", "population" = "aggregate", "medAgemovedInside" = "aggregate",  
- "asian_pct" = "aggregate", "black_pct" = "aggregate", "latinx_pct" = "aggregate", "white_pct" = "aggregate",
- "other_pct" = "aggregate", "below_poverty_pct" = "aggregate", "childMedicaid_pct" = "aggregate", 
- "childMedicare_pct" = "aggregate", "takeupMedicare_pct" = "aggregate",  "takeupMedicaid_pct" = "aggregate",
- "households_kidsSNAP_pct" "takeupSNAP_pct" = "aggregate", "YAmovesInChi_pct" = "aggregate", 
- "movesInChi_pct" = "aggregate", "immigrant_pct" = "aggregate", "renting_pct" = "aggregate", 
- "public_transport_pct" = "aggregate", "asianPop" = "aggregate", "belowPovertyPop" = "aggregate", 
- "blackPop" = "aggregate", "citizenshipPop" = "aggregate", "femaleChildMedicaid" = "aggregate", 
- "femaleChildMedicare" = "aggregate", "femaleMedicaid18_64" = "aggregate", "femaleMedicaid65_up" = "aggregate",
- "femaleMedicare18_64"  = "aggregate", "femaleMedicare65_up" = "aggregate", "households" = "aggregate",
- "householdsKidsSNAP","householdsSNAP" = "aggregate", "kidsHealthIns" = "aggregate", "latinxPop" = "aggregate",
- "maleChildMedicaid" = "aggregate",  "maleChildMedicare" = "aggregate", "maleMedicaid18_64" = "aggregate",
- "maleMedicaid65_up" = "aggregate", "maleMedicare18_64" = "aggregate", "maleMedicare65_up" = "aggregate",
- "medicaidPop" = "aggregate", "medicarePop" = "aggregate", "mobilityPop" = "aggregate", 
- "movedInside20to24" = "aggregate", "movedInside25to29" = "aggregate", "movedInsideCounty" = "aggregate", 
- "naturalized" = "aggregate", "noncitizen" = "aggregate", "owners" = "aggregate", 
- "publicTransport" = "aggregate", "renterPop" = "aggregate", "renters" = "aggregate", "transportPop" = "aggregate", 
- "whitePop" = "aggregate",  "predominant_race" = "aggregate", "max_pct" = "aggregate",    
-))
+# wards_w_demos <- st_join(wards.2015, all_demos_range)
+
 ```
 
 
 In the last decade, underrepresented minority populations in Chicago have been increasingly relegated to lower income areas in the South and West of the City. 
-```{r facet_wrap_demo_info, message=FALSE, warning=FALSE, fig.width=10, fig.height=15}
+```{r facet_wrap_demo_info, message=FALSE, warning=FALSE, fig.width=10, fig.height=15, eval=FALSE}
 
 # 
 # all_demos <- readRDS(here::here("data", "all_demos_chi_proj.Rda"))
 # 
-# wards.2015 <-  readRDS(here::here("data", "wards2015_sf.Rda"))
-# all_demos <-  readRDS(here::here("data", "all_demos_chi.Rda"))
+wards.2015 <-  readRDS(here::here("data", "wards2015_sf.Rda"))
+all_demos <-  readRDS(here::here("data", "all_demos_chi.Rda"))
 
-# selected_demos <- all_demos %>% filter(id %in% c(2012, 2015, 2017))
+selected_demos <- all_demos %>% filter(id %in% c(2012, 2015, 2017))
+
+wards_selected_demos <- st_join(wards.2015, 
+                                st_transform(selected_demos, crs = st_crs(wards.2015))
+                                )
+# agr = c(
+#  "GEOID" = "identity", "NAME" = "identiy", "id"="identity", "medianIncome" = "aggregate", 
+#  "perCapitaIncome" = "aggregate", "population" = "aggregate", "medAgemovedInside" = "aggregate",  
+#  "asian_pct" = "aggregate", "black_pct" = "aggregate", "latinx_pct" = "aggregate", "white_pct" = "aggregate",
+#  "other_pct" = "aggregate", "below_poverty_pct" = "aggregate", "childMedicaid_pct" = "aggregate", 
+#  "childMedicare_pct" = "aggregate", "takeupMedicare_pct" = "aggregate",  "takeupMedicaid_pct" = "aggregate",
+#  "households_kidsSNAP_pct"="aggregate", "takeupSNAP_pct" = "aggregate", "YAmovesInChi_pct" = "aggregate", 
+#  "movesInChi_pct" = "aggregate", "immigrant_pct" = "aggregate", "renting_pct" = "aggregate", 
+#  "public_transport_pct" = "aggregate", "asianPop" = "aggregate", "belowPovertyPop" = "aggregate", 
+#  "blackPop" = "aggregate", "citizenshipPop" = "aggregate", "femaleChildMedicaid" = "aggregate", 
+#  "femaleChildMedicare" = "aggregate", "femaleMedicaid18_64" = "aggregate", "femaleMedicaid65_up" = "aggregate",
+#  "femaleMedicare18_64"  = "aggregate", "femaleMedicare65_up" = "aggregate", "households" = "aggregate",
+#  "householdsKidsSNAP","householdsSNAP" = "aggregate", "kidsHealthIns" = "aggregate", "latinxPop" = "aggregate",
+#  "maleChildMedicaid" = "aggregate",  "maleChildMedicare" = "aggregate", "maleMedicaid18_64" = "aggregate",
+#  "maleMedicaid65_up" = "aggregate", "maleMedicare18_64" = "aggregate", "maleMedicare65_up" = "aggregate",
+#  "medicaidPop" = "aggregate", "medicarePop" = "aggregate", "mobilityPop" = "aggregate", 
+#  "movedInside20to24" = "aggregate", "movedInside25to29" = "aggregate", "movedInsideCounty" = "aggregate", 
+#  "naturalized" = "aggregate", "noncitizen" = "aggregate", "owners" = "aggregate", 
+#  "publicTransport" = "aggregate", "renterPop" = "aggregate", "renters" = "aggregate", "transportPop" = "aggregate", "whitePop" = "aggregate",  "predominant_race" = "aggregate", "max_pct" = "aggregate"    
+# )
 
 # plot intersection of Census tracts with chicago wards
-ggplot(st_join(wards.2015, selected_demos, largest=TRUE)) +
+ggplot(wards_selected_demos) +
   # color based on predominant race based on Census, shaded by percentage of that race
   geom_sf(aes(fill=medianIncome), lwd = 0) +
-  scale_fill_dt("diverging", na.value=get_dt_cols("palegrey")) +
+  scale_fill_dt("diverging", discrete=FALSE, na.value=get_dt_cols("palegrey")) +
   scale_alpha(range = c(0.15, 1), guide="none") + 
   
   # outline Chicago wards over data
@@ -554,7 +556,7 @@ ggplot(st_join(wards.2015, selected_demos, largest=TRUE)) +
 
 ```
 
-```{r}
+```{r include=FALSE, eval=FALSE}
 # all_demos <-  readRDS(here::here("data", "all_demos_chi.Rda"))
 
 # wards_w_all_demos <- st_join(wards.2015, st_transform(all_demos, crs =  st_crs(wards.2015)), largest=TRUE)
@@ -571,7 +573,7 @@ wards_w_all_demos %>% filter(YEAR %in% c(2012, 2015, 2017)) %>%
 
 
 
-```{r save-bus-locs, warning=FALSE, include = FALSE}
+```{r save-bus-locs, warning=FALSE, include = FALSE, eval=FALSE}
 ggsave("ward_demographics.pdf", width = 30, height = 25, units = "cm")
 ```
 
@@ -627,7 +629,7 @@ allDatesCount.df %>%
 ```
 Immediately post-recession in 2013, the amount of [Economic Development for a Growing Economy (EDGE) tax credits granted by Illinois nearly doubled from the prior year](https://www.chicagobusiness.com/article/20171006/NEWS02/171009915/corporate-tax-incentives-back-in-favor-in-illinois), causing a brief spike in new business issuances for every area of the city beyond Central (Loop area), which has experienced fairly constant new business entry since the recession. Thus far, only the West Side of Chicago is approaching 2012 levels of new business, with most other areas of the city remaining fairly constant after EDGE excitement tapered off. In the Far Southeast and Far Southwest Sides, where ecnomic activity (in terms of number of active businesses) was about half the next lowest areas even pre-taper, one must wonder how much growth a neighborhood can experience with a rate of new business entry that has hovered around 500 businesses operating on newly-issued licenses for months. For contrast, the mean number of quarterly new licenses issued in the Central area of the city is just under 700,000, and the mean number of quarterly licenses issued in the Northwest Side is jsut over 85,000.
 
-```{r include=FALSE, echo=TRUE}
+```{r include=FALSE, echo=TRUE, eval=FALSE}
 # to look into: relationship between population and new business, can talk about that here. esp. number of new businesses per capita could be more meaningful than raw numbers.
 # Also potentially interesting: population in far SE and far SW also going down?
 
@@ -643,8 +645,8 @@ allDatesCount.df %>%
 
 
 ## Mapping Chicago's Forgotten Economies
-```{r ggmapping, message=FALSE, warning=FALSE, fig.height=17, fig.width=15}
-register_google(key = Sys.getenv("GOOGLEMAPS_KEY"))
+```{r ggmapping, message=FALSE, warning=FALSE, fig.height=17, fig.width=15, include=FALSE, eval=FALSE}
+
 
 
 # read in Chicago ward geos in ggmap-compatible format
@@ -718,14 +720,14 @@ bl <- bus_licenses %>% filter(activity_yr >= 2012, active == 1, `APPLICATION TYP
 
 
 
-```{r include=FALSE}
+```{r include=FALSE, eval=FALSE}
 ggsave("location_over_googlemap_zoom10.pdf", width = 36, height = 23, units = "cm")
 ```
 
 
 
 
-```{r avg-monthly-lic, warning=FALSE, fig.width=15, fig.height=12}
+```{r avg-monthly-lic, warning=FALSE, fig.width=15, fig.height=12, message=FALSE}
 # filter for business license issuances and renewals, and create a monthly count
 bus_licenses %>% filter(!is.na(WARD), active==1,  activity_date >= mdy("1/1/2012")) %>%
   group_by(activity_month, activity_yr, WARD, SIDE) %>% 
@@ -753,24 +755,25 @@ bus_licenses %>% filter(!is.na(WARD), active==1,  activity_date >= mdy("1/1/2012
   # limit scale to 750, (one Loop ward's outliers extend ~1000 above other wards)
   # still very clearly the highest even without all outliers visible
   scale_y_continuous(breaks = sort(c(seq(0, 750, by=150))), limits = c(0, 750)) +
-  labs(x="Chicago Council Ward", y="Average Monthly Business Count", caption="Data Source: Chicago Open Data Portal", title="Least New & Surviving Businesses in Far South, Southwest Wards for 5+ Years", subtitle="Since 2012, Far South wards average 26 monthly business license issuances and renewals or less",fill="Chicago Area") + 
+  labs(x="Chicago Council Ward", y="Average Monthly Business Count", caption="Data Source: Chicago Open Data Portal", title="Least New & Surviving Businesses in Far South,\nSouthwest Wards for 5+ Years", subtitle="Since 2012, Far South wards average 26 or less monthly business license issuances and renewals",fill="Chicago Area") + 
   theme_modest() +
   theme(
         panel.grid.major.x = element_blank(),
         axis.ticks =  element_blank(),
         axis.title.x = element_blank(),
-        axis.text.x = element_text( family="Ledger", size=rel(1.25)),
-        axis.title.y = element_text(margin=unit(c(0,1,0,0), "lines"), size=rel(1.5), angle = 90, family = "Ledger"),
+        axis.text.x = element_text( family="Ledger", size=rel(0.60)),
+        axis.text.y = element_text( margin=unit(c(0,2,2,2), "lines")),
+        axis.title.y = element_text(margin=unit(c(0,0,2,2), "lines"), size=rel(0.85), angle = 90, family = "Ledger"),
         plot.caption = element_text(hjust=1)
         ) +
-  annotate("text", x = 7 , y= 370, label="Most West Side business\noccurs in Wards 2 and 27,\nwhich border the Loop.", size=rel(6)) +
-  annotate("text", x = 9 , y= 735, label="The Central area is comprised\nof Ward 42, the Loop area.", size=rel(6)) +
-  annotate("text", x = 5 , y= 315, label="South Side business activity\nis concentrated in Kenwood,\n Fuller Park areas bordering\nthe University of Chicago.", size=rel(6)) +
-  annotate("text", x = 3 , y= 285, label="Ward 12 on the Southwest\nSide bordering Chinatown is\ncharacterized by higher rates\nof business activity than\nits neighbors.", size=rel(6))
+  annotate("text", x = 7 , y= 370, label="Most West Side business\noccurs in Wards 2 and 27,\nwhich border the Loop.", size=rel(4)) +
+  annotate("text", x = 9 , y= 735, label="The Central area is comprised\nof Ward 42, the Loop area.", size=rel(4)) +
+  annotate("text", x = 5 , y= 315, label="South Side business activity\nis concentrated in Kenwood,\n Fuller Park areas bordering\nthe University of Chicago.", size=rel(4)) +
+  annotate("text", x = 3 , y= 285, label="Ward 12 on the Southwest\nSide bordering Chinatown is\ncharacterized by higher rates\nof business activity than\nits neighbors.", size=rel(4))
   
 ```
 
-```{r save-new-bus, warning=FALSE, include=FALSE}
+```{r save-new-bus, warning=FALSE, include=FALSE, eval=FALSE}
 ggsave("avg_ward_business.pdf", width = 25, height = 18, units = "cm")
 ```
 
@@ -884,44 +887,45 @@ bus_licenses %>% filter(!is.na(WARD), active==1,  activity_date >= mdy("1/1/2012
             fill=NA,
             hjust = "left",
             nudge_x = -.15,
-            force=5,
-            xlim= c(-1,.965),
+            force=6,
+            direction = "y",
+            xlim= c(-0.5,.965),
             fontface = "bold",
             label.size = 0,
-            point.padding	= 3,
-            size = rel(12),
+            point.padding	= 0.75,
+            size = rel(5),
             show.legend = FALSE,
             family="Ledger") +
   geom_label_repel(data = turnoutSides %>% filter(YEAR == 2015),
             aes(label = paste0(SIDE, " - ", TURNOUT, "%"), color = SIDE),
             fill=NA,
             hjust = "right",
-            nudge_x = .15,
+            nudge_x = .25,
             force = 5,
             direction = "y",
             fontface = "bold",
-            point.padding	= 2.75,
+            point.padding	= 0.75,
             xlim=c(2.05,3),
             label.size = 0,
-            size = rel(12),
+            size = rel(5),
             show.legend = FALSE,
             family="Ledger") +
   # move x-axis text to top of graph
   scale_x_discrete(position = "top") +
    # coord_cartesian(ylim=c(23.5, 60)) +
   theme_modest() + 
-  theme(axis.text.x.top = element_text(size=rel(1.75), vjust = -8, face="bold"),
+  theme(axis.text.x.top = element_text(size=rel(1.25), vjust = -8, face="bold"),
           axis.title.y = element_blank(),
           axis.title.x = element_blank(),
           axis.text.y = element_blank(),
           panel.grid.minor=element_blank(),
           panel.grid.major=element_blank())+
         # plot.subtitle = element_text(hjust=0.35)) +
-  labs(title="Amid City-Wide Turnout Dropoff, Significantly Higher Voter Activation in Far Southwest Side", 
-         subtitle="Voters in the Far Southeast, which has faced de-investment as determined by a number of factors, have headed to the polls\nat levels far exceeding every other area of the city in the last two City Council elections.", 
+  labs(title="Amid City-Wide Turnout Dropoff, Significantly Higher\nVoter Activation in Far Southwest Side", 
+         subtitle="Voters in the Far Southeast, which has faced de-investment\nas determined by a number of factors, far exceeded other areas' participation\nin the last two City Council elections.", 
          caption="Source: Chicago Board of Election Commissioners", color="Chicago Area") +
-  annotate("text",  x = 1, y = 25, label = "*Underlying ward trends visualized\nbehind Side trendlines", size=rel(10)) + 
-    annotate("text", x = 0.49, y = 72, label="Ward 19 on the Far Southwest\nSide, which contains the Beverly\nand Morgan Park neighborhoods,\nhad voter turnout of nearly\n75% in the 2011 City Council\nElection.", size=rel(10), hjust=0, color=get_dt_cols("mauve"))
+  annotate("text",  x = 1, y = 25, label = "*Underlying ward trends visualized\nbehind Side trendlines", size=rel(4)) + 
+    annotate("text", x = 0.8, y = 65, label="Ward 19 on the Far Southwest\nSide, which contains the Beverly\nand Morgan Park neighborhoods,\nhad voter turnout of nearly\n75% in the 2011 City Council\nElection.", size=rel(4), hjust=0, color=get_dt_cols("mauve"))
 ```
 
 
@@ -1057,7 +1061,7 @@ school_data %>% group_by(`SCHOOL ID (R-C-D-T-S)`, predominant_race) %>%
   theme(axis.text.x.top = element_text(size=rel(1.75), vjust = -8, face="bold"),
         axis.text.y = element_text(size=rel(1.25), margin=unit(c(0,0,0,3),"lines")),
         axis.title.y = element_text(size=rel(1.5), angle = 90, family = "Ledger"),
-        axis.title.x = element_blank() +
+        axis.title.x = element_blank()
       # legend.title = element_text(size=rel(2)),
        #  legend.key.size =  unit(35, "pt"),
        # legend.text = element_text(size=rel(1.5))
@@ -1081,7 +1085,7 @@ school_data %>% group_by(`SCHOOL ID (R-C-D-T-S)`, predominant_race) %>%
 ```
 On average over the last 5 school years, non-white schools have served significantly higher percentages of low-income students, as determined by free and reduced lunch designation. It seems to follow that these schools would provide more resources for students, however over the same time period, average spend per student remains roughly the same across schools, with an increase in the spread of spending distribution after each of the two recent funding formula changes.
 
-```{r echo=TRUE, include=FALSE}
+```{r echo=TRUE, include=FALSE, eval=FALSE}
 # sanity check number of majority white schools out of 721, seems low
 school_data %>% group_by(predominant_race) %>% 
   distinct(predominant_race, `SCHOOL ID (R-C-D-T-S)`) %>% 
@@ -1089,14 +1093,42 @@ school_data %>% group_by(predominant_race) %>%
                                                                    )
 ```
 
-```{r include = FALSE, eval = FALSE }
+```{r fig, fig.height=12, fig.width=15, message=FALSE, warning=FALSE}
  
+library(gganimate)
+# library(gapminder)
+school_data %>% mutate(NONWHITE_PCT = (100 - as.numeric(`SCHOOL - WHITE %`)),
+                       DIFF_NONWHITE = NONWHITE_PCT - as.numeric(`SCHOOL - WHITE %`)) %>% 
+  arrange(desc(predominant_race), DIFF_NONWHITE) %>% 
+  dplyr::select(front_cols, predominant_race, NONWHITE_PCT, DIFF_NONWHITE, everything()) %>%   
+ggplot(aes(NONWHITE_PCT, AVG_SPEND_PER_STUDENT, frame = as.integer(YEAR))) +
+  geom_point(alpha = 0.5, show.legend = FALSE, aes(size = `OVERALL AVERAGE CLASS SIZE - SCHOOL`,
+           colour = predominant_race)) +
+  scale_size(range = c(2, 12)) +
+  scale_color_dt("diverging", reverse = TRUE, na.value=get_dt_cols("palegray")) +
+  enter_fade() +
+  exit_fade() +
+  theme_modest() +
+  theme(
+        axis.text.y = element_text(margin=unit(c(0,0,0,2),"lines")),
+        axis.text.x = element_text(margin=unit(c(2,0,0,0),"lines")),
+        panel.grid.minor.y = element_blank(),
+        axis.text = element_text(size=rel(0.5)),
+        axis.title.x = element_text(size=rel(0.75), family = "Ledger"),
+        plot.subtitle = element_text(size=rel(0.65), hjust = 0),
+        plot.title = element_text(size=rel(0.90), hjust = -.5),
+        axis.title.y = element_text(size=rel(0.75), angle = 90, family = "Ledger")
+  ) +
+  
+  # Here comes the gganimate specific bits
+  labs(subtitle = 'Year: {frame_time}', x = 'Non-White Student Percentage', y = 'Average Spend per Student',
+       title = "Spread of Spend per Student Increases\nafter 2017, 2018 School Funding Formula Changes") +
+  # transition_components(`SCHOOL ID (R-C-D-T-S)`, as.integer(YEAR)) +
+  transition_time(as.integer(YEAR)) +
+  ease_aes('sine-in-out')
+
 ```
 
-
-```{r}
-library(gapminder)
-```
 
 
 
@@ -1104,35 +1136,38 @@ library(gapminder)
 # all_demos <-  readRDS(here::here("data", "all_demos_chi.Rda"))
 
 # wards_w_all_demos <- st_join(wards.2015, st_transform(all_demos, crs =  st_crs(wards.2015)), largest=TRUE)
-beg_mid_end_wards_all_demos <- wards_w_all_demos %>% filter(YEAR %in% c(2012, 2015, 2017))
+# beg_mid_end_wards_all_demos <- wards_w_all_demos %>% filter(YEAR %in% c(2012, 2015, 2017))
 ```
 
 
 ```{r  fig.height=12, fig.width=15}
-
-beg_mid_end_wards_all_demos %>% filter(YEAR %in% c(2012, 2015, 2017)) %>%
-  ggplot() + 
-    geom_sf(aes(fill=medianIncome), alpha=0.5) + 
-  scale_fill_dt("cool", discrete=FALSE, reverse=TRUE, na.value=get_dt_cols("palegray")) +
-  geom_sf(aes(color=predominant_race), fill=NA, lwd=3) +
-  scale_color_dt("diverging", discrete=TRUE, na.value=get_dt_cols("palegray"))  +
-  theme_map_modest() +
-  facet_wrap(~YEAR)
+# 
+# beg_mid_end_wards_all_demos %>% filter(YEAR %in% c(2012, 2015, 2017)) %>%
+#   ggplot() + 
+#     geom_sf(aes(fill=medianIncome), alpha=0.5) + 
+#   scale_fill_dt("cool", discrete=FALSE, reverse=TRUE, na.value=get_dt_cols("palegray")) +
+#   geom_sf(aes(color=predominant_race), fill=NA, lwd=3) +
+#   scale_color_dt("diverging", discrete=TRUE, na.value=get_dt_cols("palegray"))  +
+#   theme_map_modest() +
+#   facet_wrap(~YEAR)
 
 ```
 
 
-```{r area-chart, fig.height=12, fig.width=15}
-school_data %>% group_by(YEAR, SIDE, WARD) %>% 
+```{r area-chart, fig.height=12, fig.width=15, message=FALSE, warning=FALSE}
+school_data %>% group_by(YEAR, SIDE) %>% 
   summarise(median_spend = min(AVG_SPEND_PER_STUDENT)) %>% 
   ggplot(aes(y=median_spend, x=as.numeric(YEAR))) +
   # geom_line(aes(y=AVG_SPEND_PER_STUDENT, x=YEAR)) +
-  geom_area(aes(group=as.factor(WARD), fill=SIDE)) +
+  geom_area(aes(group=as.factor(SIDE), fill=SIDE)) +
     scale_fill_dt(na.value=get_dt_cols("palegray")) +
   theme_modest() +
   theme(legend.text = element_text(size=rel(1)),
-        legend.title = element_text(size=rel(1))
-        )
+        legend.title = element_text(size=rel(1)),
+        axis.title.x = element_text(family = "Ledger"),
+        axis.title.y = element_text(angle = 90, family = "Ledger")
+        ) +
+          labs(y= "Median Spend per Student", x="Year", caption="Data Source: Chicago Public Schools, Find Your School Budget & Illinois State Board of Education, Annual Report Cards")
 ```
 
 ```{r include= FALSE}
@@ -1143,32 +1178,4 @@ school_data %>% group_by(YEAR, SIDE, WARD) %>%
 
 
 
-
-```{r  fig.width=10, message=FALSE, warning=FALSE}
-school_data %>% group_by(YEAR, SIDE, WARD, ENROLLMENT_RANGE) %>% summarise(median_spend = median(AVG_SPEND_PER_STUDENT)) %>%
-  ggplot(aes(x=median_spend, y=ENROLLMENT_RANGE, group=as.factor(WARD))) +
-  geom_point(aes(color=SIDE), position="jitter",size=6) +
-    scale_color_dt(na.value=get_dt_cols("palegray")) +
-  theme_modest() +
-  theme(legend.text = element_text(size=rel(1)),
-        legend.title = element_text(size=rel(1))) +
-  facet_wrap(~YEAR)
-```
-
-
-
-```{r fig.height=12, fig.width=15}
-school_data %>% 
-  filter(!is.na(SPEND_RANGE)) %>%
-  ggplot(aes(SPEND_RANGE)) +
-  # geom_line(aes(y=AVG_SPEND_PER_STUDENT, x=YEAR)) +
-  geom_bar(aes(group=as.factor(predominant_race), fill=predominant_race)) +
-    scale_fill_dt(na.value=get_dt_cols("palegray")) +
-
-  theme_modest() +
-  theme(legend.text = element_text(size=rel(1)),
-        legend.title = element_text(size=rel(1))
-        ) +
-  facet_wrap(~YEAR)
-```
 
