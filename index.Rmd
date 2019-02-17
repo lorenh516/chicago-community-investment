@@ -731,8 +731,9 @@ bus_licenses %>% filter(!is.na(WARD), active==1,  activity_date >= mdy("1/1/2012
   
   # plot boxplot of median monthly issuances and renewals for each ward
   ggplot(aes(x=reorder(reorder(reorder(SIDE, business_count, FUN = median),WARD),business_count, FUN=median), y=business_count)) + 
-  
-  # color by Chicago Side
+  # add comparison line for lowest levels of montly ward business activity
+  geom_hline(yintercept=25, linetype = "dotted") +
+  # draw boxplots with color and order determined by Chicago Side area
   geom_boxplot(aes(group=reorder(as.factor(WARD), SIDE), fill=as.factor(SIDE)), show.legend = FALSE) + 
   scale_fill_dt() +
   
@@ -749,18 +750,17 @@ bus_licenses %>% filter(!is.na(WARD), active==1,  activity_date >= mdy("1/1/2012
   
   # limit scale to 750, (one Loop ward's outliers extend ~1000 above other wards)
   # still very clearly the highest even without all outliers visible
-  scale_y_continuous(limits = c(0, 750)) +
-
+  scale_y_continuous(breaks = sort(c(seq(0, 750, by=150), 25)), limits = c(0, 750)) +
   labs(x="Chicago Council Ward", y="Average Monthly Business Count", caption="Data Source: Chicago Open Data Portal", title="Least New & Surviving Businesses in South, West Wards for 15+ Years", subtitle="Calumet Heights, Westlawn Average less than 25 Monthly Business License Issuances on Average since 2012",fill="Chicago Area") + 
   theme_modest() +
   theme(
         panel.grid.major.x = element_blank(),
         axis.ticks =  element_blank(),
-        axis.text.x = element_blank(),
-        axis.title.y = element_text(margin=margin(0,20,0,0), angle =90, family = "Ledger"),
+        # axis.text.x = element_blank(),
+        axis.title.y = element_text(margin=margin(0,20,0,0), size=rel(1.5), angle = 90, family = "Ledger"),
         plot.caption = element_text(hjust=1),
         plot.subtitle = element_text(margin = margin(t = 15))
-        )
+        ) 
   
 ```
 
@@ -1030,7 +1030,7 @@ school_data <- left_join(
 #########################
 school_data %>% group_by(`SCHOOL ID (R-C-D-T-S)`, predominant_race) %>% 
   summarise(avg_LI_pct = mean(`LOW-INCOME SCHOOL %`, na.rm = TRUE),
-                              school_count = n()) %>%  
+                              school_count = n()) %>% 
   ggplot(aes(predominant_race, avg_LI_pct, color=factor(predominant_race))) +
       geom_quasirandom(varwidth=TRUE, size=3, show.legend = FALSE) +
   scale_color_dt("diverging", reverse = TRUE, na.value=get_dt_cols("palegray")) +
@@ -1039,17 +1039,28 @@ school_data %>% group_by(`SCHOOL ID (R-C-D-T-S)`, predominant_race) %>%
   scale_x_discrete(position = "top", 
                    labels = c("Majority Asian Schools", "Majority Black Schools",
                              "Majority Latinx Schools", "Majority White Schools")) +
-  geom_text(
-            data = school_data %>%
-              group_by(`SCHOOL ID (R-C-D-T-S)`, SCHOOL_NAME, predominant_race) %>% 
-              arrange(`SCHOOL ID (R-C-D-T-S)`,  predominant_race) %>% 
-              summarise(avg_LI_pct = mean(`LOW-INCOME SCHOOL %`, na.rm = TRUE)) %>%  
-                filter( 
-                      ((avg_LI_pct < 35) & (predominant_race == "Black")) | 
-                      ((avg_LI_pct < 75) & (predominant_race == "Asian")) |
-                      ((avg_LI_pct < 45) & (predominant_race == "Latinx"))) %>% 
-              distinct(`SCHOOL ID (R-C-D-T-S)`, SCHOOL_NAME, predominant_race, avg_LI_pct),
-            aes(label=SCHOOL_NAME), show.legend = FALSE, hjust=1) +
+  # geom_text(
+  #           data = school_data %>% 
+  #               group_by(`SCHOOL ID (R-C-D-T-S)`, SCHOOL_NAME, predominant_race) %>% 
+  #               arrange(`SCHOOL ID (R-C-D-T-S)`,  predominant_race)  %>% 
+  #               summarise(avg_LI_pct = mean(`LOW-INCOME SCHOOL %`, na.rm = TRUE)) %>%  
+  #                 filter( 
+  #                       ((avg_LI_pct < 35) & (predominant_race == "Black")) | 
+  #                       ((avg_LI_pct < 75) & (predominant_race == "Asian")) |
+  #                       ((avg_LI_pct < 45) & (predominant_race == "Latinx"))) %>% 
+  #               mutate(
+  #               SCHOOL_NAME_CLEAN = gsub(" Elem", "", SCHOOL_NAME),
+  #               SCHOOL_NAME_CLEAN = gsub("Acad", "Academy", SCHOOL_NAME_CLEAN),
+  #               SCHOOL_NAME_CLEAN = gsub(" School", "", SCHOOL_NAME_CLEAN),
+  #               SCHOOL_NAME_CLEAN = gsub(" Sch", "", SCHOOL_NAME_CLEAN),
+  #               SCHOOL_NAME_CLEAN = gsub(" ES", "", SCHOOL_NAME_CLEAN),
+  #               SCHOOL_NAME_CLEAN = gsub("Ctr", "Center", SCHOOL_NAME_CLEAN),
+  #               SCHOOL_NAME_CLEAN = str_trim(SCHOOL_NAME_CLEAN),
+  #               SCHOOL_NAME_CLEAN = ifelse(str_detect("Academy", SCHOOL_NAME_CLEAN), SCHOOL_NAME_CLEAN,
+  #                                           paste(SCHOOL_NAME_CLEAN, " Elementary School"))) %>%
+  #               group_by(`SCHOOL ID (R-C-D-T-S)`, SCHOOL_NAME_CLEAN, predominant_race) %>% 
+  #               summarise(avg_LI_pct = mean(avg_LI_pct, na.rm=TRUE)),
+  #           aes(label=SCHOOL_NAME_CLEAN), show.legend = FALSE, hjust=1) +
   theme_modest() + 
   theme(axis.text.x.top = element_text(size=rel(1.75), vjust = -8, face="bold"),
         axis.text.y = element_text(size=rel(1.25), margin=unit(c(0,0,0,3),"lines")),
@@ -1063,8 +1074,38 @@ school_data %>% group_by(`SCHOOL ID (R-C-D-T-S)`, predominant_race) %>%
   labs(title = "Majority Black and Majority Latinx Schools Have Much Higher Percentages of Low Income Students", 
        x="Predominant Race in School", 
        y="Percentage of Low Income Students", 
-       color="Race")
+       color="Race") + 
+  annotate("text", y = 31.43333, x = 3.2, label = "Drummond Elementary School\nin Bucktown/ Wicker Park area", hjust=0.5) + 
+    annotate("text", y = 30, x = 2.4, label = "Near West Side and\nWicker Park schools buck\nthe overall trend.", hjust=0.5) +
+  annotate("segment", x = 2.55, xend = 2.975, y = 33, yend = 40) +
+  annotate("segment", x = 2.6, xend = 2.975, y = 30, yend = 31) +
+  annotate("segment", x = 2.05, xend = 2.225, y = 26, yend = 28) +
+  annotate("text", x = 2.25, y= 18, label="Keller Gifted Magnet Elementary\nSchool in Mt. Greenwood neighborhood\nof Far Southwest Side", hjust=0.5) +
+  annotate("text", x = 0.85, y= 53, label="Sheridan Math & Science\nAcademy in Chinatown", hjust=0.5) +
+  annotate("text", x = 1.45, y= 30.5, label="Rates at South Loop Elementary School and Lenart Regional Gifted Center\nElementary School located six blocks from the University of Chicago are likely\nreflective of overall higher median incomes in the schools' neighborhoods.", hjust=0.5) +
+  annotate("segment", x = 1.875, xend = 1.975, y = 30, yend = 33) +
+  annotate("segment", x = 1.875, xend = 1.975, y = 30, yend = 30.5) +
+  annotate("text", x=2.2, y = 34, label="Sutherland Elementary School\nin the Beverly neighborhood of\nFar Southwest Side.",hjust=0.5)
 ```
+
+150162990252172	Drummond Elementary School	Latinx	31.43333
+150162990252283	Jackson A Language Academy Elementary School	Latinx
+150162990252451	Sheridan Math & Science Academy Elementary School	Asian	53.30000
+150162990252458	Skinner Elementary School	Black	25.83333
+150162990252476	Sutherland Elementary School	Black	33.31667
+150162990252739	Keller Gifted Magnet Elementary School	Black	18.00000
+150162990252855	South Loop Elementary School	Black	30.73333
+150162990252856	Lenart Regional Gifted Center Elementary School	Black	30.40000
+150162990252955	LaSalle II Lang Academy Sch Elementary School	Latinx	40.93333
+
+
+
+
+
+150162990252476	
+150162990252739	
+150162990252855	
+150162990252955	LaSalle II Language Academy Elementary School in Wicker Park
 
 ```{r echo=TRUE, include=FALSE}
 # sanity check number of majority white schools out of 721, seems low
@@ -1077,26 +1118,7 @@ school_data %>% group_by(predominant_race) %>%
 
 ```{r}
  # library(gsubfn)
-school_data %>% 
-  group_by(`SCHOOL ID (R-C-D-T-S)`, SCHOOL_NAME, predominant_race) %>% 
-  arrange(`SCHOOL ID (R-C-D-T-S)`,  predominant_race)  %>% 
-  summarise(avg_LI_pct = mean(`LOW-INCOME SCHOOL %`, na.rm = TRUE)) %>%  
-    filter( 
-          ((avg_LI_pct < 35) & (predominant_race == "Black")) | 
-          ((avg_LI_pct < 75) & (predominant_race == "Asian")) |
-          ((avg_LI_pct < 45) & (predominant_race == "Latinx"))) %>% 
-  distinct(`SCHOOL ID (R-C-D-T-S)`, SCHOOL_NAME, predominant_race, avg_LI_pct) %>%
-  mutate(
-  SCHOOL_NAME_CLEAN = gsub(" Elem", " ", SCHOOL_NAME),
-  SCHOOL_NAME_CLEAN = gsub("Acad", "Academy", SCHOOL_NAME_CLEAN),
-  SCHOOL_NAME_CLEAN = gsub(" School", "", SCHOOL_NAME_CLEAN),
-  SCHOOL_NAME_CLEAN = gsub(" Elem Sch", "", SCHOOL_NAME_CLEAN),
-  SCHOOL_NAME_CLEAN = gsub(" ES", "", SCHOOL_NAME_CLEAN),
-  SCHOOL_NAME_CLEAN = gsub("Ctr", "Center", SCHOOL_NAME_CLEAN),
-  SCHOOL_NAME_CLEAN = str_trim(SCHOOL_NAME_CLEAN),
-  SCHOOL_NAME_CLEAN = paste(SCHOOL_NAME_CLEAN, " Elementary School")) %>% 
-  group_by(`SCHOOL ID (R-C-D-T-S)`, SCHOOL_NAME_CLEAN, predominant_race) %>% 
-  summarise(avg_LI_pct1 = mean(avg_LI_pct))
+
   
 ```
 
