@@ -725,6 +725,13 @@ ggsave("location_over_googlemap_zoom10.pdf", width = 36, height = 23, units = "c
 ```
 
 
+```{r include= FALSE}
+# kudos to agstudy on SO for this formating idea! (https://stackoverflow.com/questions/20123147/add-line-break-to-axis-labels-and-ticks-in-ggplot)
+addline_format <- function(x,...){
+    gsub('\\s','\n',x)
+}
+```
+
 
 
 ```{r avg-monthly-lic, warning=FALSE, fig.width=15, fig.height=12, message=FALSE}
