@@ -1039,28 +1039,6 @@ school_data %>% group_by(`SCHOOL ID (R-C-D-T-S)`, predominant_race) %>%
   scale_x_discrete(position = "top", 
                    labels = c("Majority Asian Schools", "Majority Black Schools",
                              "Majority Latinx Schools", "Majority White Schools")) +
-  # geom_text(
-  #           data = school_data %>% 
-  #               group_by(`SCHOOL ID (R-C-D-T-S)`, SCHOOL_NAME, predominant_race) %>% 
-  #               arrange(`SCHOOL ID (R-C-D-T-S)`,  predominant_race)  %>% 
-  #               summarise(avg_LI_pct = mean(`LOW-INCOME SCHOOL %`, na.rm = TRUE)) %>%  
-  #                 filter( 
-  #                       ((avg_LI_pct < 35) & (predominant_race == "Black")) | 
-  #                       ((avg_LI_pct < 75) & (predominant_race == "Asian")) |
-  #                       ((avg_LI_pct < 45) & (predominant_race == "Latinx"))) %>% 
-  #               mutate(
-  #               SCHOOL_NAME_CLEAN = gsub(" Elem", "", SCHOOL_NAME),
-  #               SCHOOL_NAME_CLEAN = gsub("Acad", "Academy", SCHOOL_NAME_CLEAN),
-  #               SCHOOL_NAME_CLEAN = gsub(" School", "", SCHOOL_NAME_CLEAN),
-  #               SCHOOL_NAME_CLEAN = gsub(" Sch", "", SCHOOL_NAME_CLEAN),
-  #               SCHOOL_NAME_CLEAN = gsub(" ES", "", SCHOOL_NAME_CLEAN),
-  #               SCHOOL_NAME_CLEAN = gsub("Ctr", "Center", SCHOOL_NAME_CLEAN),
-  #               SCHOOL_NAME_CLEAN = str_trim(SCHOOL_NAME_CLEAN),
-  #               SCHOOL_NAME_CLEAN = ifelse(str_detect("Academy", SCHOOL_NAME_CLEAN), SCHOOL_NAME_CLEAN,
-  #                                           paste(SCHOOL_NAME_CLEAN, " Elementary School"))) %>%
-  #               group_by(`SCHOOL ID (R-C-D-T-S)`, SCHOOL_NAME_CLEAN, predominant_race) %>% 
-  #               summarise(avg_LI_pct = mean(avg_LI_pct, na.rm=TRUE)),
-  #           aes(label=SCHOOL_NAME_CLEAN), show.legend = FALSE, hjust=1) +
   theme_modest() + 
   theme(axis.text.x.top = element_text(size=rel(1.75), vjust = -8, face="bold"),
         axis.text.y = element_text(size=rel(1.25), margin=unit(c(0,0,0,3),"lines")),
@@ -1073,39 +1051,21 @@ school_data %>% group_by(`SCHOOL ID (R-C-D-T-S)`, predominant_race) %>%
        ) +
   labs(title = "Majority Black and Majority Latinx Schools Have Much Higher Percentages of Low Income Students", 
        x="Predominant Race in School", 
-       y="Percentage of Low Income Students", 
-       color="Race") + 
-  annotate("text", y = 31.43333, x = 3.2, label = "Drummond Elementary School\nin Bucktown/ Wicker Park area", hjust=0.5) + 
-    annotate("text", y = 30, x = 2.4, label = "Near West Side and\nWicker Park schools buck\nthe overall trend.", hjust=0.5) +
+       y="Percentage of Low Income Students", caption="Data Source: Illinois State Board of Education, Annual Report Cards") + 
+    annotate("text", y = 30, x = 2.4, label = "A handful of Near West Side\nand Wicker Park schools buck\nthe overall trend.", hjust=0.5, size=rel(7), face="bold") + 
   annotate("segment", x = 2.55, xend = 2.975, y = 33, yend = 40) +
-  annotate("segment", x = 2.6, xend = 2.975, y = 30, yend = 31) +
-  annotate("segment", x = 2.05, xend = 2.225, y = 26, yend = 28) +
-  annotate("text", x = 2.25, y= 18, label="Keller Gifted Magnet Elementary\nSchool in Mt. Greenwood neighborhood\nof Far Southwest Side", hjust=0.5) +
-  annotate("text", x = 0.85, y= 53, label="Sheridan Math & Science\nAcademy in Chinatown", hjust=0.5) +
-  annotate("text", x = 1.45, y= 30.5, label="Rates at South Loop Elementary School and Lenart Regional Gifted Center\nElementary School located six blocks from the University of Chicago are likely\nreflective of overall higher median incomes in the schools' neighborhoods.", hjust=0.5) +
+  annotate("segment", x = 2.7, xend = 2.975, y = 30, yend = 31) +
+  annotate("segment", x = 2.05, xend = 2.2, y = 26, yend = 28) +
+  annotate("text", x = 2.45, y= 18, label="Keller Gifted Magnet Elementary School*", hjust=0.5, size=rel(7), fontface="bold") + 
+  annotate("text", x = 1.3, y= 53, label="Sheridan Math & Science\nAcademy in Chinatown", hjust=0.5, size=rel(7), face="bold") +
+  annotate("text", x = 1.45, y= 26, label="Rates at South Loop Elementary School\nand Lenart Regional Gifted Center\nElementary School located six blocks from\nthe University of Chicago are likely\nreflective of overall higher median\nincomes in the schools' neighborhoods.", hjust=0.5, size=rel(7), face="bold") +
   annotate("segment", x = 1.875, xend = 1.975, y = 30, yend = 33) +
   annotate("segment", x = 1.875, xend = 1.975, y = 30, yend = 30.5) +
-  annotate("text", x=2.2, y = 34, label="Sutherland Elementary School\nin the Beverly neighborhood of\nFar Southwest Side.",hjust=0.5)
+  annotate("text", x=1.65, y = 38, label="Sutherland Elementary School*",hjust=0.5, size=rel(7), fontface="bold") + 
+    annotate("text", x=3.6, y = 80, label="Schools near Humbolt Park and\nO'Hare have comparably high rates\nof low-income White students.",hjust=0.5, size=rel(7), face="bold") + 
+  annotate("text", x = 1.15, y = 5, label = "*Keller Gifted Magnet and Sutherland Elementary Schools in the neighboring Mt. Greenwood and Beverly communities on the Far Southwest\nSide have two of the smallest differences between white and non-white student percentages across all non-white schools.", hjust=0, size=rel(7), face="bold")
 ```
 
-150162990252172	Drummond Elementary School	Latinx	31.43333
-150162990252283	Jackson A Language Academy Elementary School	Latinx
-150162990252451	Sheridan Math & Science Academy Elementary School	Asian	53.30000
-150162990252458	Skinner Elementary School	Black	25.83333
-150162990252476	Sutherland Elementary School	Black	33.31667
-150162990252739	Keller Gifted Magnet Elementary School	Black	18.00000
-150162990252855	South Loop Elementary School	Black	30.73333
-150162990252856	Lenart Regional Gifted Center Elementary School	Black	30.40000
-150162990252955	LaSalle II Lang Academy Sch Elementary School	Latinx	40.93333
-
-
-
-
-
-150162990252476	
-150162990252739	
-150162990252855	
-150162990252955	LaSalle II Language Academy Elementary School in Wicker Park
 
 ```{r echo=TRUE, include=FALSE}
 # sanity check number of majority white schools out of 721, seems low
@@ -1115,9 +1075,16 @@ school_data %>% group_by(predominant_race) %>%
                                                                    )
 ```
 
+```{r}
+school_data %>% mutate(NONWHITE_PCT = (100 - as.numeric(`SCHOOL - WHITE %`)),
+                       DIFF_NONWHITE = NONWHITE_PCT - as.numeric(`SCHOOL - WHITE %`)) %>% 
+  arrange(desc(predominant_race), DIFF_NONWHITE) %>% 
+  dplyr::select(front_cols, predominant_race, NONWHITE_PCT, DIFF_NONWHITE, everything())
+```
+
 
 ```{r}
- # library(gsubfn)
+
 
   
 ```
