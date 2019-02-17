@@ -136,7 +136,7 @@ scale_fill_dt <- function(palette = "main", discrete = TRUE, reverse = FALSE, ..
 
 
 ```{r set_theme, message=FALSE, warning=FALSE, include=FALSE}
-theme_modest <- function(base_size = 22,
+theme_modest <- function(base_size = 16,
                                   base_family = "Roboto",
                                   base_line_size = base_size / 25,
                                   base_rect_size = base_size / 25) {
@@ -171,7 +171,7 @@ theme_modest <- function(base_size = 22,
         plot.caption = element_text(size = rel(0.75), hjust = 1, 
                                     margin = unit(c(2,0,0,0), "lines")),
         strip.background = element_rect(colour = NA, fill=NA),
-        strip.text = element_text(face = "bold", size = rel(1.25), family = "Ledger"),
+        strip.text = element_text(face = "bold", size = rel(0.75), family = "Ledger"),
         panel.spacing = unit(15,"lines"),
         panel.border=element_blank(),
         complete = TRUE
@@ -919,7 +919,9 @@ bus_licenses %>% filter(!is.na(WARD), active==1,  activity_date >= mdy("1/1/2012
           axis.title.x = element_blank(),
           axis.text.y = element_blank(),
           panel.grid.minor=element_blank(),
-          panel.grid.major=element_blank())+
+          panel.grid.major=element_blank(),
+          plot.title = 
+        )+
         # plot.subtitle = element_text(hjust=0.35)) +
   labs(title="Amid City-Wide Turnout Dropoff, Significantly Higher\nVoter Activation in Far Southwest Side", 
          subtitle="Voters in the Far Southeast, which has faced de-investment\nas determined by a number of factors, far exceeded other areas' participation\nin the last two City Council elections.", 
@@ -948,7 +950,7 @@ ggsave("ward_election_turnout2011_2015.pdf", width = 36, height = 23, units = "c
 # saveRDS(just_demos, file = here::here("data", "just_demos.Rda"))
 ```
 
-
+## Investing in the Future: Signs of Educational De-Investment
 ```{r quasi-random, fig.height=12, fig.width=15, message=FALSE, warning=FALSE}
 # read in combined school report card and budget dataset
 school_data <-  readRDS(here::here("data", "combined_school_data.Rda"))
@@ -1085,7 +1087,7 @@ school_data %>% group_by(`SCHOOL ID (R-C-D-T-S)`, predominant_race) %>%
 ```
 On average over the last 5 school years, non-white schools have served significantly higher percentages of low-income students, as determined by free and reduced lunch designation. It seems to follow that these schools would provide more resources for students, however over the same time period, average spend per student remains roughly the same across schools, with an increase in the spread of spending distribution after each of the two recent funding formula changes.
 
-```{r echo=TRUE, include=FALSE, eval=FALSE}
+```{r sanity-check-quasi, echo=TRUE, include=FALSE, eval=FALSE}
 # sanity check number of majority white schools out of 721, seems low
 school_data %>% group_by(predominant_race) %>% 
   distinct(predominant_race, `SCHOOL ID (R-C-D-T-S)`) %>% 
@@ -1093,7 +1095,7 @@ school_data %>% group_by(predominant_race) %>%
                                                                    )
 ```
 
-```{r fig, fig.height=12, fig.width=15, message=FALSE, warning=FALSE}
+```{r gganimate_budget, fig, fig.height=12, fig.width=15, message=FALSE, warning=FALSE}
  
 library(gganimate)
 # library(gapminder)
@@ -1115,8 +1117,8 @@ ggplot(aes(NONWHITE_PCT, AVG_SPEND_PER_STUDENT, frame = as.integer(YEAR))) +
         panel.grid.minor.y = element_blank(),
         axis.text = element_text(size=rel(0.5)),
         axis.title.x = element_text(size=rel(0.75), family = "Ledger"),
-        plot.subtitle = element_text(size=rel(0.65), hjust = 0),
-        plot.title = element_text(size=rel(0.90), hjust = -.5),
+        plot.subtitle = element_text(size=rel(0.65), hjust = 1),
+        plot.title = element_text(size=rel(0.90), hjust = .5),
         axis.title.y = element_text(size=rel(0.75), angle = 90, family = "Ledger")
   ) +
   
@@ -1124,7 +1126,7 @@ ggplot(aes(NONWHITE_PCT, AVG_SPEND_PER_STUDENT, frame = as.integer(YEAR))) +
   labs(subtitle = 'Year: {frame_time}', x = 'Non-White Student Percentage', y = 'Average Spend per Student',
        title = "Spread of Spend per Student Increases\nafter 2017, 2018 School Funding Formula Changes") +
   # transition_components(`SCHOOL ID (R-C-D-T-S)`, as.integer(YEAR)) +
-  transition_time(as.integer(YEAR)) +
+  gganimate::transition_components(time=as.integer(YEAR)) +
   ease_aes('sine-in-out')
 
 ```
@@ -1132,7 +1134,7 @@ ggplot(aes(NONWHITE_PCT, AVG_SPEND_PER_STUDENT, frame = as.integer(YEAR))) +
 
 
 
-```{r}
+```{r geo-attempt}
 # all_demos <-  readRDS(here::here("data", "all_demos_chi.Rda"))
 
 # wards_w_all_demos <- st_join(wards.2015, st_transform(all_demos, crs =  st_crs(wards.2015)), largest=TRUE)
@@ -1140,7 +1142,7 @@ ggplot(aes(NONWHITE_PCT, AVG_SPEND_PER_STUDENT, frame = as.integer(YEAR))) +
 ```
 
 
-```{r  fig.height=12, fig.width=15}
+```{r geo-attempt-contd fig.height=12, fig.width=15}
 # 
 # beg_mid_end_wards_all_demos %>% filter(YEAR %in% c(2012, 2015, 2017)) %>%
 #   ggplot() + 
