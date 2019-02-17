@@ -897,6 +897,7 @@ school_data <-  readRDS(here::here("data", "combined_school_data.Rda"))
 
 # confirm all rows matched to a budget have "Proposed Budget column"
 school_data %>% filter(!is.na(School_ID) & is.na(`Proposed Budget`))
+
   
 # add ward to rows from schoolsByWard document parsed above
 school_data <- left_join(school_data, schoolsByWard %>% dplyr::select(School_ID, WARD = Ward, NAME_WARD_JOIN = `Unit Name`), by=c("School_ID" = "School_ID")) %>% dplyr::select(School_ID, WARD, SCHOOL_NAME = `SCHOOL NAME`, NAME_WARD_JOIN, `Proposed Budget`, `SCHOOL TOTAL ENROLLMENT`, everything())
@@ -940,7 +941,7 @@ school_data %>% distinct(YEAR, `SCHOOL TYPE NAME`)
   # geom_line(aes(x=AVG_SPEND_PER_STUDENT, y=as.factor(YEAR))) +
   geom_point(aes(x=AVG_SPEND_PER_STUDENT, y=as.factor(YEAR), 
                  color=SIDE, size=SCHOOL_TOTAL_ENROLLMENT)) +
-  scale_size_continuous(range = c(3,6)) +
+  scale_size_continuous(range = c(6,10)) +
     scale_color_dt(na.value=get_dt_cols("palegray")) +
   theme_modest() +
   theme(legend.text = element_text(size=rel(1)),
@@ -951,7 +952,6 @@ school_data %>% distinct(YEAR, `SCHOOL TYPE NAME`)
 ```{r fig.height=12, fig.width=15, message=FALSE, warning=FALSE}    
 # check whether there are schools which could be matched to ward, that aren't
 school_data %>% filter(!is.na(School_Latitude) & is.na(WARD))
-
 
 st_as_sf(
   # isolate school IDs, geolocation info (address, latitude, longitude)
@@ -1021,55 +1021,56 @@ school_data %>%
   theme_modest() + 
   labs(title = "2018 School Funding Update Increased Spread of Annual Spend per Student", fontface='bold')
 
-school_data %>% group_by(predominant_race) %>% 
-  summarise(mean_LI = mean(`LOW INCOME SCHOOL %`, na.rm=TRUE),
-            median_LI = median(`LOW INCOME SCHOOL %`))
-
-
-library(ggbeeswarm)
-
-school_data %>%        
-  ggplot(aes(`LOW-INCOME SCHOOL %`, predominant_race)) +
-      geom_beeswarm(cex = 1.2, priority="density", groupOnX=FALSE, aes(color=predominant_race)) +
+library(gganimate)
+# library(gapminder)
+school_data %>% mutate(NONWHITE_PCT = (100 - as.numeric(`SCHOOL - WHITE %`)),
+                       DIFF_NONWHITE = NONWHITE_PCT - as.numeric(`SCHOOL - WHITE %`)) %>% 
+  arrange(desc(predominant_race), DIFF_NONWHITE) %>% 
+  dplyr::select(front_cols, predominant_race, NONWHITE_PCT, DIFF_NONWHITE, everything()) %>%   
+ggplot(aes(NONWHITE_PCT, AVG_SPEND_PER_STUDENT, frame = as.integer(YEAR))) +
+  geom_point(alpha = 0.7, aes(size = `OVERALL AVERAGE CLASS SIZE - SCHOOL`,
+           colour = predominant_race, show.legend = FALSE)) +
+  scale_size(range = c(2, 12)) +
   scale_color_dt("diverging", reverse = TRUE, na.value=get_dt_cols("palegray")) +
-  # scale_x_continuous(breaks=c(0, 25, 50, 75, 100)) +
-  theme_modest() + 
-  labs(title = "Greater Low-Income Percentage In Non-White Schools", fontface='bold')
+  enter_fade() +
+  exit_fade() +
+  theme_modest() +
+  theme(
+        axis.text.y = element_text(margin=unit(c(0,0,0,2),"lines")),
+        axis.text.x = element_text(margin=unit(c(2,0,0,0),"lines")),
+        panel.grid.minor.y = element_blank(),
+        axis.text = element_text(size=rel(0.5)),
+        axis.title.x = element_text(size=rel(0.75), family = "Ledger"),
+        plot.subtitle = element_text(size=rel(0.65), hjust = 0),
+        plot.title = element_text(size=rel(0.90), hjust = -.5),
+        axis.title.y = element_text(size=rel(0.75), angle = 90, family = "Ledger")
+  ) +
+  
+  # Here comes the gganimate specific bits
+  labs(subtitle = 'Year: {frame_time}', x = 'Non-White Percentage', y = 'Average Spend per Student',
+       title = "Spread of Spend per Student Increases\nafter 2017, 2018 School Funding Formula Changes") +
+  # transition_components(`SCHOOL ID (R-C-D-T-S)`, as.integer(YEAR)) +
+  transition_time(as.integer(YEAR)) +
+  ease_aes('sine-in-out')
+
+animate(animation, renderer = ffmpeg_renderer(options = list(s = "864x480", 
+                                                             vcodec = "libvpx-vp9",
+                                                             crf = "15",
+                                                             b = "1600k", 
+                                                             vf = "setpts=5*PTS")))
+
+```
 
 
-#########################
-##  Quasi-Random Plot  ##
-#########################
-school_data %>% group_by(`SCHOOL ID (R-C-D-T-S)`, predominant_race) %>% summarise(med_LI_pct = mean(`LOW-INCOME SCHOOL %`, na.rm = TRUE)) %>%  
-  ggplot(aes(predominant_race, med_LI_pct, color=factor(predominant_race))) +
-      geom_quasirandom(varwidth=TRUE, size=4, show.legend = FALSE) +
-  scale_color_dt("diverging", reverse = TRUE, na.value=get_dt_cols("palegray")) +
-  scale_y_continuous(labels = function(x) paste0(x, "%")) +
-  # scale_x_continuous(breaks=c(0, 25, 50, 75, 100)) +
-  scale_x_discrete(position = "top", 
-                   labels = c("Majority Asian Schools", "Majority Black Schools",
-                             "Majority Latinx Schools", "Majority White Schools")) +
-  theme_modest() + 
-  theme(axis.text.x.top = element_text(size=rel(2), vjust = -8, face="bold"),
-        axis.text.y = element_text(size=rel(1.25), margin=unit(c(0,0,0,3),"lines")),
-        axis.title.y = element_text(size=rel(2)),
-        axis.title.x = element_blank(),
-        legend.title = element_text(size=rel(2)),
-        legend.key.size =  unit(35, "pt"),
-       legend.text = element_text(size=rel(1.5)),
-       plot.title = element_text(size=rel(2))
-       ) +
-  labs(title = "Majority Black and Majority Latinx Schools Have Much Higher Percentages of Low Income Students", 
-       x="Predominant Race in School", 
-       y="Percentage of Low Income Students", 
-       color="Race")
 
+```{r}
+gapminder
 ```
 
  
 
 
-On average over the last 5 school years, non-white schools have served significantly higher percentages of low-income students, as determined by free and reduced lunch designation. It seems to follow that these schools would provide more resources for students, however over the same time period, average spend per student remains roughly the same across schools, with an increase in the spread of spending distribution after each of the two recent funding formula changes.
+
 
 ```{r fig.height=12, fig.width=15, message=FALSE, warning=FALSE}
 facet_sides_labels <- as_labeller(c(`Far North` = "Far North Side", 
@@ -1193,11 +1194,6 @@ school_data %>% group_by(YEAR, predominant_race, ENROLLMENT_RANGE) %>% summarise
   facet_wrap(~YEAR)
 ```
 
-
-
-```{r}
-OVERALL AVERAGE CLASS SIZE - SCHOOL
-```
 
 
 ```{r fig.height=12, fig.width=15}

@@ -4,6 +4,8 @@ author: Loren Hinkson
 output:
     html_document:
       df_print: paged
+      fig_width: 15
+      fig_height: 12
       code_folding: hide
 ---
 
@@ -738,29 +740,33 @@ bus_licenses %>% filter(!is.na(WARD), active==1,  activity_date >= mdy("1/1/2012
   scale_fill_dt() +
   
   # label each each box by corresponding Ward, just above the median (8 pt)
-  geom_text_repel(data = bus_licenses %>% filter(!is.na(WARD), active==1) %>%
-                    group_by(activity_month, activity_yr, WARD, SIDE) %>% 
-                    summarise(business_count = n()) %>% group_by(SIDE) %>% 
-                    arrange(desc(business_count)) %>% 
-                    summarise(median_issuances = median(business_count)) %>% 
-                    arrange(median_issuances),
-                   aes(x=as.factor(SIDE), y = median_issuances + 300, group=as.factor(SIDE),
-                       label=as.factor(SIDE), nudge_x=0.05, direction= "y"),
-            color="#6E2C49", fontface="bold", size=5, hjust=0.5) + 
+  # geom_text_repel(data = bus_licenses %>% filter(!is.na(WARD), active==1) %>%
+  #                   group_by(activity_month, activity_yr, WARD, SIDE) %>% 
+  #                   summarise(business_count = n()) %>% group_by(SIDE) %>% 
+  #                   arrange(desc(business_count)) %>% 
+  #                   summarise(median_issuances = median(business_count)) %>% 
+  #                   arrange(median_issuances),
+  #                  aes(x=as.factor(SIDE), y = median_issuances + 300, group=as.factor(SIDE),
+  #                      label=as.factor(SIDE), nudge_x=0.05, direction= "y"),
+  #           color="#6E2C49", fontface="bold", size=5, hjust=0.5) + 
   
   # limit scale to 750, (one Loop ward's outliers extend ~1000 above other wards)
   # still very clearly the highest even without all outliers visible
-  scale_y_continuous(breaks = sort(c(seq(0, 750, by=150), 25)), limits = c(0, 750)) +
-  labs(x="Chicago Council Ward", y="Average Monthly Business Count", caption="Data Source: Chicago Open Data Portal", title="Least New & Surviving Businesses in South, West Wards for 15+ Years", subtitle="Calumet Heights, Westlawn Average less than 25 Monthly Business License Issuances on Average since 2012",fill="Chicago Area") + 
+  scale_y_continuous(breaks = sort(c(seq(0, 750, by=150))), limits = c(0, 750)) +
+  labs(x="Chicago Council Ward", y="Average Monthly Business Count", caption="Data Source: Chicago Open Data Portal", title="Least New & Surviving Businesses in Far South, Southwest Wards for 5+ Years", subtitle="Since 2012, Far South wards average 26 monthly business license issuances and renewals or less",fill="Chicago Area") + 
   theme_modest() +
   theme(
         panel.grid.major.x = element_blank(),
         axis.ticks =  element_blank(),
-        # axis.text.x = element_blank(),
-        axis.title.y = element_text(margin=margin(0,20,0,0), size=rel(1.5), angle = 90, family = "Ledger"),
-        plot.caption = element_text(hjust=1),
-        plot.subtitle = element_text(margin = margin(t = 15))
-        ) 
+        axis.title.x = element_blank(),
+        axis.text.x = element_text( family="Ledger", size=rel(1.25)),
+        axis.title.y = element_text(margin=unit(c(0,1,0,0), "lines"), size=rel(1.5), angle = 90, family = "Ledger"),
+        plot.caption = element_text(hjust=1)
+        ) +
+  annotate("text", x = 7 , y= 370, label="Most West Side business\noccurs in Wards 2 and 27,\nwhich border the Loop.", size=rel(6)) +
+  annotate("text", x = 9 , y= 735, label="The Central area is comprised\nof Ward 42, the Loop area.", size=rel(6)) +
+  annotate("text", x = 5 , y= 315, label="South Side business activity\nis concentrated in Kenwood,\n Fuller Park areas bordering\nthe University of Chicago.", size=rel(6)) +
+  annotate("text", x = 3 , y= 285, label="Ward 12 on the Southwest\nSide bordering Chinatown is\ncharacterized by higher rates\nof business activity than\nits neighbors.", size=rel(6))
   
 ```
 
@@ -769,6 +775,14 @@ ggsave("avg_ward_business.pdf", width = 25, height = 18, units = "cm")
 ```
 
 
+```{r include=FALSE, eval=FALSE}
+bus_licenses %>% filter(!is.na(WARD), active==1,  activity_date >= mdy("1/1/2012")) %>%
+  group_by(activity_month, activity_yr, WARD, SIDE) %>% 
+  summarise(business_count = n()) %>% group_by(SIDE, WARD) %>% 
+  summarise(med_ward_bus_ct = median(business_count),
+            max_ward_bus_ct = max(business_count)) %>% 
+  arrange(SIDE, WARD) 
+```
 
 
 ## Exploring Voter Activation in Deinvested Wards
@@ -1043,7 +1057,7 @@ school_data %>% group_by(`SCHOOL ID (R-C-D-T-S)`, predominant_race) %>%
   theme(axis.text.x.top = element_text(size=rel(1.75), vjust = -8, face="bold"),
         axis.text.y = element_text(size=rel(1.25), margin=unit(c(0,0,0,3),"lines")),
         axis.title.y = element_text(size=rel(1.5), angle = 90, family = "Ledger"),
-        axis.title.x = element_blank()
+        axis.title.x = element_blank() +
       # legend.title = element_text(size=rel(2)),
        #  legend.key.size =  unit(35, "pt"),
        # legend.text = element_text(size=rel(1.5))
@@ -1063,9 +1077,9 @@ school_data %>% group_by(`SCHOOL ID (R-C-D-T-S)`, predominant_race) %>%
   annotate("segment", x = 1.875, xend = 1.975, y = 30, yend = 30.5) +
   annotate("text", x=1.65, y = 38, label="Sutherland Elementary School*",hjust=0.5, size=rel(7), fontface="bold") + 
     annotate("text", x=3.6, y = 80, label="Schools near Humbolt Park and\nO'Hare have comparably high rates\nof low-income White students.",hjust=0.5, size=rel(7), face="bold") + 
-  annotate("text", x = 1.15, y = 5, label = "*Keller Gifted Magnet and Sutherland Elementary Schools in the neighboring Mt. Greenwood and Beverly communities on the Far Southwest\nSide have two of the smallest differences between white and non-white student percentages across all non-white schools.", hjust=0, size=rel(7), face="bold")
+  annotate("text", x = 1.15, y = 5, label = "*Keller Gifted Magnet and Sutherland Elementary Schools in the neighboring Mt. Greenwood and Beverly communities on the Far\nSouthwest Side have two of the smallest differences between white and non-white student percentages across all non-white schools.", hjust=0, size=rel(7), face="bold")
 ```
-
+On average over the last 5 school years, non-white schools have served significantly higher percentages of low-income students, as determined by free and reduced lunch designation. It seems to follow that these schools would provide more resources for students, however over the same time period, average spend per student remains roughly the same across schools, with an increase in the spread of spending distribution after each of the two recent funding formula changes.
 
 ```{r echo=TRUE, include=FALSE}
 # sanity check number of majority white schools out of 721, seems low
@@ -1075,18 +1089,13 @@ school_data %>% group_by(predominant_race) %>%
                                                                    )
 ```
 
-```{r}
-school_data %>% mutate(NONWHITE_PCT = (100 - as.numeric(`SCHOOL - WHITE %`)),
-                       DIFF_NONWHITE = NONWHITE_PCT - as.numeric(`SCHOOL - WHITE %`)) %>% 
-  arrange(desc(predominant_race), DIFF_NONWHITE) %>% 
-  dplyr::select(front_cols, predominant_race, NONWHITE_PCT, DIFF_NONWHITE, everything())
+```{r include = FALSE, eval = FALSE }
+ 
 ```
 
 
 ```{r}
-
-
-  
+library(gapminder)
 ```
 
 

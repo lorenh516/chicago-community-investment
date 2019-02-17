@@ -11,7 +11,21 @@ library(tidyverse)
 library(haven)
 library(here)
 library(ggplot2)
+library(parallel)
+
 ```
+
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
+```
+
+```{r}
+setwd("/Users/Loren/Desktop/Data Viz Course Winter 2019")
+here::here("Desktop", "Data Viz Course Winter 2019", "data", "bus_licenses.Rda")
+```
+
+
 
 
 ```{r include = FALSE}
@@ -114,13 +128,13 @@ numCores <- detectCores()
 
 
 ```{r}
-bus_licenses <-  readRDS(here::here("data", "bus_licenses.Rda"))
+# bus_licenses <-  readRDS(here::here("data", "bus_licenses.Rda"))
+bus_licenses <- readRDS("/Users/Loren/Desktop/Data Viz Course Winter 2019/data/bus_licenses.Rda")
 
 # add date comparison columns and convert to date type
 bus_licenses <- bus_licenses %>% 
   mutate(`DATE ISSUED` = lubridate::mdy(`DATE ISSUED`),
-            term_end = lubridate::mdy(ifelse(`LICENSE STATUS` %in% c('AAC','REV'), `LICENSE STATUS CHANGE DATE`,
-                                          `LICENSE TERM EXPIRATION DATE`)),
+            term_end = lubridate::mdy(ifelse(`LICENSE STATUS` %in% c('AAC','REV'), `LICENSE STATUS CHANGE DATE`, `LICENSE TERM EXPIRATION DATE`)),
          activity_month = lubridate::as_date(
            cut(activity_date, breaks = "month", start.on.monday = FALSE, origin = lubridate::origin)
            ),
@@ -142,8 +156,9 @@ bus_licenses <- bus_licenses %>%
                    ID, `LICENSE ID`, `LEGAL NAME`, 
                    `DOING BUSINESS AS NAME`, WARD, SIDE, 
                    `LICENSE STATUS`, `APPLICATION TYPE`, 
-                   `BUSINESS ACTIVITY ID`, `LATITUDE`, `LONGITUDE`, 
-                   license_term, 
+                   `BUSINESS ACTIVITY ID`, `BUSINESS ACTIVITY`,
+                   `LATITUDE`, `LONGITUDE`, 
+                   license_term, `LICENSE CODE`, `LICENSE DESCRIPTION`,
                    `BUSINESS ACTIVITY`, `DATE ISSUED`, 
                    `LICENSE TERM EXPIRATION DATE`, 
                    `LICENSE STATUS CHANGE DATE`, activity_date) %>%  
@@ -155,9 +170,11 @@ bus_licenses <- bus_licenses %>%
                (!is.na(WARD)) & 
                (`APPLICATION TYPE` %in% c('ISSUE', 'RENEW', 'C_LOC'))) %>% 
         
-       group_by(SIDE, WARD, `APPLICATION TYPE`) %>% 
+       group_by(SIDE, WARD, `APPLICATION TYPE`, `LICENSE CODE`, 
+                `LICENSE DESCRIPTION`, `BUSINESS ACTIVITY ID`, 
+                `BUSINESS ACTIVITY`) %>% 
       summarise(active_businesses = n()) %>% 
-      mutate(count_date = compare_date)
+      mutate(as_of_date = compare_date)
 
   return (countByWard)
 }
@@ -187,15 +204,15 @@ registerDoParallel(numCores)
  
 # fun for loop to generate df for each date in dataset for each ward and add to list
 # combine into one dataset
- output_j <- foreach (i = 1:length(all_dates),  .combine=rbind) %dopar% { 
+ daily_bus_by_type <- foreach (i = 1:length(all_dates),  .combine=rbind) %dopar% { 
    all_days_count[i] <- dateCount(all_dates[i])
  }
  
 # save output of for loop (list)
-saveRDS(all_days_count, file = here::here("data", "dateCountList.Rda"))
+saveRDS(all_days_count, file = here::here("Desktop", "Data Viz Course Winter 2019", "data", "dateCountList.Rda"))
 
 # save output of for loop (df)
-saveRDS(output_j, file = here::here("data", "j_all_wards_all_dates.Rda"))
+saveRDS(daily_bus_by_type, file = here::here("Desktop", "Data Viz Course Winter 2019", "data", "daily_bus_by_type.Rda"))
  
 # clear out clustering
 stopImplicitCluster()
@@ -204,7 +221,7 @@ stopImplicitCluster()
 
 ## Business Activity by Chicago Side Over Time
 ```{r}
-output_j <-  readRDS(here::here("data", "j_all_wards_all_dates.Rda"))
+daily_bus_by_type <-  readRDS(here::here("data", "daily_bus_by_types.Rda"))
 
 allDatesCount.df <- output_j %>% expand(SIDE, WARD, `APPLICATION TYPE`, count_date) %>% 
  full_join(output_j) %>%  arrange(SIDE, WARD, `APPLICATION TYPE`, count_date) %>% 
