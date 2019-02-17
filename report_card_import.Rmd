@@ -1028,11 +1028,11 @@ school_data %>% mutate(NONWHITE_PCT = (100 - as.numeric(`SCHOOL - WHITE %`)),
   arrange(desc(predominant_race), DIFF_NONWHITE) %>% 
   dplyr::select(front_cols, predominant_race, NONWHITE_PCT, DIFF_NONWHITE, everything()) %>%   
 ggplot(aes(NONWHITE_PCT, AVG_SPEND_PER_STUDENT, frame = as.integer(YEAR))) +
-  geom_point(alpha = 0.7, aes(size = `OVERALL AVERAGE CLASS SIZE - SCHOOL`,
-           colour = predominant_race, show.legend = FALSE)) +
+  geom_point(alpha = 0.7, show.legend = FALSE, aes(size = `OVERALL AVERAGE CLASS SIZE - SCHOOL`,
+           colour = predominant_race)) +
   scale_size(range = c(2, 12)) +
   scale_color_dt("diverging", reverse = TRUE, na.value=get_dt_cols("palegray")) +
-  enter_fade() +
+  enter_grow() +
   exit_fade() +
   theme_modest() +
   theme(
@@ -1122,6 +1122,82 @@ plot_grid(title, both_plots, ncol=1, rel_heights=c(0.1, 1))
 ```
 
 
+## Mapping Chicago's Forgotten Economies
+```{r ggmapping, message=FALSE, warning=FALSE, fig.height=17, fig.width=15}
+# register_google(key = Sys.getenv("GOOGLEMAPS_KEY"))
+
+
+# read in Chicago ward geos in ggmap-compatible format
+wards.shp.2015 <- here::here("data","Geofiles - Chicago Zip Code and Neighborhood","Boundaries - Wards (2015-)","geo_export_0bb2e9fd-20ca-415b-a96a-7722d72c1b41.shp")
+wards2015 <- shapefile(wards.shp.2015)
+wards2015@data <- mutate(wards2015@data, id = rownames(wards2015@data))
+wards2015.points <- fortify(wards2015, region="id")
+wards2015.df <- merge(wards2015.points, wards2015@data, by="id")
+
+
+# name license types
+license_types <- c("ISSUE" = "New Business Licenses", 
+                   "RENEW" = "Business License Renewals")  
+
+# filter for 2012+ issuances and licenses 
+# count each business only once per year)
+bl <- bus_licenses %>% filter(activity_date >= 2012, active == 1, `APPLICATION TYPE`%in% c('ISSUE', 'RENEW')) %>% 
+    distinct(`LICENSE ID`, activity_date, `APPLICATION TYPE`, LONGITUDE, LATITUDE) 
+  
+
+
+# ggplot(gapminder, aes(gdpPercap, lifeExp, size = pop, colour = country)) +
+#   geom_point(alpha = 0.7, show.legend = FALSE) +
+#   scale_colour_manual(values = country_colors) +
+#   scale_size(range = c(2, 12)) +
+#   scale_x_log10() +
+#   facet_wrap(~continent) +
+#   # Here comes the gganimate specific bits
+#   labs(title = 'Year: {frame_time}', x = 'GDP per capita', y = 'life expectancy') +
+#   transition_time(year) +
+#   ease_aes('linear')
+
+# pull in Chicago terrain map from Google Maps
+  ggmap::ggmap(ggmap::get_googlemap(center = c(lon = -87.732125, lat = 41.83379),
+                      zoom = 10, scale = 1,
+                      maptype ='terrain',
+                      color = 'color',
+                      key = Sys.getenv("GOOGLEMAPS_KEY"))) + 
+    ggplot(data=bl, aes(x=LONGITUDE, y=LATITUDE, color=as.factor(activity_yr))) +
+    # layer licenses over each other at extremely low alpha
+    geom_point(data=bl, aes(x=LONGITUDE, y=LATITUDE, color=as.factor(activity_yr)), alpha = 0.05, show.legend = FALSE, na.rm = TRUE) + 
+    
+    # add Chicago Ward boundaries
+    geom_path(data = wards2015.df, aes(long,lat,group=group), color="black") +
+    geom_polygon(data = wards2015.df, aes(long,lat,group=group), fill=NA) + 
+    scale_color_dt() +
+    labs(y="Latitude", x="Longitude", colour="Year", title="Money in the Middle", 
+         subtitle="Virtually No New Business Entry, Renwal in South, Far Southeast,\nFar Southwest Sides since 2012", 
+         caption = "Data Source: City of Chicago Department of Business Affairs and Consumer Protection"
+         ) +
+    theme_modest() + 
+    # facet_grid(. ~ `APPLICATION TYPE`, labeller=as_labeller(license_types)) +
+    theme(
+      panel.border = element_blank(),
+      axis.text.y = element_blank(),
+      panel.grid.major.y = element_blank(),
+      panel.grid.minor.y = element_blank(),
+      axis.title = element_blank(),
+      axis.text.x = element_blank(),
+      panel.grid.major.x = element_blank(),
+      panel.grid.minor.x = element_blank(),
+      plot.title = element_text(face = "bold", hjust="0.5", margin = margin(t = 15)),
+      plot.subtitle = element_text(hjust="0.5", margin = margin(t = 20))
+    ) +
+    
+    # zoom graph to outer ward boundaries
+    scale_x_continuous(limits = c(wards2015.df %>% dplyr::select(long) %>% min() - 0.1, wards2015.df %>% dplyr::select(long) %>% max() + 0.05), expand = c(0, 0)) +
+    scale_y_continuous(limits = c(wards2015.df %>% dplyr::select(lat) %>% min() - 0.1, wards2015.df %>% dplyr::select(lat) %>% max()) + 0.05, expand = c(0, 0)) +
+  transition_time(as.integer(activity_date)) +
+  ease_aes('sine-in-out')
+```
+
+
 
 ```{r  fig.height=12, fig.width=15, eval=FALSE}
 # all_demos <-  readRDS(here::here("data", "all_demos_chi.Rda"))
@@ -1159,6 +1235,7 @@ school_data %>%
 
 
 
+
 ```{r}
 left_join(just_demos, as.data.frame(wards_w_all_demos) %>% distinct(WARD, GEOID), by="GEOID", na_matches="never")
 ```
@@ -1183,7 +1260,6 @@ school_data <- school_data %>%
 
 
 
-
 school_data %>% group_by(YEAR, predominant_race, ENROLLMENT_RANGE) %>% summarise(median_spend = median(AVG_SPEND_PER_STUDENT)) %>%
   ggplot(aes(x=median_spend, y=ENROLLMENT_RANGE, group=as.factor(predominant_race))) +
   geom_point(aes(color=SIDE), position="jitter",size=6) +
@@ -1199,7 +1275,7 @@ school_data %>% group_by(YEAR, predominant_race, ENROLLMENT_RANGE) %>% summarise
 ```{r fig.height=12, fig.width=15}
 school_data %>% 
   group_by(YEAR, predominant_race) %>% 
-  summarise(median_class_size = median(`OVERALL AVERAGE CLASS SIZE - SCHOOL`),
+  summarise(median_class_size = mean(as.integer(`OVERALL AVERAGE CLASS SIZE - SCHOOL`), na.rm=TRUE),
             num_schools = n()) %>%
   ggplot() +
   geom_line(aes(x=as.numeric(YEAR), y=median_class_size, group=as.factor(predominant_race), color=predominant_race)) +
