@@ -1300,7 +1300,7 @@ ggplot(waffle_data, aes(x, y, fill = group)) +
   scale_fill_waffle() + 
   theme_waffle() 
 ```
-With the upcoming election for Chicago City Council, we can only hope that the city's residents utilize their right to choose leaders who will work to build a more equitable Chicago.
+The disparities explord above schold give Chicagoans good reason to utilize their right to choose leaders who will work to build a more equitable Chicago in the upcoming election for Chicago City Council.
 
 ### Resources:
 
