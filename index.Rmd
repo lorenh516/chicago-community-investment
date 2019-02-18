@@ -513,7 +513,7 @@ ggplot() +
   
 ```
 
-While there are myriad factors contributing to the way communities move over time, race is an undeniable component. There is a clar shift Latinx populations in desirable neighborhoods close to the center and north of the city to more western and southern neighborhoods.
+While there are myriad factors contributing to the way communities move over time, race is an undeniable component. There is a clear shift of Latinx populations from desirable neighborhoods close to the center and north of the city to more western and southern neighborhoods.
 ```{r facet-wrap-black, message=FALSE, warning=FALSE, fig.width=30, fig.height=24}
 ward_range %>% filter((predominant_race == "Black") & (id != 2015)) %>%
 ggplot() +
@@ -586,7 +586,7 @@ all_demos %>%
 
 
 ## Business Activity across Chicago Areas
-The neighborhoods housing these minority communites are those with distinctly lower levels of econoic activity, while in contrast, the mojority of the city's "bouncing back" after the recession happens in the Central, North, and West sides of the city.
+The neighborhoods housing these minority communities are those with distinctly lower levels of economic activity, while in contrast, the majority of the city's "bouncing back" after the recession happens in the Central, North, and West sides of the city.
 ```{r bus-stagnation-bar, fig.height=12, fig.width=15, message=FALSE, warning=FALSE}
 
 all_wards_all_dates <-  readRDS(here::here("data", "all_wards_all_dates.Rda"))
@@ -643,7 +643,7 @@ allDatesCount.df %>%
            subtitle = "Steady decline in new business entry post-recession in Chicago areas with lowest economic activity pre-recession", fill="Chicago Area")  
   # annotate("text", x=lubridate::ymd("2013-01-01"), y = 850000, label="Business renewals dipping in 2013, were balanced by spikes in new business due to EDGE tax credits.")
 ```
-Immediately post-recession in 2013, the amount of [Economic Development for a Growing Economy (EDGE) tax credits granted by Illinois nearly doubled from the prior year](https://www.chicagobusiness.com/article/20171006/NEWS02/171009915/corporate-tax-incentives-back-in-favor-in-illinois), causing a brief spike in new business license issuances for every area of the city beyond Central (Loop area), which has experienced fairly constant new business entry since the recession. Thus far, only the West Side of Chicago is approaching 2012 levels of new business, with most other areas of the city remaining fairly constant after EDGE excitement tapered off. 
+Immediately post-recession in 2013, the amount of [Economic Development for a Growing Economy (EDGE) tax credits granted by Illinois nearly doubled from the prior year](https://www.chicagobusiness.com/article/20171006/NEWS02/171009915/corporate-tax-incentives-back-in-favor-in-illinois), causing a brief spike in new business license Issuances for every area of the city beyond Central (Loop area), which has experienced fairly constant new business entry since the recession. Thus far, only the West Side of Chicago is approaching 2012 levels of new business, with most other areas of the city remaining fairly constant after EDGE excitement tapered off. 
 
 In the Far Southeast and Far Southwest Sides, where economic activity (in terms of number of active businesses) was about half the next lowest areas even pre-taper, one must wonder how much growth a neighborhood can experience with a rate of new business entry that has hovered around 500 businesses operating on newly-issued licenses for months. For context, the mean number of quarterly new licenses issued in the Central area of the city is just under 700,000, and the mean number of quarterly licenses issued in the Northwest Side is just over 85,000.
 
@@ -663,7 +663,7 @@ allDatesCount.df %>%
 
 ## Mapping Chicago's Forgotten Economies
 
-There is unquestionable variation in the level of economiic activity within each Side. However, positive variance from the norm for areas that are _predominantly_ Black and Latinx actually appear to be in parts of these communities that border areas with larger Asian, White, and Other racial/ ethnic populations.
+There is unquestionable variation in the level of economic activity within each Side. However, positive variance from the norm for areas that are _predominantly_ Black and Latinx actually appear to be in parts of these communities that border areas with larger Asian, White, and Other racial/ ethnic populations.
 ```{r ggmap-prep, include=FALSE}
 
 # read in Chicago ward geos in ggmap-compatible format
@@ -750,179 +750,9 @@ bus_licenses %>% filter(!is.na(WARD), active==1,  activity_date >= mdy("1/1/2012
 ```
 
 
-```{r}
-
-```
-
-
-## Exploring Voter Activation in Deinvested Wards
-
-In light of fairly clear deinvestment in certain parts of Chicago, I hypothesized that voters in affected wards would be encouraged to vote in aldermen who would help improve their intersts. I was interested to see that the Far Southwest Side, arguably the area most impacted by deinvestment, had the highest voter turnout in both of the two most recent elections. 
-
-As it turns out, the highest voter activation in this area occurred in Ward 19, the Beverly and Mt. Greenwood area, of which over 70% of the population is white, in comparison to the rest of the area, which has a white population of less than 1%, and had turnout of 35-40%. It is perhaps interesting that in a community that is largely black, another population group has the loudest voices in terms of voter input. 
-
-```{r get-voter-stats, include=FALSE, eval=FALSE}
-as.data.frame(demos_2015 %>% filter(as.integer(id)==2015, SIDE=="Far Southwest Side") %>% 
-                group_by(SIDE, ward) %>%  
-  summarise(avg_white = mean(white_pct, na.rm=TRUE),
-            med_white = median(white_pct)) 
-)
-
-as.data.frame(demos_2015 %>% filter(as.integer(id)==2015, SIDE=="Far Southwest Side", ward!="19") %>% 
-                group_by(SIDE) %>%  
-  summarise(avg_white = mean(white_pct, na.rm=TRUE),
-            med_white = median(white_pct)) 
-)
-
-turnoutDiff %>% filter(SIDE == "Far Southwest Side")
-
-```
-
-```{r message=FALSE, warning=FALSE, include=FALSE}
-# read in 2015 turnout data and format columns for numeric manipulations, add column for year
-
-# voter_turnout15 <- read_csv(here::here("data", "voter_turnout_city_council_2015.csv"), col_names = FALSE, skip=8)
-# voter_turnout15 <- voter_turnout15 %>% mutate(WARD = ifelse(grepl("WARD", voter_turnout15$X1), as.numeric(gsub("WARD ", "", X1)), NA),
-#                                               X4 = as.numeric(gsub("%", "", X4)),
-#                                               YEAR = 2015)
-# voter_turnout15 <- voter_turnout15 %>% fill(WARD)
-
-
-# double-check columns that look empty
-# voter_turnout15 %>% dplyr::select(X5, X6) %>% distinct()
-
-
-# filter out subtitles and intermediate headings
-
-# voter_turnout15 <- voter_turnout15 %>% dplyr::select(-c(X5, X6))
-# names(voter_turnout15) <- sapply(c("Precinct","Registered","Ballots","Turnout", "WARD", "YEAR"), toupper)
-# voter_turnout15 <- voter_turnout15 %>% filter(PRECINCT !="Precinct", !grepl("WARD", PRECINCT), !is.na(PRECINCT))
-
-
-# read in 2011 turnout data and format columns for numeric manipulations, add column for year
-
-# voter_turnout11 <- read_csv(here::here("data", "voter_turnout_city_council_2011.csv"), col_names = FALSE, skip=8)
-# voter_turnout11 <- voter_turnout11 %>% mutate(WARD = ifelse(grepl("WARD", voter_turnout11$X1), as.numeric(gsub("WARD ", "", X1)), NA),
-#                                               X4 = as.numeric(gsub("%", "", X4)),
-#                                               YEAR=2011)
-# voter_turnout11 <- voter_turnout11 %>% fill(WARD)
-
-
-# double-check columns that look empty
-# voter_turnout11 %>% dplyr::select(X5, X6) %>% distinct()
-
-
-# filter out subtitles and intermediate headings
-
-# voter_turnout11 <- voter_turnout11 %>% dplyr::select(-c(X5, X6))
-# names(voter_turnout11) <- sapply(c("Precinct","Registered","Ballots","Turnout", "WARD", "YEAR"), toupper)
-# voter_turnout11 <- voter_turnout11 %>% filter(PRECINCT !="Precinct", !grepl("WARD", PRECINCT), !is.na(PRECINCT))
-
-
-# combine 2011 and 2015 data into one dataset
-
-# voterTurnout <- bind_rows(voter_turnout11, voter_turnout15)
-# voterTurnout <- voterTurnout %>% 
-#   mutate(TURNOUT = round((as.numeric(gsub(",", "", BALLOTS)) / as.numeric(gsub(",", "", REGISTERED))) * 100,1))
-# rm(voter_turnout11, voter_turnout15)
-
-
-# consolidate turnout and change in turnout by Chicago area
-
-# turnoutSides <- merge(voterTurnout, wardSides, by="WARD") %>% filter(PRECINCT=="Total") %>% 
-#   group_by(YEAR, SIDE) %>% summarise(MEAN_TURNOUT = round(mean(TURNOUT, na.rm = TRUE), 1)) %>% 
-#   spread(YEAR, MEAN_TURNOUT) %>% mutate(DIFFERENCE = `2015` - `2011`) %>% 
-#   gather("YEAR", "TURNOUT", -SIDE, -DIFFERENCE) %>% 
-#   mutate(DIFFERENCE = ifelse(YEAR==2011, NA, DIFFERENCE)) %>% 
-#   dplyr::select(YEAR, everything()) %>% 
-#   arrange(SIDE, YEAR)
-# 
-# saveRDS(turnoutSides, file = here::here("data", "sides_turnout.Rda"))                                  
- 
-
-# consolidate turnout and change in turnout by Chicago ward
-
-# turnoutDiff <- voterTurnout %>%filter(PRECINCT=="Total", YEAR %in% c(2011, 2015)) %>% dplyr::select(WARD, TURNOUT, YEAR) %>% 
-#   group_by(YEAR, WARD) %>%
-#   spread(YEAR, TURNOUT) %>% mutate(DIFFERENCE = `2015` - `2011`) %>% 
-#   gather("YEAR", "TURNOUT", -WARD, -DIFFERENCE) %>% 
-#   mutate(DIFFERENCE = ifelse(YEAR==2011, NA, DIFFERENCE)) %>% 
-#   dplyr::select(YEAR, WARD, TURNOUT, DIFFERENCE) %>% 
-#   arrange(YEAR, WARD) %>% group_by(WARD) %>% merge(., wardSides, by="WARD")
-
-# saveRDS(turnoutDiff, file = here::here("data", "wards_turnout.Rda"))
-``` 
-
-
-```{r slopegraph, fig.height=12, fig.width=15}
-# read in turnout and change in turnout by Chicago ward and Chciago Side
-  turnoutSides <-  readRDS(here::here("data", "sides_turnout.Rda"))
-  turnoutDiff <-  readRDS(here::here("data", "wards_turnout.Rda"))
-  
-  # turnoutDiff %>% group_by(SIDE, WARD) %>% summarise(z = max(TURNOUT)) %>% filter(SIDE == "Far Southwest")
-  
-  # plot average turnout in 2011 and 2015 for each Chicago Side
-  ggplot(turnoutSides, aes(x=as.factor(YEAR), y=TURNOUT, group=as.factor(SIDE))) + 
-  geom_line(aes(colour=SIDE), size=1.5, show.legend = FALSE) +
-  # geom_line(data = filter(turnoutSides, (DIFFERENCE > -0)||(is.na(DIFFERENCE))), aes(colour=SIDE), size=1.5, show.legend=FALSE) +
-  scale_color_dt() + 
-    
-  # add lines for distribution within each Side at Ward level
-  geom_line(data = turnoutDiff, aes(group=as.factor(WARD), color=SIDE), size=0.5, alpha=0.35, show.legend = FALSE) +
-  
-  # label each Side's values in line graphs for both 2011 and 2015
-  geom_label_repel(data = turnoutSides %>% filter(YEAR == 2011), 
-            aes(label = paste0(SIDE, " - ", TURNOUT, "%"), color = SIDE),
-            fill=NA,
-            hjust = "left",
-            nudge_x = -.15,
-            force=6,
-            direction = "y",
-            xlim= c(-0.5,.965),
-            fontface = "bold",
-            label.size = 0,
-            point.padding	= 0.75,
-            size = rel(5),
-            show.legend = FALSE,
-            family="Ledger") +
-  geom_label_repel(data = turnoutSides %>% filter(YEAR == 2015),
-            aes(label = paste0(SIDE, " - ", TURNOUT, "%"), color = SIDE),
-            fill=NA,
-            hjust = "right",
-            nudge_x = .25,
-            force = 5,
-            direction = "y",
-            fontface = "bold",
-            point.padding	= 0.75,
-            xlim=c(2.05,3),
-            label.size = 0,
-            size = rel(5),
-            show.legend = FALSE,
-            family="Ledger") +
-  # move x-axis text to top of graph
-  scale_x_discrete(position = "top") +
-   # coord_cartesian(ylim=c(23.5, 60)) +
-  theme_modest() + 
-  theme(axis.text.x.top = element_text(size=rel(1.25), vjust = -8, face="bold", family="Ledger"),
-          axis.title.y = element_blank(),
-          axis.title.x = element_blank(),
-          axis.text.y = element_blank(),
-          panel.grid.minor=element_blank(),
-          panel.grid.major=element_blank()
-          # plot.title = element_text(size=rel(1.5)),
-          # plot.subtitle = element_text(hjust=0.35)
-        ) +
-       
-  labs(title="Amid City-Wide Turnout Dropoff, Significantly Higher Voter Activation in Far Southwest Side", 
-         subtitle="Voters in the Far Southeast, which has faced de-investment as determined by a number of factors, far exceeded other areas'\nparticipation in the last two City Council elections.", 
-         caption="Source: Chicago Board of Election Commissioners", color="Chicago Area") +
-  annotate("text",  x = 1, y = 25, label = "*Underlying ward trends visualized\nbehind Side trendlines", size=rel(4)) + 
-    annotate("text", x = 0.8, y = 65, label="Ward 19 on the Far Southwest\nSide, which contains the Beverly\nand Morgan Park neighborhoods,\nhad voter turnout of nearly 75%\n in the 2011 City Council Election.", size=rel(4), hjust=0, color=get_dt_cols("mauve"))
-```
-
 
 ## Investing in the Future: Trends in Chicago Public Schools
-While economc activity is definitively a factor in the a neighborhood's ability to thrive, just as important in future success is the quality of education that students in the area are able to receive. Here I explore the variation in Chicago Public School spending for students of different socioeconic backgrounds.
+While economic activity is definitively a factor in the a neighborhood's ability to thrive, just as important in future success is the quality of education that students in the area are able to receive. Here I explore the variation in Chicago Public School spending for students of different socioeconomic backgrounds.
 ```{r quasi-random, fig.height=12, fig.width=15, message=FALSE, warning=FALSE}
 # read in combined school report card and budget dataset
 school_data <-  readRDS(here::here("data", "combined_school_data.Rda"))
@@ -1171,6 +1001,7 @@ mutate(
 
 parts_all.list <- setNames(split(parts_all, seq(nrow(parts_all))), rownames(parts_all))
 
+# school waffles by low-income status
 waffles <- plot_grid(
 waffle(round(mapply(FUN = `/`, as.list(parts_all.list[[1]])[7:8], 1)), colors = c("#986769", "#ebb742"), pad = (800 - as.list(parts_all.list[[1]])[[2]]) / 40,
        # pad = (800 - as.list(parts_all.list[[1]])[[2]]),
@@ -1206,6 +1037,7 @@ plot_grid(title, waffles, caption, ncol=1, align="v", rel_heights = c(0.10, 0.75
 
 
 ```{r include=FALSE, eval=FALSE}
+# school waffles by race
 iron(
 waffle(round(mapply(FUN = `/`, as.list(parts_all.list[[1]])[3:6], 1)), colors = c("#9d8e64", "#30505a",  "#986769", "#6d7d53"), pad = (800 - as.list(parts_all.list[[1]])[[2]]) / 40,
        # pad = (800 - as.list(parts_all.list[[1]])[[2]]),
@@ -1300,7 +1132,173 @@ ggplot(waffle_data, aes(x, y, fill = group)) +
   scale_fill_waffle() + 
   theme_waffle() 
 ```
-The disparities explord above schold give Chicagoans good reason to utilize their right to choose leaders who will work to build a more equitable Chicago in the upcoming election for Chicago City Council.
+
+## Exploring Voter Activation in Deinvested Wards
+
+In light of fairly clear de-investment in certain parts of Chicago, I hypothesized that voters in affected wards would be encouraged to vote in aldermen who would help improve their interests. I was interested to see that the Far Southwest Side, arguably the area most impacted by de-investment, had the highest voter turnout in both of the two most recent elections. 
+
+As it turns out, the highest voter activation in this area occurred in Ward 19, the Beverly and Mt. Greenwood area, of which over 70% of the population is white, in comparison to the rest of the area, which has a white population of less than 1%, and had turnout of 35-40%. It is perhaps interesting that in a community that is largely black, another population group has the loudest voices in terms of voter input. 
+
+```{r get-voter-stats, include=FALSE, eval=FALSE}
+as.data.frame(demos_2015 %>% filter(as.integer(id)==2015, SIDE=="Far Southwest Side") %>% 
+                group_by(SIDE, ward) %>%  
+  summarise(avg_white = mean(white_pct, na.rm=TRUE),
+            med_white = median(white_pct)) 
+)
+
+as.data.frame(demos_2015 %>% filter(as.integer(id)==2015, SIDE=="Far Southwest Side", ward!="19") %>% 
+                group_by(SIDE) %>%  
+  summarise(avg_white = mean(white_pct, na.rm=TRUE),
+            med_white = median(white_pct)) 
+)
+
+turnoutDiff %>% filter(SIDE == "Far Southwest Side")
+
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+# read in 2015 turnout data and format columns for numeric manipulations, add column for year
+
+# voter_turnout15 <- read_csv(here::here("data", "voter_turnout_city_council_2015.csv"), col_names = FALSE, skip=8)
+# voter_turnout15 <- voter_turnout15 %>% mutate(WARD = ifelse(grepl("WARD", voter_turnout15$X1), as.numeric(gsub("WARD ", "", X1)), NA),
+#                                               X4 = as.numeric(gsub("%", "", X4)),
+#                                               YEAR = 2015)
+# voter_turnout15 <- voter_turnout15 %>% fill(WARD)
+
+
+# double-check columns that look empty
+# voter_turnout15 %>% dplyr::select(X5, X6) %>% distinct()
+
+
+# filter out subtitles and intermediate headings
+
+# voter_turnout15 <- voter_turnout15 %>% dplyr::select(-c(X5, X6))
+# names(voter_turnout15) <- sapply(c("Precinct","Registered","Ballots","Turnout", "WARD", "YEAR"), toupper)
+# voter_turnout15 <- voter_turnout15 %>% filter(PRECINCT !="Precinct", !grepl("WARD", PRECINCT), !is.na(PRECINCT))
+
+
+# read in 2011 turnout data and format columns for numeric manipulations, add column for year
+
+# voter_turnout11 <- read_csv(here::here("data", "voter_turnout_city_council_2011.csv"), col_names = FALSE, skip=8)
+# voter_turnout11 <- voter_turnout11 %>% mutate(WARD = ifelse(grepl("WARD", voter_turnout11$X1), as.numeric(gsub("WARD ", "", X1)), NA),
+#                                               X4 = as.numeric(gsub("%", "", X4)),
+#                                               YEAR=2011)
+# voter_turnout11 <- voter_turnout11 %>% fill(WARD)
+
+
+# double-check columns that look empty
+# voter_turnout11 %>% dplyr::select(X5, X6) %>% distinct()
+
+
+# filter out subtitles and intermediate headings
+
+# voter_turnout11 <- voter_turnout11 %>% dplyr::select(-c(X5, X6))
+# names(voter_turnout11) <- sapply(c("Precinct","Registered","Ballots","Turnout", "WARD", "YEAR"), toupper)
+# voter_turnout11 <- voter_turnout11 %>% filter(PRECINCT !="Precinct", !grepl("WARD", PRECINCT), !is.na(PRECINCT))
+
+
+# combine 2011 and 2015 data into one dataset
+
+# voterTurnout <- bind_rows(voter_turnout11, voter_turnout15)
+# voterTurnout <- voterTurnout %>% 
+#   mutate(TURNOUT = round((as.numeric(gsub(",", "", BALLOTS)) / as.numeric(gsub(",", "", REGISTERED))) * 100,1))
+# rm(voter_turnout11, voter_turnout15)
+
+
+# consolidate turnout and change in turnout by Chicago area
+
+# turnoutSides <- merge(voterTurnout, wardSides, by="WARD") %>% filter(PRECINCT=="Total") %>% 
+#   group_by(YEAR, SIDE) %>% summarise(MEAN_TURNOUT = round(mean(TURNOUT, na.rm = TRUE), 1)) %>% 
+#   spread(YEAR, MEAN_TURNOUT) %>% mutate(DIFFERENCE = `2015` - `2011`) %>% 
+#   gather("YEAR", "TURNOUT", -SIDE, -DIFFERENCE) %>% 
+#   mutate(DIFFERENCE = ifelse(YEAR==2011, NA, DIFFERENCE)) %>% 
+#   dplyr::select(YEAR, everything()) %>% 
+#   arrange(SIDE, YEAR)
+# 
+# saveRDS(turnoutSides, file = here::here("data", "sides_turnout.Rda"))                                  
+ 
+
+# consolidate turnout and change in turnout by Chicago ward
+
+# turnoutDiff <- voterTurnout %>%filter(PRECINCT=="Total", YEAR %in% c(2011, 2015)) %>% dplyr::select(WARD, TURNOUT, YEAR) %>% 
+#   group_by(YEAR, WARD) %>%
+#   spread(YEAR, TURNOUT) %>% mutate(DIFFERENCE = `2015` - `2011`) %>% 
+#   gather("YEAR", "TURNOUT", -WARD, -DIFFERENCE) %>% 
+#   mutate(DIFFERENCE = ifelse(YEAR==2011, NA, DIFFERENCE)) %>% 
+#   dplyr::select(YEAR, WARD, TURNOUT, DIFFERENCE) %>% 
+#   arrange(YEAR, WARD) %>% group_by(WARD) %>% merge(., wardSides, by="WARD")
+
+# saveRDS(turnoutDiff, file = here::here("data", "wards_turnout.Rda"))
+``` 
+
+
+```{r slopegraph, fig.height=12, fig.width=15}
+# read in turnout and change in turnout by Chicago ward and Chciago Side
+  turnoutSides <-  readRDS(here::here("data", "sides_turnout.Rda"))
+  turnoutDiff <-  readRDS(here::here("data", "wards_turnout.Rda"))
+  
+  # turnoutDiff %>% group_by(SIDE, WARD) %>% summarise(z = max(TURNOUT)) %>% filter(SIDE == "Far Southwest")
+  
+  # plot average turnout in 2011 and 2015 for each Chicago Side
+  ggplot(turnoutSides, aes(x=as.factor(YEAR), y=TURNOUT, group=as.factor(SIDE))) + 
+  geom_line(aes(colour=SIDE), size=1.5, show.legend = FALSE) +
+  # geom_line(data = filter(turnoutSides, (DIFFERENCE > -0)||(is.na(DIFFERENCE))), aes(colour=SIDE), size=1.5, show.legend=FALSE) +
+  scale_color_dt() + 
+    
+  # add lines for distribution within each Side at Ward level
+  geom_line(data = turnoutDiff, aes(group=as.factor(WARD), color=SIDE), size=0.5, alpha=0.35, show.legend = FALSE) +
+  
+  # label each Side's values in line graphs for both 2011 and 2015
+  geom_label_repel(data = turnoutSides %>% filter(YEAR == 2011), 
+            aes(label = paste0(SIDE, " - ", TURNOUT, "%"), color = SIDE),
+            fill=NA,
+            hjust = "left",
+            nudge_x = -.15,
+            force=6,
+            direction = "y",
+            xlim= c(-0.5,.965),
+            fontface = "bold",
+            label.size = 0,
+            point.padding	= 0.75,
+            size = rel(5),
+            show.legend = FALSE,
+            family="Ledger") +
+  geom_label_repel(data = turnoutSides %>% filter(YEAR == 2015),
+            aes(label = paste0(SIDE, " - ", TURNOUT, "%"), color = SIDE),
+            fill=NA,
+            hjust = "right",
+            nudge_x = .25,
+            force = 5,
+            direction = "y",
+            fontface = "bold",
+            point.padding	= 0.75,
+            xlim=c(2.05,3),
+            label.size = 0,
+            size = rel(5),
+            show.legend = FALSE,
+            family="Ledger") +
+  # move x-axis text to top of graph
+  scale_x_discrete(position = "top") +
+   # coord_cartesian(ylim=c(23.5, 60)) +
+  theme_modest() + 
+  theme(axis.text.x.top = element_text(size=rel(1.25), vjust = -8, face="bold", family="Ledger"),
+          axis.title.y = element_blank(),
+          axis.title.x = element_blank(),
+          axis.text.y = element_blank(),
+          panel.grid.minor=element_blank(),
+          panel.grid.major=element_blank()
+          # plot.title = element_text(size=rel(1.5)),
+          # plot.subtitle = element_text(hjust=0.35)
+        ) +
+       
+  labs(title="Amid City-Wide Turnout Dropoff, Significantly Higher Voter Activation in Far Southwest Side", 
+         subtitle="Voters in the Far Southeast, which has faced de-investment as determined by a number of factors, far exceeded other areas'\nparticipation in the last two City Council elections.", 
+         caption="Source: Chicago Board of Election Commissioners", color="Chicago Area") +
+  annotate("text",  x = 1, y = 25, label = "*Underlying ward trends visualized\nbehind Side trendlines", size=rel(4)) + 
+    annotate("text", x = 0.8, y = 65, label="Ward 19 on the Far Southwest\nSide, which contains the Beverly\nand Morgan Park neighborhoods,\nhad voter turnout of nearly 75%\n in the 2011 City Council Election.", size=rel(4), hjust=0, color=get_dt_cols("mauve"))
+```
+
+The disparities explored above should give Chicagoans good reason to utilize their right to choose leaders who will work to build a more equitable Chicago in the upcoming election for Chicago City Council.
 
 ### Resources:
 
