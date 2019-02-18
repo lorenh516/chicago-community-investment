@@ -468,9 +468,10 @@ arg_values_demos <- c(
  "publicTransport" = "aggregate", "renterPop" = "aggregate", "renters" = "aggregate", "transportPop" = "aggregate", "whitePop" = "aggregate",  "predominant_race" = "aggregate", "max_pct" = "aggregate"
 )
 ```
+There is a colloquially accepted idea in Chicago that gentrification happens differently for Latinx communities and Black communities. Under this theory, wealthier populations are more likely to settle in predominantly Latinx communities, eventually pushing out current residents. In Black neighborhoods, however, gentrification happens after significant periods of neglect and disenfranchisement make an area unlivable, forcing residents to move elsewhere: "freeing it up" for different demographics and consequent investment catering to these new residents. I seek to evaluate this claim by exploring the movement of racial and ethnic populations within the city, business activity as measured by business license issuances, and investment in education determined by average spend per student across different socioeconomic groups.
 
 ## Population Displacement in Chicago Communities
-Since the Great Recession, underrepresented minority populations in Chicago have been increasingly relegated to lower income areas in the South and West of the City. Some communities have maintained a foothold in their respective neighborhoods, while others are priced out as wealthier populations move into the areas they have historically called home.
+Since the Great Recession, underrepresented minority populations in Chicago have been increasingly relegated to lower income areas in the South and West of the City. Some communities have maintained a foothold in their respective neighborhoods, while others are priced out as wealthier populations move into the areas they have historically called home. 
 ```{r facet_wrap_demo_info, message=FALSE, warning=FALSE, fig.width=30, fig.height=24}
 all_demos_range <- readRDS(here::here("data", "range_demos_chi_proj.Rda"))
 wards.2015 <- readRDS(here::here("data", "wards2015_sf.Rda"))
@@ -1295,7 +1296,7 @@ turnoutDiff %>% filter(SIDE == "Far Southwest Side")
          subtitle="Voters in the Far Southeast, which has faced de-investment as determined by a number of factors, far exceeded other areas'\nparticipation in the last two City Council elections.", 
          caption="Source: Chicago Board of Election Commissioners", color="Chicago Area") +
   annotate("text",  x = 1, y = 25, label = "*Underlying ward trends visualized\nbehind Side trendlines", size=rel(4)) + 
-    annotate("text", x = 0.8, y = 65, label="Ward 19 on the Far Southwest\nSide, which contains the Beverly\nand Morgan Park neighborhoods,\nhad voter turnout of nearly 75%\n in the 2011 City Council Election.", size=rel(4), hjust=0, color=get_dt_cols("mauve"))
+    annotate("text", x = 0.7, y = 70, label="Ward 19 on the Far Southwest\nSide, which contains the Beverly\nand Morgan Park neighborhoods,\nhad voter turnout of nearly 75%\n in the 2011 City Council Election.", size=rel(4), hjust=0, color=get_dt_cols("mauve"))
 ```
 
 The disparities explored above should give Chicagoans good reason to utilize their right to choose leaders who will work to build a more equitable Chicago in the upcoming election for Chicago City Council.
