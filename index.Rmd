@@ -997,7 +997,7 @@ school_data %>% group_by(`SCHOOL ID (R-C-D-T-S)`, predominant_race) %>%
     annotate("text", x=3.55, y = 80, label="Schools near Humbolt Park and\nO'Hare have comparably high rates\nof low-income White students.",hjust=0.5, size=rel(4), face="bold") + 
   annotate("text", x = 1.4, y = 5, label = "*Keller Gifted Magnet and Sutherland Elementary Schools in the neighboring Mt. Greenwood and Beverly communities on the Far\nSouthwest Side have two of the smallest differences between white and non-white student percentages across all non-white schools.", hjust=0, size=rel(4), face="bold")
 ```
-On average over the last 5 school years, non-white schools have served significantly higher percentages of low-income students, as determined by free and reduced lunch designation. It seems to follow that these schools would provide more resources for students, however over the same time period, average spend per student remains roughly the same across schools, with an increase in the spread of spending distribution after each of the two recent funding formula changes.
+On average over the last 5 school years, non-white schools have served significantly higher percentages of low-income students, as determined by free and reduced lunch designation. It seems to follow that these schools would provide more resources for students, however over the same time period, average spend per student remains roughly the same across schools, with an increase in the spread of spending distribution after each of the recent funding formula changes.
 
 ```{r sanity-check-quasi, echo=TRUE, include=FALSE, eval=FALSE}
 # sanity check number of majority white schools out of 721, seems low
@@ -1005,28 +1005,6 @@ school_data %>% group_by(predominant_race) %>%
   distinct(predominant_race, `SCHOOL ID (R-C-D-T-S)`) %>% 
   arrange(predominant_race, `SCHOOL ID (R-C-D-T-S)`) %>% summarise(schools = n()
                                                                    )
-```
-
-
-```{r geo-attempt, include= FALSE}
-# all_demos <-  readRDS(here::here("data", "all_demos_chi.Rda"))
-
-# wards_w_all_demos <- st_join(wards.2015, st_transform(all_demos, crs =  st_crs(wards.2015)), largest=TRUE)
-# beg_mid_end_wards_all_demos <- wards_w_all_demos %>% filter(YEAR %in% c(2012, 2015, 2017))
-```
-
-
-```{r geo-attempt-contd, fig.height=12, fig.width=15, include= FALSE}
-# 
-# beg_mid_end_wards_all_demos %>% filter(YEAR %in% c(2012, 2015, 2017)) %>%
-#   ggplot() + 
-#     geom_sf(aes(fill=medianIncome), alpha=0.5) + 
-#   scale_fill_dt("cool", discrete=FALSE, reverse=TRUE, na.value=get_dt_cols("palegray")) +
-#   geom_sf(aes(color=predominant_race), fill=NA, lwd=3) +
-#   scale_color_dt("diverging", discrete=TRUE, na.value=get_dt_cols("palegray"))  +
-#   theme_map_modest() +
-#   facet_wrap(~YEAR)
-
 ```
 
 
@@ -1078,7 +1056,7 @@ ggplot(aes(NONWHITE_PCT, AVG_SPEND_PER_STUDENT, frame = as.integer(YEAR))) +
         axis.text.y = element_text(margin=unit(c(0,0,0,2),"lines")),
         axis.text.x = element_text(margin=unit(c(2,0,0,0),"lines")),
         panel.grid.minor.y = element_blank(),
-        axis.text = element_text(size=rel(0.75)),
+        axis.text = element_text(size=rel(0.75)),\
         axis.title.x = element_text(size=rel(1.25), family = "Ledger"),
         plot.subtitle = element_text(size=rel(0.9)),
         legend.text = element_text(size=rel(0.75)),
