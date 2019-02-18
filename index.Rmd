@@ -1068,7 +1068,7 @@ school_data %>% group_by(predominant_race) %>%
 ```
 
 
-```{r}
+```{r include=FALSE}
 school_data <- left_join(school_data,
           bind_rows(
 school_data %>% filter(YEAR==2013) %>% 
