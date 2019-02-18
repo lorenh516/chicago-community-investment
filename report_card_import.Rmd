@@ -1275,7 +1275,7 @@ read_xls(here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "FY12_Racial_E
 
 
 ```{r}
-multiHeader <- function(filename, sheet=NA, col_names=TRUE, na="..", n_max=1) {
+multiHeader <- function(filename, sheet=NA, col_names=FALSE, na="..", n_max=1) {
   headers <- read_xls(filename, sheet=sheet, col_names = col_names, na=na, n_max = n_max)
   
   # fill only works down or up, so have to transpose headers
@@ -1286,15 +1286,16 @@ multiHeader <- function(filename, sheet=NA, col_names=TRUE, na="..", n_max=1) {
   
   # summarize using str_c from stringr which collapses strings.
   # summarize_all makes it work on all columns.
-  column_labels <- headers %>% summarize_all(str_c, collapse = " ")
-  for (i in length(column_labels)) {
-    column_labels[i] <- gsub("\n", "\\s",column_labels[i]) 
-  }
+  column_labels <- headers %>% str_replace_na(summarize_all(str_c, collapse = " "))
+  # for (i in length(column_labels)) {
+  #   column_labels[i] <- gsub("\n", "\\s",column_labels[i]) 
+  # }
+  # 
+  # # pull them into one character vector, add YEAR
+ # headers = unlist(column_labels[1,])
+    # headers = c("YEAR", unname(unlist(column_labels[1,])))
   
-  # pull them into one character vector, add country.
-  headers = c("YEAR", unname(unlist(column_labels[1,])))
-  
-  return(headers)
+  return(column_labels)
 } 
 
 ```

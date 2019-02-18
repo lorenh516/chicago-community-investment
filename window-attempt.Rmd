@@ -209,10 +209,10 @@ registerDoParallel(numCores)
  }
  
 # save output of for loop (list)
-saveRDS(all_days_count, file = here::here("Desktop", "Data Viz Course Winter 2019", "data", "dateCountList.Rda"))
+saveRDS(all_days_count, file = here::here("data", "dateCountList.Rda"))
 
 # save output of for loop (df)
-saveRDS(daily_bus_by_type, file = here::here("Desktop", "Data Viz Course Winter 2019", "data", "daily_bus_by_type.Rda"))
+saveRDS(daily_bus_by_type, file = here::here("data", "daily_bus_by_type.Rda"))
  
 # clear out clustering
 stopImplicitCluster()
