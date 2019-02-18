@@ -171,14 +171,14 @@ theme_modest <- function(base_size = 16,
         legend.justification = "center", 
         plot.background = element_rect(colour = NA, fill="#fffbe6"),
         plot.margin = unit(c(3,3,3,3),"lines"),
-        plot.title = element_text(size = rel(1.5), face = "bold", hjust="0.5",
+        plot.title = element_text(face = "bold", hjust="0.5",
                                   margin =unit(c(0,0,1,0), "lines"), family="Ledger"),
-        plot.subtitle = element_text(size = rel(0.75), hjust="0.5",  
+        plot.subtitle = element_text(size = rel(0.9), hjust="0.5",  
                                      margin = unit(c(0,0,2,0), "lines"), family="Ledger"),
         plot.caption = element_text(size = rel(0.75), hjust = 1, 
                                     margin = unit(c(2,0,0,0), "lines")),
         strip.background = element_rect(colour = NA, fill=NA),
-        strip.text = element_text(face = "bold", size = rel(0.75), family = "Ledger"),
+        strip.text = element_text(face = "bold", size = rel(0.65), family = "Ledger"),
         panel.spacing = unit(15,"lines"),
         panel.border=element_blank(),
         complete = TRUE
@@ -484,10 +484,10 @@ ggplot() +
   # outline tracts based on predominant race based on Census, shaded by median Income for tract
   geom_sf(aes(fill=below_poverty_pct), lwd = 2, color="#6d7d53") +
 
-  scale_fill_gradient(low = "#76BFBB", high="#2d3d61") +
+  scale_fill_gradient(low = "#dae0e2", high="#2d4f5a") +
   
   # outline Chicago wards over data
-  geom_sf(data = wards.2015, color=get_dt_cols("mauve"), lwd = 1, fill=NA) +
+  geom_sf(data = wards.2015, color="#292929", lwd = 1, fill=NA) +
 
   coord_sf(datum = NA) +
   theme_map_modest() + 
@@ -505,9 +505,9 @@ ggplot() +
         plot.margin = unit(c(2,4,2,2),"lines")
         ) +
   facet_wrap(~ id) + 
-  guides(fill = guide_colourbar(title.position="top", title.hjust = 0.5)) + 
+  # guides(fill = guide_colourbar(title.position="top", title.hjust = 0.5)) + 
   labs(alpha = "Median Income", color="Predominant Race", title="Latinx Populations in Chicago Pushed to South, West Neighborhoods", caption="Data Source: U.S. Census Bureau", 
-       subtitle = "Chicago racial and ethnic group movement by census tract since 2012 (5 year averages) show that Latinx communities are being\ndisplaced from the city center.", fill="Tract Percentage Below Poverty") 
+       subtitle = "Chicago racial and ethnic group movement by census tract since 2012 (5 year averages) show that Latinx communities are being\ndisplaced from the city center.", fill="Tract Percentage Below Federal Poverty Line") 
 
 
   
@@ -522,9 +522,9 @@ ggplot() +
 
   geom_sf(aes(fill=below_poverty_pct), lwd = 2, color="#9d8e64") +
   # scale_alpha(range = c(0.15, 1)) +
-  scale_fill_gradient(low = "#76BFBB", high="#2d3d61") +
+  scale_fill_gradient(low = "#dae0e2", high="#2d4f5a") +
   # outline Chicago wards over data
-  geom_sf(data = wards.2015, color=get_dt_cols("mauve"), lwd = 1, fill=NA) +
+  geom_sf(data = wards.2015, color="#292929", lwd = 1, fill=NA) +
   coord_sf(datum = NA) +
   theme_map_modest() + 
   theme(
@@ -541,9 +541,9 @@ ggplot() +
         plot.margin = unit(c(2,4,2,2),"lines")
         ) +
   facet_wrap(~ id) +
-  guides(fill = guide_colourbar(title.position="top", title.hjust = 0.5)) + 
+  # guides(fill = guide_colourbar(title.position="top", title.hjust = 0.5)) + 
   labs(alpha = "Median Income", color="Predominant Race", title="In Contrast, Black Communities Stay in Place in Increasingly Poor Neighborhoods ", caption="Data Source: U.S. Census Bureau", 
-       subtitle = "Black communities are not pushed out of their neighborhoods, however, the percentage of residents below the federal poverty line\nin predominantly Black tracts has increased city-wide.", fill="Tract Percentage Below Poverty") 
+       subtitle = "Black communities are not pushed out of their neighborhoods, however, the percentage of residents below the federal poverty line\nin predominantly Black tracts has increased city-wide.", fill="Tract Percentage Below Federal Poverty Line") 
 
 ```
 
@@ -585,15 +585,15 @@ allDatesCount.df %>%
                      ifelse(SIDE_CLEAN == "Far Southeast", "Far Southeast Side",
                      SIDE_CLEAN))) %>%
               ggplot(aes(x=activity_qtr, y=active_businesses)) +   
-  geom_bar(aes(x=activity_qtr, y=active_businesses, fill=`APPLICATION TYPE`), stat = "identity", position="dodge", show.legend = FALSE) +
-  scale_fill_dt() +
+  geom_bar(aes(x=activity_qtr, y=active_businesses, fill=`APPLICATION TYPE`), stat = "identity", position="dodge") +
+  scale_fill_dt(labels=c("    Newly Issued Licenses    ", "    License Renewals    ")) +
   # geom_text(aes(label=active_businesses), 
   #           size = 3, position = position_stack(vjust = 0.5), color="white") +
   scale_y_continuous(labels = scales::comma) +
   scale_x_date(date_labels = "%b %y", 
                 date_breaks = "1 year", limits = c(ymd("2012-01-01"), ymd("2018-12-31"))) +
   theme_modest() + 
-  theme(legend.position = c(0.6, 0.9),
+  theme(
         legend.direction = "horizontal",
         legend.key.size = unit(25, "pt"),
         legend.title = element_blank(),
@@ -604,6 +604,7 @@ allDatesCount.df %>%
         axis.title.y = element_text(size=rel(1.5), margin=unit(c(0,0,2,2), "lines"), angle=90, family="Ledger"),
         axis.text.y = element_text(size=rel(1), margin=unit(c(0,0,2,2), "lines")),
         axis.text.x = element_text(hjust = 0, angle=-45),
+        legend.position = "bottom",
         axis.title.x = element_blank(),
         plot.margin = unit(c(2,4,2,2),"lines")) + 
   facet_rep_wrap(~ SIDE_CLEAN, repeat.tick.labels=TRUE) +
@@ -614,7 +615,7 @@ allDatesCount.df %>%
            subtitle = "Steady decline in new business entry post-recession in Chicago areas with lowest economic activity pre-recession", fill="Chicago Area")  
   # annotate("text", x=lubridate::ymd("2013-01-01"), y = 850000, label="Business renewals dipping in 2013, were balanced by spikes in new business due to EDGE tax credits.")
 ```
-Immediately post-recession in 2013, the amount of [Economic Development for a Growing Economy (EDGE) tax credits granted by Illinois nearly doubled from the prior year](https://www.chicagobusiness.com/article/20171006/NEWS02/171009915/corporate-tax-incentives-back-in-favor-in-illinois), causing a brief spike in new business issuances for every area of the city beyond Central (Loop area), which has experienced fairly constant new business entry since the recession. Thus far, only the West Side of Chicago is approaching 2012 levels of new business, with most other areas of the city remaining fairly constant after EDGE excitement tapered off. In the Far Southeast and Far Southwest Sides, where ecnomic activity (in terms of number of active businesses) was about half the next lowest areas even pre-taper, one must wonder how much growth a neighborhood can experience with a rate of new business entry that has hovered around 500 businesses operating on newly-issued licenses for months. For contrast, the mean number of quarterly new licenses issued in the Central area of the city is just under 700,000, and the mean number of quarterly licenses issued in the Northwest Side is jsut over 85,000.
+Immediately post-recession in 2013, the amount of [Economic Development for a Growing Economy (EDGE) tax credits granted by Illinois nearly doubled from the prior year](https://www.chicagobusiness.com/article/20171006/NEWS02/171009915/corporate-tax-incentives-back-in-favor-in-illinois), causing a brief spike in new business license issuances for every area of the city beyond Central (Loop area), which has experienced fairly constant new business entry since the recession. Thus far, only the West Side of Chicago is approaching 2012 levels of new business, with most other areas of the city remaining fairly constant after EDGE excitement tapered off. In the Far Southeast and Far Southwest Sides, where economic activity (in terms of number of active businesses) was about half the next lowest areas even pre-taper, one must wonder how much growth a neighborhood can experience with a rate of new business entry that has hovered around 500 businesses operating on newly-issued licenses for months. For contrast, the mean number of quarterly new licenses issued in the Central area of the city is just under 700,000, and the mean number of quarterly licenses issued in the Northwest Side is just over 85,000.
 
 ```{r include=FALSE, echo=TRUE, eval=FALSE}
 # to look into: relationship between population and new business, can talk about that here. esp. number of new businesses per capita could be more meaningful than raw numbers.
@@ -681,20 +682,10 @@ bus_licenses %>% filter(!is.na(WARD), active==1,  activity_date >= mdy("1/1/2012
   geom_boxplot(aes(group=reorder(as.factor(WARD), SIDE), fill=as.factor(SIDE)), show.legend = FALSE) + 
   scale_fill_dt() +
   
-  # label each each box by corresponding Ward, just above the median (8 pt)
-  # geom_text_repel(data = bus_licenses %>% filter(!is.na(WARD), active==1) %>%
-  #                   group_by(activity_month, activity_yr, WARD, SIDE) %>% 
-  #                   summarise(business_count = n()) %>% group_by(SIDE) %>% 
-  #                   arrange(desc(business_count)) %>% 
-  #                   summarise(median_issuances = median(business_count)) %>% 
-  #                   arrange(median_issuances),
-  #                  aes(x=as.factor(SIDE), y = median_issuances + 300, group=as.factor(SIDE),
-  #                      label=as.factor(SIDE), nudge_x=0.05, direction= "y"),
-  #           color="#6E2C49", fontface="bold", size=5, hjust=0.5) + 
-  
   # limit scale to 750, (one Loop ward's outliers extend ~1000 above other wards)
   # still very clearly the highest even without all outliers visible
-  scale_y_continuous(breaks = sort(c(seq(0, 750, by=150))), limits = c(0, 750)) +
+  scale_y_continuous(breaks = sort(c(seq(0, 750, 150), 25)), limits = c(0, 750), 
+                     minor_breaks = seq(0 , 750, 75)) +
   scale_x_discrete(breaks=unique(bus_licenses$SIDE), 
     labels=addline_format(as.factor(unique(bus_licenses$SIDE))) ) +
   labs(x="Chicago Council Ward", y="Average Monthly Business Count", caption="Data Source: Chicago Open Data Portal", title="Least New & Surviving Businesses in Far South, Southwest Wards for 5+ Years", subtitle="Since 2012, Far South wards average 26 or less monthly business license issuances and renewals",fill="Chicago Area") + 
@@ -711,10 +702,10 @@ bus_licenses %>% filter(!is.na(WARD), active==1,  activity_date >= mdy("1/1/2012
   annotate("text", x = 7 , y= 390, label="Most West Side business\noccurs in Wards 2 and 27,\nwhich border the Loop.", size=rel(4)) +
   annotate("text", x = 8.9 , y= 745, label="The Central area is comprised\nof Ward 42, the Loop area.", size=rel(4)) +
   annotate("text", x = 5 , y= 335, label="South Side business activity\nis concentrated in Kenwood,\n Fuller Park areas bordering\nthe University of Chicago.", size=rel(4)) +
-  annotate("text", x = 3 , y= 305, label="Ward 12 on the Southwest\nSide bordering Chinatown is\ncharacterized by higher rates\nof business activity than\nits neighbors.", size=rel(4)) +
-  annotate("text", x=-0.25, y=25, label="25",size=rel(1), color=get_dt_cols("mauve"), face="bold")
+  annotate("text", x = 3 , y= 305, label="Ward 12 on the Southwest\nSide bordering Chinatown is\ncharacterized by higher rates\nof business activity than\nits neighbors.", size=rel(4)) 
   
 ```
+
 
 
 ```{r include=FALSE, eval=FALSE}
@@ -858,10 +849,11 @@ bus_licenses %>% filter(!is.na(WARD), active==1,  activity_date >= mdy("1/1/2012
           axis.title.x = element_blank(),
           axis.text.y = element_blank(),
           panel.grid.minor=element_blank(),
-          panel.grid.major=element_blank(),
-          plot.title = element_text(size=rel(1.5))
+          panel.grid.major=element_blank()
+          # plot.title = element_text(size=rel(1.5)),
+          # plot.subtitle = element_text(hjust=0.35)
         ) +
-        # plot.subtitle = element_text(hjust=0.35)) +
+       
   labs(title="Amid City-Wide Turnout Dropoff, Significantly Higher Voter Activation in Far Southwest Side", 
          subtitle="Voters in the Far Southeast, which has faced de-investment as determined by a number of factors, far exceeded other areas'\nparticipation in the last two City Council elections.", 
          caption="Source: Chicago Board of Election Commissioners", color="Chicago Area") +
@@ -870,7 +862,7 @@ bus_licenses %>% filter(!is.na(WARD), active==1,  activity_date >= mdy("1/1/2012
 ```
 
 
-## Investing in the Future: Signs of Educational De-Investment
+## Investing in the Future: Trends in Chicago Public Schools
 ```{r quasi-random, fig.height=12, fig.width=15, message=FALSE, warning=FALSE}
 # read in combined school report card and budget dataset
 school_data <-  readRDS(here::here("data", "combined_school_data.Rda"))
@@ -972,38 +964,38 @@ school_data %>% group_by(`SCHOOL ID (R-C-D-T-S)`, predominant_race) %>%
   summarise(avg_LI_pct = mean(`LOW-INCOME SCHOOL %`, na.rm = TRUE),
                               school_count = n()) %>% 
   ggplot(aes(predominant_race, avg_LI_pct, color=factor(predominant_race))) +
-      geom_quasirandom(varwidth=TRUE, size=2, show.legend = FALSE) +
+      geom_quasirandom(varwidth=TRUE, size=1.5, show.legend = FALSE) +
   scale_color_dt("diverging", reverse = TRUE, na.value=get_dt_cols("palegray")) +
   scale_y_continuous(labels = function(x) paste0(x, "%")) +
-  # scale_x_continuous(breaks=c(0, 25, 50, 75, 100)) +
   scale_x_discrete(position = "top", 
                    labels = c("Majority Asian Schools", "Majority Black Schools",
                              "Majority Latinx Schools", "Majority White Schools")) +
   theme_modest() + 
   theme(axis.text.x.top = element_text(size=rel(1.25), vjust = -8, face="bold"),
-        axis.text.y = element_text(size=rel(1), margin=unit(c(0,0,0,3),"lines")),
-        axis.title.y = element_text(size=rel(1), angle = 90, family = "Ledger"),
-        axis.title.x = element_blank()
+        axis.text.y = element_text(size=rel(1.25), margin=unit(c(0,0,0,3),"lines")),
+        axis.title.y = element_text(size=rel(1.25), angle = 90, family = "Ledger"),
+        axis.title.x = element_blank(),
       # legend.title = element_text(size=rel(2)),
        #  legend.key.size =  unit(35, "pt"),
        # legend.text = element_text(size=rel(1.5))
-       # plot.title = element_text(size=rel(2.5))
+       plot.title = element_text(size=rel(1.15))
        ) +
-  labs(title = "Majority Black and Majority Latinx Schools Have Much Higher Percentages of Low Income Students", 
+  labs(title = "Majority Black and Majority Latinx Schools Have Much Higher Percentages\nof Low Income Students", 
        x="Predominant Race in School", 
-       y="Percentage of Low Income Students", caption="Data Source: Illinois State Board of Education, Annual Report Cards") + 
+       y="Percentage of Low Income Students", 
+       caption="Data Source: Illinois State Board of Education") + 
     annotate("text", y = 30, x = 2.4, label = "A handful of Near West Side\nand Wicker Park schools buck\nthe overall trend.", hjust=0.5, size=rel(4), face="bold") + 
-  annotate("segment", x = 2.55, xend = 2.975, y = 33, yend = 40) +
-  annotate("segment", x = 2.7, xend = 2.975, y = 30, yend = 31) +
-  annotate("segment", x = 2.05, xend = 2.2, y = 26, yend = 28) +
+  annotate("segment", x = 2.55, xend = 2.975, y = 34, yend = 40) +
+  annotate("segment", x = 2.8, xend = 2.975, y = 30, yend = 31.5) +
+  annotate("segment", x = 2.05, xend = 2.15, y = 27, yend = 28) +
   annotate("text", x = 2.45, y= 18, label="Keller Gifted Magnet Elementary School*", hjust=0.5, size=rel(4), fontface="bold") + 
   annotate("text", x = 1.3, y= 53, label="Sheridan Math & Science\nAcademy in Chinatown", hjust=0.5, size=rel(4), face="bold") +
   annotate("text", x = 1.45, y= 26, label="Rates at South Loop Elementary School\nand Lenart Regional Gifted Center\nElementary School located six blocks from\nthe University of Chicago are likely\nreflective of overall higher median\nincomes in the schools' neighborhoods.", hjust=0.5, size=rel(4), face="bold") +
   annotate("segment", x = 1.875, xend = 1.975, y = 30, yend = 33) +
   annotate("segment", x = 1.875, xend = 1.975, y = 30, yend = 30.5) +
-  annotate("text", x=1.65, y = 38, label="Sutherland Elementary School*",hjust=0.5, size=rel(4), fontface="bold") + 
-    annotate("text", x=3.6, y = 80, label="Schools near Humbolt Park and\nO'Hare have comparably high rates\nof low-income White students.",hjust=0.5, size=rel(4), face="bold") + 
-  annotate("text", x = 1.15, y = 5, label = "*Keller Gifted Magnet and Sutherland Elementary Schools in the neighboring Mt. Greenwood and Beverly communities on the Far\nSouthwest Side have two of the smallest differences between white and non-white student percentages across all non-white schools.", hjust=0, size=rel(4), face="bold")
+  annotate("text", x=1.60, y = 38, label="Sutherland Elementary School*",hjust=0.5, size=rel(4), fontface="bold") + 
+    annotate("text", x=3.55, y = 80, label="Schools near Humbolt Park and\nO'Hare have comparably high rates\nof low-income White students.",hjust=0.5, size=rel(4), face="bold") + 
+  annotate("text", x = 1.4, y = 5, label = "*Keller Gifted Magnet and Sutherland Elementary Schools in the neighboring Mt. Greenwood and Beverly communities on the Far\nSouthwest Side have two of the smallest differences between white and non-white student percentages across all non-white schools.", hjust=0, size=rel(4), face="bold")
 ```
 On average over the last 5 school years, non-white schools have served significantly higher percentages of low-income students, as determined by free and reduced lunch designation. It seems to follow that these schools would provide more resources for students, however over the same time period, average spend per student remains roughly the same across schools, with an increase in the spread of spending distribution after each of the two recent funding formula changes.
 
@@ -1014,47 +1006,6 @@ school_data %>% group_by(predominant_race) %>%
   arrange(predominant_race, `SCHOOL ID (R-C-D-T-S)`) %>% summarise(schools = n()
                                                                    )
 ```
-
-```{r gganimate_budget, fig, fig.height=12, fig.width=15, message=FALSE, warning=FALSE}
- 
-library(gganimate)
-# library(gapminder)
-school_data %>% mutate(NONWHITE_PCT = (100 - as.numeric(`SCHOOL - WHITE %`)),
-                       DIFF_NONWHITE = NONWHITE_PCT - as.numeric(`SCHOOL - WHITE %`)) %>% 
-  arrange(desc(predominant_race), DIFF_NONWHITE) %>% 
-  dplyr::select(front_cols, predominant_race, NONWHITE_PCT, DIFF_NONWHITE, everything()) %>%   
-ggplot(aes(NONWHITE_PCT, AVG_SPEND_PER_STUDENT, frame = as.integer(YEAR))) +
-  geom_point(alpha = 0.5, show.legend = FALSE, aes(size = `OVERALL AVERAGE CLASS SIZE - SCHOOL`,
-           colour = predominant_race, group=`SCHOOL ID (R-C-D-T-S)`)) +
-  scale_size(range = c(2, 12)) +
-  scale_color_dt("diverging", reverse = TRUE, na.value=get_dt_cols("palegray")) +
-  enter_fade() +
-  exit_fade() +
-  theme_modest() +
-  theme(
-        axis.text.y = element_text(margin=unit(c(0,0,0,2),"lines")),
-        axis.text.x = element_text(margin=unit(c(2,0,0,0),"lines")),
-        panel.grid.minor.y = element_blank(),
-        axis.text = element_text(size=rel(1)),
-        axis.title.x = element_text(size=rel(1.25), family = "Ledger"),
-        plot.subtitle = element_text(size=rel(1.25), hjust = 1),
-        plot.title = element_text(size=rel(1.5), hjust = .5),
-        plot.caption = element_text(size=rel(1)),
-        axis.title.y = element_text(size=rel(1.25), angle = 90, family = "Ledger")
-  ) +
-  
-  # Here comes the gganimate specific bits
-  labs(subtitle = 'Year: {frame_time}', x = 'Non-White Student Percentage', y = 'Average Spend per Student',
-       title = "Spread of Spend per Student Increases after 2018 School Funding Formula Changes") +
-  transition_components(as.integer(YEAR), enter_length = as.integer(1), exit_length=as.integer(2)) +
-  # gganimate::transition_time(time=as.integer(YEAR)) +
-  exit_fade() +
-  enter_grow() +
-  ease_aes('sine-in-out')
-
-```
-
-
 
 
 ```{r geo-attempt, include= FALSE}
@@ -1097,7 +1048,7 @@ school_data %>% group_by(YEAR, SIDE) %>%
                                     margin=unit(c(0,0,2,2), "lines")),
         axis.text.y = element_text( margin=unit(c(0,2,2,2), "lines"))
         ) +
-      guides(colour = guide_legend(title.position="top", title.hjust = 0.5)) +
+      guides(fill = guide_legend(title.position="top", title.hjust = 0.5)) +
           labs(y= "Median Spend per Student", x="Year", caption="Data Source: Chicago Public Schools & Illinois State Board of Education", title="Average Spending per Student Largely Similar Across Chicago Sides")
 ```
 
@@ -1107,12 +1058,53 @@ school_data %>% group_by(YEAR, SIDE) %>%
 ```
 
 
-```{r include=FALSE, eval=FALSE}
-wards_selected_demos <- st_join(wards.2015, 
-                                st_transform(selected_demos, crs = st_crs(wards.2015))
-                                )
+```{r gganimate_budget, fig, fig.height=12, fig.width=15, message=FALSE, warning=FALSE}
+ 
+library(gganimate)
+# library(gapminder)
+school_data %>% mutate(NONWHITE_PCT = (100 - as.numeric(`SCHOOL - WHITE %`)),
+                       DIFF_NONWHITE = NONWHITE_PCT - as.numeric(`SCHOOL - WHITE %`)) %>% 
+  arrange(desc(predominant_race), DIFF_NONWHITE) %>% 
+  dplyr::select(front_cols, predominant_race, NONWHITE_PCT, DIFF_NONWHITE, everything()) %>%   
+ggplot(aes(NONWHITE_PCT, AVG_SPEND_PER_STUDENT, frame = as.integer(YEAR))) +
+  geom_point(alpha = 0.5, aes(size = `OVERALL AVERAGE CLASS SIZE - SCHOOL`,
+           colour = predominant_race, group=`SCHOOL ID (R-C-D-T-S)`)) +
+  scale_size(range = c(2, 12)) +
+  scale_color_dt("diverging", reverse = TRUE, na.value=get_dt_cols("palegray")) +
+  enter_fade() +
+  exit_fade() +
+  theme_modest() +
+  theme(
+        axis.text.y = element_text(margin=unit(c(0,0,0,2),"lines")),
+        axis.text.x = element_text(margin=unit(c(2,0,0,0),"lines")),
+        panel.grid.minor.y = element_blank(),
+        axis.text = element_text(size=rel(0.75)),
+        axis.title.x = element_text(size=rel(1.25), family = "Ledger"),
+        plot.subtitle = element_text(size=rel(0.9)),
+        legend.text = element_text(size=rel(0.75)),
+        legend.direction = "horizontal",
+        legend.key.size = unit(45, "pt"),
+        legend.position = "bottom",
+        # plot.title = element_text(size=rel(1.5), hjust = .5),
+        plot.title = element_text(hjust = .5),
+        plot.caption = element_text(size=rel(0.75)),
+        axis.title.y = element_text(size=rel(1.25), angle = 90, family = "Ledger")
+  ) +
+  # add animation
+  labs(subtitle = 'Average Spend per student by Class Size, School Predominant Rance in Year: {frame_time}', x = 'Non-White Student Percentage', y = 'Average Spend per Student',
+       title = "Spread of Spend per Student Increases after 2018 School Funding\nFormula Changes",
+       caption="Data Source: Illinois State Board of Education", color="Predominant Race", size="Average Class Size") +
+  transition_components(as.integer(YEAR), enter_length = as.integer(2), exit_length=as.integer(2),range=c(as.integer(2012), as.integer(2019))) +
+  # gganimate::transition_time(time=as.integer(YEAR)) +
+  exit_fade() +
+  enter_fade() +
+  ease_aes('sine-in-out') +
+  guides(colour = guide_legend(title.position="top", title.hjust = 0.5, legend.box = "vertical", 
+                               override.aes = list(alpha = 1)),
+         size = guide_legend(title.position="top", title.hjust = 0.5, legend.box = "vertical"))
 
 ```
+
 
 
 
