@@ -585,7 +585,7 @@ saveRDS(all_budgets, file = here::here("data", "all_budgets.Rda"))
 ```
 
 
-```{r}
+```{r include=FALSE, eval=FALSE}
 # look at rows missing budget difference
 all_budgets %>% filter(is.na(`Budget Difference`))
 ```
@@ -604,12 +604,11 @@ id_overlap18 <- id_overlap18 %>% mutate(Finance_ID = as.character(Finance_ID))
 ```
 
 
-```{r}
+```{r include=FALSE, eval=FALSE}
 all_report_cards <-  readRDS(here::here("data", "full_term.Rda"))
 id_overlap <-  readRDS(here::here("data", "id_overlap.Rda"))
 all_budgets <-  readRDS(here::here("data", "all_budgets.Rda"))
 schoolsByWard <-  readRDS(here::here("data", "schoolsByWard.Rda"))
-
 
 
 schoolsByWard <- schoolsByWard %>% rename("School_ID" =  "School.ID", 
@@ -635,18 +634,13 @@ all_budgets  %>% distinct(Unit)
 inner_join(all_budgets, 
           id_overlap %>% 
             dplyr::select(contains('_ID'), contains("Long_Name"), contains("Address"), contains("Latitude"), contains("Longitude")) , 
-          by = c("Unit_Name" = "Long_Name")) %>% 
-  # filter(!is.na(School_ID.y) & is.na(School_ID.x))
-
-%>% 
-  dplyr::select( contains('_ID'), contains("long_name"),contains("address"), 
-                 contains("latitude"), contains("longitude"), everything()) 
+          by = c("Unit_Name" = "Long_Name")) 
 
 ```
 
 
 
-```{r}
+```{r include=FALSE, eval=FALSE}
 # devtools::install_github("dgrtwo/fuzzyjoin")
 library(fuzzyjoin)
 # 
@@ -1020,52 +1014,8 @@ school_data %>%
     scale_x_continuous(labels = scales::dollar, limits=c(0,20000)) + 
   theme_modest() + 
   labs(title = "2018 School Funding Update Increased Spread of Annual Spend per Student", fontface='bold')
-
-library(gganimate)
-# library(gapminder)
-school_data %>% mutate(NONWHITE_PCT = (100 - as.numeric(`SCHOOL - WHITE %`)),
-                       DIFF_NONWHITE = NONWHITE_PCT - as.numeric(`SCHOOL - WHITE %`)) %>% 
-  arrange(desc(predominant_race), DIFF_NONWHITE) %>% 
-  dplyr::select(front_cols, predominant_race, NONWHITE_PCT, DIFF_NONWHITE, everything()) %>%   
-ggplot(aes(NONWHITE_PCT, AVG_SPEND_PER_STUDENT, frame = as.integer(YEAR))) +
-  geom_point(alpha = 0.7, show.legend = FALSE, aes(size = `OVERALL AVERAGE CLASS SIZE - SCHOOL`,
-           colour = predominant_race)) +
-  scale_size(range = c(2, 12)) +
-  scale_color_dt("diverging", reverse = TRUE, na.value=get_dt_cols("palegray")) +
-  enter_grow() +
-  exit_fade() +
-  theme_modest() +
-  theme(
-        axis.text.y = element_text(margin=unit(c(0,0,0,2),"lines")),
-        axis.text.x = element_text(margin=unit(c(2,0,0,0),"lines")),
-        panel.grid.minor.y = element_blank(),
-        axis.text = element_text(size=rel(0.5)),
-        axis.title.x = element_text(size=rel(0.75), family = "Ledger"),
-        plot.subtitle = element_text(size=rel(0.65), hjust = 0),
-        plot.title = element_text(size=rel(0.90), hjust = -.5),
-        axis.title.y = element_text(size=rel(0.75), angle = 90, family = "Ledger")
-  ) +
-  
-  # Here comes the gganimate specific bits
-  labs(subtitle = 'Year: {frame_time}', x = 'Non-White Percentage', y = 'Average Spend per Student',
-       title = "Spread of Spend per Student Increases\nafter 2017, 2018 School Funding Formula Changes") +
-  # transition_components(`SCHOOL ID (R-C-D-T-S)`, as.integer(YEAR)) +
-  transition_time(as.integer(YEAR)) +
-  ease_aes('sine-in-out')
-
-animate(animation, renderer = ffmpeg_renderer(options = list(s = "864x480", 
-                                                             vcodec = "libvpx-vp9",
-                                                             crf = "15",
-                                                             b = "1600k", 
-                                                             vf = "setpts=5*PTS")))
-
 ```
 
-
-
-```{r}
-gapminder
-```
 
  
 
@@ -1121,100 +1071,6 @@ title <- ggdraw() + draw_label("2018 School Funding Update Increased Spread of A
 plot_grid(title, both_plots, ncol=1, rel_heights=c(0.1, 1))
 ```
 
-
-## Mapping Chicago's Forgotten Economies
-```{r ggmapping, message=FALSE, warning=FALSE, fig.height=17, fig.width=15}
-# register_google(key = Sys.getenv("GOOGLEMAPS_KEY"))
-
-
-# read in Chicago ward geos in ggmap-compatible format
-wards.shp.2015 <- here::here("data","Geofiles - Chicago Zip Code and Neighborhood","Boundaries - Wards (2015-)","geo_export_0bb2e9fd-20ca-415b-a96a-7722d72c1b41.shp")
-wards2015 <- shapefile(wards.shp.2015)
-wards2015@data <- mutate(wards2015@data, id = rownames(wards2015@data))
-wards2015.points <- fortify(wards2015, region="id")
-wards2015.df <- merge(wards2015.points, wards2015@data, by="id")
-
-
-# name license types
-license_types <- c("ISSUE" = "New Business Licenses", 
-                   "RENEW" = "Business License Renewals")  
-
-# filter for 2012+ issuances and licenses 
-# count each business only once per year)
-bl <- bus_licenses %>% filter(activity_date >= 2012, active == 1, `APPLICATION TYPE`%in% c('ISSUE', 'RENEW')) %>% 
-    distinct(`LICENSE ID`, activity_date, `APPLICATION TYPE`, LONGITUDE, LATITUDE) 
-  
-
-
-# ggplot(gapminder, aes(gdpPercap, lifeExp, size = pop, colour = country)) +
-#   geom_point(alpha = 0.7, show.legend = FALSE) +
-#   scale_colour_manual(values = country_colors) +
-#   scale_size(range = c(2, 12)) +
-#   scale_x_log10() +
-#   facet_wrap(~continent) +
-#   # Here comes the gganimate specific bits
-#   labs(title = 'Year: {frame_time}', x = 'GDP per capita', y = 'life expectancy') +
-#   transition_time(year) +
-#   ease_aes('linear')
-
-# pull in Chicago terrain map from Google Maps
-  ggmap::ggmap(ggmap::get_googlemap(center = c(lon = -87.732125, lat = 41.83379),
-                      zoom = 10, scale = 1,
-                      maptype ='terrain',
-                      color = 'color',
-                      key = Sys.getenv("GOOGLEMAPS_KEY"))) + 
-    ggplot(data=bl, aes(x=LONGITUDE, y=LATITUDE, color=as.factor(activity_yr))) +
-    # layer licenses over each other at extremely low alpha
-    geom_point(data=bl, aes(x=LONGITUDE, y=LATITUDE, color=as.factor(activity_yr)), alpha = 0.05, show.legend = FALSE, na.rm = TRUE) + 
-    
-    # add Chicago Ward boundaries
-    geom_path(data = wards2015.df, aes(long,lat,group=group), color="black") +
-    geom_polygon(data = wards2015.df, aes(long,lat,group=group), fill=NA) + 
-    scale_color_dt() +
-    labs(y="Latitude", x="Longitude", colour="Year", title="Money in the Middle", 
-         subtitle="Virtually No New Business Entry, Renwal in South, Far Southeast,\nFar Southwest Sides since 2012", 
-         caption = "Data Source: City of Chicago Department of Business Affairs and Consumer Protection"
-         ) +
-    theme_modest() + 
-    # facet_grid(. ~ `APPLICATION TYPE`, labeller=as_labeller(license_types)) +
-    theme(
-      panel.border = element_blank(),
-      axis.text.y = element_blank(),
-      panel.grid.major.y = element_blank(),
-      panel.grid.minor.y = element_blank(),
-      axis.title = element_blank(),
-      axis.text.x = element_blank(),
-      panel.grid.major.x = element_blank(),
-      panel.grid.minor.x = element_blank(),
-      plot.title = element_text(face = "bold", hjust="0.5", margin = margin(t = 15)),
-      plot.subtitle = element_text(hjust="0.5", margin = margin(t = 20))
-    ) +
-    
-    # zoom graph to outer ward boundaries
-    scale_x_continuous(limits = c(wards2015.df %>% dplyr::select(long) %>% min() - 0.1, wards2015.df %>% dplyr::select(long) %>% max() + 0.05), expand = c(0, 0)) +
-    scale_y_continuous(limits = c(wards2015.df %>% dplyr::select(lat) %>% min() - 0.1, wards2015.df %>% dplyr::select(lat) %>% max()) + 0.05, expand = c(0, 0)) +
-  transition_time(as.integer(activity_date)) +
-  ease_aes('sine-in-out')
-```
-
-
-
-```{r  fig.height=12, fig.width=15, eval=FALSE}
-# all_demos <-  readRDS(here::here("data", "all_demos_chi.Rda"))
-
-beg_mid_end <- all_demos %>% filter(YEAR %in% c(2015, 2012, 2017))
-
-
-
-  ggplot(st_join(wards.2015, beg_mid_end, largest=TRUE) ) + 
-    geom_sf(aes(fill=medianIncome), alpha=0.5) + 
-  scale_fill_dt("cool", discrete=FALSE, reverse=TRUE, na.value=get_dt_cols("palegray")) +
-  geom_sf(aes(color=predominant_race), fill=NA, lwd=3) +
-  scale_color_dt("diverging", discrete=TRUE, na.value=get_dt_cols("palegray"))  +
-  theme_map_modest() + 
-    facet_wrap(~ YEAR)
-
-```
 
 
 
@@ -1290,34 +1146,163 @@ school_data %>%
 colnames(school_data)
 ```
 
+```{r match-unit-ids, message=FALSE, warning=FALSE}
+
+id.Unit <- read_csv(here::here("data", "rc_v2", "2001_to_2014_unit_School_ID_matchup.csv"), col_names = T, skip=1) %>% distinct(`School ID`, Unit) %>% dplyr::select(School_ID = `School ID`, Unit)
+
+files <- dir(here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race"), 
+                 pattern = '\\.xls', full.names = TRUE)
+```
+
+
+
+```{r}
+
+
+for (i in length(files)) {
+  files[i] <- sub('.*\\/', '',files[i])
+  left_join(
+  read_xls(here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "Demographics_20thDay_2019.xls")) %>%
+    mutate(`School ID` = as.integer(`School ID`)), 
+  id.Unit, by=c(`School ID` = "School_ID") )
+  
+}
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+
+
+```{r}
+files
+```
+
+
+```{r}
+yoyTotalEnrollment <- bind_rows(
+  left_join(
+  read_xls(here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "Demographics_20thDay_2019.xls")) %>%
+    mutate(`School ID` = as.integer(`School ID`),
+           YEAR = 2019), 
+  id.Unit, by=c(`School ID` = "School_ID") ),
+  left_join(
+  read_xls(here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "Demographics_20thDay_2018.xls")) %>%
+    mutate(`School ID` = as.integer(`School ID`),
+           YEAR = 2018), 
+  id.Unit, by=c(`School ID` = "School_ID") ),
+  read_xls(here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "Demographics_20thDay_2017.xls")) %>%
+    mutate(`School ID` = as.integer(`School ID`),
+           YEAR = 2017), 
+  left_join(
+  read_xls(here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "enrollment_20th_day_2016_GV_20151023.xls")) %>%
+    mutate(`School ID` = as.integer(`School ID`)), 
+  id.Unit, by=c(`School ID` = "School_ID"),
+           YEAR = 2016),
+  left_join(
+  read_xls(here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "enrollment_20th_day_2014-15.xls")) %>%
+    mutate(`School ID` = as.integer(`School ID`),
+           YEAR = 2015), 
+  id.Unit, by=c(`School ID` = "School_ID") ),
+
+left_join(
+  read_xls(here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "enrollment_20th_day_2014.xls")) %>%
+    mutate(`School ID` = as.integer(`School ID`),
+           YEAR = 2014), 
+  id.Unit, by=c(`School ID` = "School_ID") ),
+left_join(
+  read_xls(here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "enrollment_20th_day_2013.xls")) %>%
+    mutate(`School ID` = as.integer(`School ID`),
+           YEAR = 2013), 
+  id.Unit, by=c(`School ID` = "School_ID") ),
+read_xls(here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "membership_20th_day_2012.xls")) %>%
+    mutate(`School ID` = as.integer(`School ID`),
+           YEAR=2012)
+) %>% mutate(Total = ifelse(is.na(Total), Totals, Total)) %>% filter(!(is.na(`School ID`) & is.na(Unit)) & !is.na(Total))
+  
+```
+
+
+
+```{r}
+schoolDemosTotalEnrollment <- bind_rows(
+  read_xls(here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "Demographics_RacialEthnic_2019.xls")) %>%
+    mutate(`School ID` = as.integer(`School ID`),
+           YEAR = 2019),
+  read_xls(here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "Demographics_RacialEthnic_2018.xls")) %>% mutate(`School ID` = as.integer(`School ID`),
+           YEAR = 2018),
+  read_xls(here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "Demographics_RacialEthnic_2017.xls")) %>%
+    mutate(`School ID` = as.integer(`School ID`),
+           YEAR = 2017), 
+  read_xls(here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "FY16_Student_Racial_Ethnic_Report_20151023.xls")) %>%
+    mutate(`School ID` = as.integer(`School ID`), 
+           YEAR = 2016),
+  read_xls(here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "FY15_Racial_Ethnic_Survey.xls")) %>%
+    mutate(`School ID` = as.integer(`School ID`),
+           YEAR = 2015), 
+  read_xls(here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "FY14_Racial_Ethnic_Survey.xls")) %>%
+    mutate(`School ID` = as.integer(`School ID`),
+           YEAR = 2014), 
+  id.Unit, by=c(`School ID` = "School_ID") ),
+left_join(
+  read_xls(here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "FY13_Racial_Ethnic_Survey.xls")) %>%
+    mutate(`School ID` = as.integer(`School ID`),
+           YEAR = 2013), 
+  id.Unit, by=c(`School ID` = "School_ID") ),
+read_xls(here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "FY12_Racial_Ethnic_Survey.xls")) %>%
+    mutate(`School ID` = as.integer(`School ID`),
+           YEAR=2012)
+) %>% mutate(Total = ifelse(is.na(Total), Totals, Total)) %>% filter(!(is.na(`School ID`) & is.na(Unit)) & !is.na(Total))
+
+```
 
 
 
 
 
 
+```{r}
+multiHeader <- function(filename, sheet=NA, col_names=TRUE, na="..", n_max=1) {
+  headers <- read_xls(filename, sheet=sheet, col_names = col_names, na=na, n_max = n_max)
+  
+  # fill only works down or up, so have to transpose headers
+  long_headers = data.frame(t(headers))
+  # Add column names down the columns
+  long_headers <- fill(long_headers,1:n_max) # all four columns
+  headers <- data.frame(t(long_headers)) # back to vertical.
+  
+  # summarize using str_c from stringr which collapses strings.
+  # summarize_all makes it work on all columns.
+  column_labels <- headers %>% summarize_all(str_c, collapse = " ")
+  for (i in length(column_labels)) {
+    column_labels[i] <- gsub("\n", "\\s",column_labels[i]) 
+  }
+  
+  # pull them into one character vector, add country.
+  headers = c("YEAR", unname(unlist(column_labels[1,])))
+  
+  return(headers)
+} 
+
+```
 
 
+```{r}
+multiHeader(filename=here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "FY14_Racial_Ethnic_Survey.xls"), sheet="Educational Units", n_max=2)
+```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+`
 

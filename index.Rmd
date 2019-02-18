@@ -126,7 +126,7 @@ scale_color_dt <- function(palette = "main", discrete = TRUE, reverse = FALSE, s
   if (discrete) {
     discrete_scale("colour", paste0("dt_", palette), palette = pal, ...)
   } else {
-    scale_color_gradientn(colours = pal(256), ...)
+    scale_color_gradientn(colours = pal(256), guide="colourbar", ...)
   }
 }
 
@@ -134,7 +134,7 @@ scale_fill_dt <- function(palette = "main", discrete = TRUE, reverse = FALSE, ..
   pal <- dt_pal(palette = palette, reverse = reverse)
 
   if (discrete) {
-    discrete_scale("fill", paste0("dt_", palette), palette = pal, ...)
+    discrete_scale("fill", paste0("dt_", palette), palette = pal, guide="colourbar", ...)
   } else {
     scale_fill_gradientn(colours = pal(256), ...)
   }
@@ -470,7 +470,7 @@ arg_values_demos <- c(
 ```
 
 ## Population Displacement in Chicago Communities
-In the last decade, underrepresented minority populations in Chicago have been increasingly relegated to lower income areas in the South and West of the City. 
+Since the Great Recession, underrepresented minority populations in Chicago have been increasingly relegated to lower income areas in the South and West of the City. Some communities have a foothold in their respective neighborhoods, while others are priced out as wealthier populations begin to move into the areas they have historically called home.
 ```{r facet_wrap_demo_info, message=FALSE, warning=FALSE, fig.width=30, fig.height=24}
 all_demos_range <- readRDS(here::here("data", "range_demos_chi_proj.Rda"))
 wards.2015 <- readRDS(here::here("data", "wards2015_sf.Rda"))
@@ -513,7 +513,7 @@ ggplot() +
   
 ```
 
-
+Among the differences in how these communities have moved over time, race is an undeniable component. There is a clar shift Latinx populations in desirable neighborhoods close to the center and north of the city to more western and southern neighborhoods.
 ```{r facet-wrap-black, message=FALSE, warning=FALSE, fig.width=30, fig.height=24}
 ward_range %>% filter((predominant_race == "Black") & (id != 2015)) %>%
 ggplot() +
@@ -558,7 +558,35 @@ demos_2012 %>% dplyr::select(GEOID, id, medianIncome, predominant_race, max_pct,
 
 ```
 
+```{r include=FALSE, eval=FALSE}
+library(fivethirtyeight)
+
+all_demos %>%
+  mutate(`Number of Drivers` = scale(num_drivers),
+         `Percent Speeding` = scale(perc_speeding),
+         `Percent Alcohol` = scale(perc_alcohol),
+         `Percent Not Distracted` = scale(perc_not_distracted),
+         `Percent No Previous` = scale(perc_no_previous),
+         state = factor(state, levels = rev(state))
+         ) %>%
+  select(-insurance_premiums, -losses, -(num_drivers:losses)) %>%
+  gather(`Number of Drivers`:`Percent No Previous`, key = "measure", value = "SD's from Mean") %>%
+  ggplot(aes(measure, state)) +
+    geom_tile(aes(fill = `SD's from Mean`)) +
+    labs(title = "Drivers Involved in Fatal Collisions By Behavior",
+      subtitle = "As a share of scaled fatal collisions per billion miles, 2009",
+      caption = "Source: fivethirtyeight R package",
+      x = NULL,
+      y = NULL) + 
+    scale_fill_gradientn() +
+    theme(legend.position = "right",
+      legend.direction = "vertical",
+      axis.text.x = element_text(angle = 45))
+```
+
+
 ## Business Activity across Chicago Areas
+The neighborhoods housing these minority communites are those with distinctly lower levels of econoic activity, while the mojority of the city's "bouncing back" after the recession happens in the Central, North, and West sides of the city, as noted in the exploration of business license issuances below.
 ```{r bus-stagnation-bar, fig.height=12, fig.width=15, message=FALSE, warning=FALSE}
 
 all_wards_all_dates <-  readRDS(here::here("data", "all_wards_all_dates.Rda"))
@@ -632,6 +660,8 @@ allDatesCount.df %>%
 ```
 
 ## Mapping Chicago's Forgotten Economies
+
+There is unquestionably variation between the level of activity within each Side, however, positive variance from the norm for areas that are predominantly Black and Latinx appear to be in the few communities in which there is more of a mix of racial or ethnic populations. 
 ```{r ggmap-prep, include=FALSE}
 
 # read in Chicago ward geos in ggmap-compatible format
@@ -702,7 +732,7 @@ bus_licenses %>% filter(!is.na(WARD), active==1,  activity_date >= mdy("1/1/2012
   annotate("text", x = 7 , y= 390, label="Most West Side business\noccurs in Wards 2 and 27,\nwhich border the Loop.", size=rel(4)) +
   annotate("text", x = 8.9 , y= 745, label="The Central area is comprised\nof Ward 42, the Loop area.", size=rel(4)) +
   annotate("text", x = 5 , y= 335, label="South Side business activity\nis concentrated in Kenwood,\n Fuller Park areas bordering\nthe University of Chicago.", size=rel(4)) +
-  annotate("text", x = 3 , y= 305, label="Ward 12 on the Southwest\nSide bordering Chinatown is\ncharacterized by higher rates\nof business activity than\nits neighbors.", size=rel(4)) 
+  annotate("text", x = 3 , y= 305, label="Ward 12 on the Southwest\nSide, which neighbors Chinatown, is\ncharacterized by higher rates\nof business activity than\nits neighbors.", size=rel(4)) 
   
 ```
 
@@ -718,7 +748,32 @@ bus_licenses %>% filter(!is.na(WARD), active==1,  activity_date >= mdy("1/1/2012
 ```
 
 
+```{r}
+
+```
+
+
 ## Exploring Voter Activation in Deinvested Wards
+
+In light of fairly clear deinvestment in certain parts of Chicago, I hypothesized that voters in affected wards would be encouraged to vote in aldermen who would help improve their intersts. I was interested to see that the Far Southwest Side, arguably the area most impacted by deinvestment, had the highest voter turnout in both of the two most recent elections. As it turns out, the highest voter activation in this area occurred in Ward 19, the Beverly and Mt. Greenwood area, of which over 70% of the population is white, in comparison to the rest of the area, which has a white population of less than 1%, and had turnout of 35-40%. It is perhaps interesting that in a community that is largely black, another population group has the loudest voices in terms of voter input. 
+
+```{r get-voter-stats, include=FALSE, eval=FALSE}
+as.data.frame(demos_2015 %>% filter(as.integer(id)==2015, SIDE=="Far Southwest Side") %>% 
+                group_by(SIDE, ward) %>%  
+  summarise(avg_white = mean(white_pct, na.rm=TRUE),
+            med_white = median(white_pct)) 
+)
+
+as.data.frame(demos_2015 %>% filter(as.integer(id)==2015, SIDE=="Far Southwest Side", ward!="19") %>% 
+                group_by(SIDE) %>%  
+  summarise(avg_white = mean(white_pct, na.rm=TRUE),
+            med_white = median(white_pct)) 
+)
+
+turnoutDiff %>% filter(SIDE == "Far Southwest Side")
+
+```
+
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 # read in 2015 turnout data and format columns for numeric manipulations, add column for year
 
@@ -863,6 +918,7 @@ bus_licenses %>% filter(!is.na(WARD), active==1,  activity_date >= mdy("1/1/2012
 
 
 ## Investing in the Future: Trends in Chicago Public Schools
+While economc activity is definitively a factor in the a neighborhood's ability to thrive, just as important in future success is the quality of education students in an area are able to receive. Here I explore the variation in spend for students of different socioeconic backgrounds, and its potential effects.
 ```{r quasi-random, fig.height=12, fig.width=15, message=FALSE, warning=FALSE}
 # read in combined school report card and budget dataset
 school_data <-  readRDS(here::here("data", "combined_school_data.Rda"))
@@ -1008,13 +1064,72 @@ school_data %>% group_by(predominant_race) %>%
 ```
 
 
+```{r}
+school_data <- left_join(school_data,
+          bind_rows(
+school_data %>% filter(YEAR==2013) %>% 
+  dplyr::select(YEAR, `SCHOOL ID (R-C-D-T-S)`, `LOW-INCOME SCHOOL %`) %>% 
+  arrange(desc(`LOW-INCOME SCHOOL %`)) %>% 
+  mutate(low_income_percentile = ntile(`LOW-INCOME SCHOOL %`, 100),
+         low_income_decile = ntile(`LOW-INCOME SCHOOL %`, 10)) %>% 
+  dplyr::select(YEAR, `SCHOOL ID (R-C-D-T-S)`, low_income_percentile, low_income_decile),
+
+school_data %>% filter(YEAR==2014) %>% 
+  dplyr::select(YEAR, `SCHOOL ID (R-C-D-T-S)`, `LOW-INCOME SCHOOL %`) %>% 
+  arrange(desc(`LOW-INCOME SCHOOL %`)) %>% 
+  mutate(low_income_percentile = ntile(`LOW-INCOME SCHOOL %`, 100),
+         low_income_decile = ntile(`LOW-INCOME SCHOOL %`, 10)) %>% 
+  dplyr::select(YEAR, `SCHOOL ID (R-C-D-T-S)`, low_income_percentile, low_income_decile),
+
+school_data %>% filter(YEAR==2015) %>% 
+  dplyr::select(YEAR, `SCHOOL ID (R-C-D-T-S)`, `LOW-INCOME SCHOOL %`) %>% 
+  arrange(desc(`LOW-INCOME SCHOOL %`)) %>% 
+  mutate(low_income_percentile = ntile(`LOW-INCOME SCHOOL %`, 100),
+         low_income_decile = ntile(`LOW-INCOME SCHOOL %`, 10)) %>% 
+  dplyr::select(YEAR, `SCHOOL ID (R-C-D-T-S)`, low_income_percentile, low_income_decile),
+
+school_data %>% filter(YEAR==2016) %>% 
+  dplyr::select(YEAR, `SCHOOL ID (R-C-D-T-S)`, `LOW-INCOME SCHOOL %`) %>% 
+  arrange(desc(`LOW-INCOME SCHOOL %`)) %>% 
+  mutate(low_income_percentile = ntile(`LOW-INCOME SCHOOL %`, 100),
+         low_income_decile = ntile(`LOW-INCOME SCHOOL %`, 10)) %>% 
+  dplyr::select(YEAR, `SCHOOL ID (R-C-D-T-S)`, low_income_percentile, low_income_decile),
+
+school_data %>% filter(YEAR==2017) %>% 
+  dplyr::select(YEAR, `SCHOOL ID (R-C-D-T-S)`, `LOW-INCOME SCHOOL %`) %>% 
+  arrange(desc(`LOW-INCOME SCHOOL %`)) %>% 
+  mutate(low_income_percentile = ntile(`LOW-INCOME SCHOOL %`, 100),
+         low_income_decile = ntile(`LOW-INCOME SCHOOL %`, 10)) %>% 
+  dplyr::select(YEAR, `SCHOOL ID (R-C-D-T-S)`, low_income_percentile, low_income_decile),
+
+school_data %>% filter(YEAR==2018) %>% 
+  dplyr::select(YEAR, `SCHOOL ID (R-C-D-T-S)`, `LOW-INCOME SCHOOL %`) %>% 
+  arrange(desc(`LOW-INCOME SCHOOL %`)) %>% 
+  mutate(low_income_percentile = ntile(`LOW-INCOME SCHOOL %`, 100),
+         low_income_decile = ntile(`LOW-INCOME SCHOOL %`, 10)) %>% 
+  dplyr::select(YEAR, `SCHOOL ID (R-C-D-T-S)`, low_income_percentile, low_income_decile),
+
+school_data %>% filter(YEAR==2019) %>% 
+  dplyr::select(YEAR, `SCHOOL ID (R-C-D-T-S)`, `LOW-INCOME SCHOOL %`) %>% 
+  arrange(desc(`LOW-INCOME SCHOOL %`)) %>% 
+  mutate(low_income_percentile = ntile(`LOW-INCOME SCHOOL %`, 100),
+         low_income_decile = ntile(`LOW-INCOME SCHOOL %`, 10)) %>% 
+  dplyr::select(YEAR, `SCHOOL ID (R-C-D-T-S)`, low_income_percentile, low_income_decile)
+), 
+by=c(YEAR = "YEAR", `SCHOOL ID (R-C-D-T-S)` = "SCHOOL ID (R-C-D-T-S)")) %>% 
+  dplyr::select(front_cols, ENROLLMENT_RANGE, SPEND_RANGE, predominant_race, low_income_percentile, low_income_decile, everything())
+  
+```
+
+Low-income percentage does not appear to have an effect on spend per student.
 ```{r area-chart, fig.height=12, fig.width=15, message=FALSE, warning=FALSE}
-school_data %>% group_by(YEAR, SIDE) %>% 
-  summarise(median_spend = min(AVG_SPEND_PER_STUDENT)) %>% 
-  ggplot(aes(y=median_spend, x=as.numeric(YEAR))) +
-  # geom_line(aes(y=AVG_SPEND_PER_STUDENT, x=YEAR)) +
-  geom_area(aes(group=as.factor(SIDE), fill=SIDE)) +
-    scale_fill_dt(na.value=get_dt_cols("palegray")) +
+school_data %>% group_by(YEAR, low_income_decile) %>% 
+  summarise(median_spend = median(AVG_SPEND_PER_STUDENT, na.rm=T)) %>%
+  ggplot() +
+  geom_area(aes(as.factor(YEAR), median_spend,
+                   group=as.factor(low_income_decile),  fill=low_income_decile)) +
+  scale_fill_dt(discrete=F) +
+      scale_y_continuous(labels = scales::dollar) +
   theme_modest() +
   theme(legend.text = element_text(size=rel(1)),
         legend.title = element_text(size=rel(1), family = "Ledger"),
@@ -1026,16 +1141,103 @@ school_data %>% group_by(YEAR, SIDE) %>%
                                     margin=unit(c(0,0,2,2), "lines")),
         axis.text.y = element_text( margin=unit(c(0,2,2,2), "lines"))
         ) +
-      guides(fill = guide_legend(title.position="top", title.hjust = 0.5)) +
-          labs(y= "Median Spend per Student", x="Year", caption="Data Source: Chicago Public Schools & Illinois State Board of Education", title="Average Spending per Student Largely Similar Across Chicago Sides")
+      guides(fill = guide_colourbar(title.position="top", title.hjust = 0.5)) +
+          labs(y= "Median Spend per Student", x="Year", caption="Data Source: Chicago Public Schools & Illinois State Board of Education", title="Average Spending per Student Largely Similar Across Schools by Low-Income Deciles", fill="Low Income Decile")
 ```
+
+However, schools with a large proportion on average of low-income students tend to be on the lower end of the spectrum in terms of spend per student, based on the breakdown of low-income student percentages from the Illinois State Board of Education:
+```{r fig.height=18, fig.width=15, message=FALSE, warning=FALSE}
+library(waffle)
+
+parts_all <- school_data %>% filter(!is.na(SPEND_RANGE)) %>% group_by(SPEND_RANGE) %>% summarise(
+  mean_enrollment = round(mean(SCHOOL_TOTAL_ENROLLMENT, na.rm=T),0),
+  Black =round( mean(`SCHOOL - BLACK %`, na.rm=T)),
+  White = round(mean(`SCHOOL - WHITE %`, na.rm=T)),
+  Asian = round(mean(`SCHOOL - ASIAN %`, na.rm=T)),
+  Latinx = round(mean(`SCHOOL - HISPANIC %`, na.rm=T)),
+  `Low-Income` = round(mean(`LOW-INCOME SCHOOL %`, na.rm=T))
+  )  %>% 
+mutate(
+  Black = round((Black/100) * mean_enrollment),
+  White = round((White/100) * mean_enrollment),
+  Asian = round((Asian/100) * mean_enrollment),
+  Latinx = round((Latinx/100) * mean_enrollment),
+  `Low-Income` = round((`Low-Income`/100) * mean_enrollment),
+  `Not Low-Income` = mean_enrollment - `Low-Income`
+  )
+
+parts_all.list <- setNames(split(parts_all, seq(nrow(parts_all))), rownames(parts_all))
+
+waffles <- plot_grid(
+waffle(round(mapply(FUN = `/`, as.list(parts_all.list[[1]])[7:8], 1)), colors = c("#986769", "#ebb742"), pad = (800 - as.list(parts_all.list[[1]])[[2]]) / 40,
+       # pad = (800 - as.list(parts_all.list[[1]])[[2]]),
+       rows=40, size=0.5, title="Under $2,500", xlab = "1 Square == 1 Student") +  
+  theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank(), axis.text = element_blank(), text = element_text(family="Roboto")),
+
+waffle(round(mapply(FUN = `/`, as.list(parts_all.list[[2]])[7:8], 1)), colors = c("#986769", "#ebb742"), pad = (800 - as.list(parts_all.list[[2]])[[2]]) / 40,
+       rows=40, size=0.5, title="$2,500-4,999", xlab = "1 Square == 1 Student") + 
+  theme(panel.grid=element_blank(), axis.text = element_blank(), text = element_text(family="Roboto")),
+
+waffle(round(mapply(FUN = `/`, as.list(parts_all.list[[3]])[7:8], 1)), colors = c("#986769", "#ebb742"), pad = (800 - as.list(parts_all.list[[3]])[[2]]) / 40,
+       rows=40, size=0.5, title="$5,000-7,499", xlab = "1 Square == 1 Student") +  
+  theme(panel.grid=element_blank(), axis.text = element_blank(), text = element_text(family="Roboto")),
+NULL, NULL, NULL,
+waffle(round(mapply(FUN = `/`, as.list(parts_all.list[[4]])[7:8], 1)), colors = c("#986769", "#ebb742"), pad = (800 - as.list(parts_all.list[[4]])[[2]]) / 40,
+       rows=40, size=0.5, title="$7,500-9,999", xlab = "1 Square == 1 Student") + 
+  theme(panel.grid=element_blank(), axis.text = element_blank(), text = element_text(family="Roboto")),
+
+waffle(round(mapply(FUN = `/`, as.list(parts_all.list[[5]])[7:8], 1)), colors = c("#986769", "#ebb742"), pad = (800 - as.list(parts_all.list[[5]])[[2]]) / 40,
+       rows=40, size=0.5, title="$10,000-12,499", xlab = "1 Square == 1 Student") + 
+  theme(panel.grid=element_blank(), axis.text = element_blank(), text = element_text(family="Roboto")),
+
+waffle(round(mapply(FUN = `/`, as.list(parts_all.list[[6]])[7:8], 1)), colors = c("#986769", "#ebb742"), pad = (800 - as.list(parts_all.list[[6]])[[2]]) / 40,
+       rows=40, size=0.5, title="$12,500-14,999", xlab = "1 Square == 1 Student") +  
+  theme(panel.grid=element_blank(), axis.text = element_blank(), text = element_text(family="Roboto")), 
+ncol = 3, nrow=3, rel_heights =  c(1, 0.05, 1), align = 'v') + theme_modest() + theme(panel.grid=element_blank(), axis.text = element_blank())
+
+title <- ggdraw() + draw_label("More Low-Income Students in Schools with Low- to Mid-Range Spend", fontface='bold', size=20, fontfamily="Ledger") + theme_modest() + theme(panel.grid=element_blank(), axis.text = element_blank(), axis.ticks=element_blank())
+caption <- ggdraw() + draw_label("Data Source: Illinois State Board of Education",  size=12, hjust = 0) + theme_modest() + theme(panel.grid=element_blank(), axis.text = element_blank(), axis.ticks=element_blank())
+
+plot_grid(title, waffles, caption, ncol=1, align="v", rel_heights = c(0.10, 0.75, 0.09))
+```
+
+
+```{r include=FALSE, eval=FALSE}
+iron(
+waffle(round(mapply(FUN = `/`, as.list(parts_all.list[[1]])[3:6], 1)), colors = c("#9d8e64", "#30505a",  "#986769", "#6d7d53"), pad = (800 - as.list(parts_all.list[[1]])[[2]]) / 40,
+       # pad = (800 - as.list(parts_all.list[[1]])[[2]]),
+       rows=40, size=0.5, title="Under $2,500") +  theme_modest() +
+  theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank(), axis.text = element_blank()),
+
+waffle(round(mapply(FUN = `/`, as.list(parts_all.list[[2]])[3:6], 1)), colors = c("#9d8e64", "#30505a",  "#986769", "#6d7d53"), pad = (800 - as.list(parts_all.list[[2]])[[2]]) / 40,
+       rows=40, size=0.5, title="$2,500-4,999") +  theme_modest() +
+  theme(panel.grid=element_blank(), axis.text = element_blank()),
+
+waffle(round(mapply(FUN = `/`, as.list(parts_all.list[[3]])[3:6], 1)), colors = c("#9d8e64", "#30505a",  "#986769", "#6d7d53"), pad = (800 - as.list(parts_all.list[[3]])[[2]]) / 40,
+       rows=40, size=0.5, title="$5,000-7,499") +  theme_modest() +
+  theme(panel.grid=element_blank(), axis.text = element_blank()),
+
+waffle(round(mapply(FUN = `/`, as.list(parts_all.list[[4]])[3:6], 1)), colors = c("#9d8e64", "#30505a",  "#986769", "#6d7d53"), pad = (800 - as.list(parts_all.list[[4]])[[2]]) / 40,
+       rows=40, size=0.5, title="$7,500-9,999") + theme_modest() +
+  theme(panel.grid=element_blank(), axis.text = element_blank()),
+
+waffle(round(mapply(FUN = `/`, as.list(parts_all.list[[5]])[3:6], 1)), colors = c("#9d8e64", "#30505a",  "#986769", "#6d7d53"), pad = (800 - as.list(parts_all.list[[5]])[[2]]) / 40,
+       rows=40, size=0.5, title="$10,000-12,499") +  theme_modest() +
+  theme(panel.grid=element_blank(), axis.text = element_blank()),
+
+waffle(round(mapply(FUN = `/`, as.list(parts_all.list[[6]])[3:6], 1)), colors = c("#9d8e64", "#30505a",  "#986769", "#6d7d53"), pad = (800 - as.list(parts_all.list[[6]])[[2]]) / 40,
+       rows=40, size=0.5, title="$12,500-14,999", xlab = "1 Square == 1 Student") +  theme_modest() +
+  theme(panel.grid=element_blank(), axis.text = element_blank()) 
+)
+```
+
 
 ```{r include= FALSE}
 # To Look Into: is attendance higher in majority low income schools (>50%) in areas with higher SNAP takeup? 
 # how to combine census data set to compare over time...
 ```
 
-
+In a perhaps reassuring trend, the newest funding formula used for Evidence-Based-Fuding by CPS appears to have increased the number of schools spending more per student.
 ```{r gganimate_budget, fig, fig.height=12, fig.width=15, message=FALSE, warning=FALSE}
  
 library(gganimate)
@@ -1056,7 +1258,7 @@ ggplot(aes(NONWHITE_PCT, AVG_SPEND_PER_STUDENT, frame = as.integer(YEAR))) +
         axis.text.y = element_text(margin=unit(c(0,0,0,2),"lines")),
         axis.text.x = element_text(margin=unit(c(2,0,0,0),"lines")),
         panel.grid.minor.y = element_blank(),
-        axis.text = element_text(size=rel(0.75)),\
+        axis.text = element_text(size=rel(0.75)),
         axis.title.x = element_text(size=rel(1.25), family = "Ledger"),
         plot.subtitle = element_text(size=rel(0.9)),
         legend.text = element_text(size=rel(0.75)),
@@ -1070,7 +1272,7 @@ ggplot(aes(NONWHITE_PCT, AVG_SPEND_PER_STUDENT, frame = as.integer(YEAR))) +
   ) +
   # add animation
   labs(subtitle = 'Average Spend per student by Class Size, School Predominant Rance in Year: {frame_time}', x = 'Non-White Student Percentage', y = 'Average Spend per Student',
-       title = "Spread of Spend per Student Increases after 2018 School Funding\nFormula Changes",
+       title = "Spread of Spend per Student Increases for Predominantly Non-White Schools\nafter 2018 School Funding Formula Changes",
        caption="Data Source: Illinois State Board of Education", color="Predominant Race", size="Average Class Size") +
   transition_components(as.integer(YEAR), enter_length = as.integer(2), exit_length=as.integer(2),range=c(as.integer(2012), as.integer(2019))) +
   # gganimate::transition_time(time=as.integer(YEAR)) +
@@ -1084,5 +1286,27 @@ ggplot(aes(NONWHITE_PCT, AVG_SPEND_PER_STUDENT, frame = as.integer(YEAR))) +
 ```
 
 
+```{r include=FALSE, eval=FALSE}
+LI_parts <- parts_all  %>% dplyr::select(SPEND_RANGE, `Low-Income`, `Not Low-Income`) %>% gather("income_status", "value", -SPEND_RANGE)
+
+library(ggwaffle)
+waffle_data <- waffle_iron(LI_parts, aes_d(group = income_status))
+ggplot(waffle_data, aes(x, y, fill = group)) + 
+  geom_waffle() + 
+  coord_equal() + 
+  scale_fill_waffle() + 
+  theme_waffle() 
+```
 
 
+### Resources:
+
+Illinois State Board of Education, [Report Card Data Library](https://www.isbe.net/Pages/Illinois-State-Report-Card-Data.aspx) 2013-2019
+
+Chicago Public Schools, [Find Your School Budget](https://biportal.cps.edu/analytics/saw.dll?Dashboard) 2013-2019
+
+Chicago Public Schools, [School Demographic Data](https://cps.edu/SchoolData/Pages/SchoolData.aspx) 2013-2019
+
+Chicago Department of Business Affairs and Consumer Protection, [Business Licenses Dataset](https://data.cityofchicago.org/Community-Economic-Development/Business-Licenses/r5kz-chrr) 2012-2018
+
+U.S. Census Bureau, ACS 5-Year Tables 2012-2017
