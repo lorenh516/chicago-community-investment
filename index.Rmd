@@ -153,7 +153,7 @@ theme_modest <- function(base_size = 16,
                 base_line_size = base_line_size)  %+replace%
     theme(
         axis.title = element_text(size = rel(0.75)),
-        axis.title.y = element_text(margin=unit(c(0,0,0,2),"lines")),
+        axis.title.y = element_text(margin=unit(c(0,0,0,2),"lines"), size=rel(1.25)),
         axis.title.x = element_text(margin=unit(c(2,0,0,0), "lines")),
         axis.text = element_text(size = rel(0.75)),
         axis.ticks=element_line(colour="grey", size=0.5),
@@ -171,7 +171,7 @@ theme_modest <- function(base_size = 16,
         legend.justification = "center", 
         plot.background = element_rect(colour = NA, fill="#fffbe6"),
         plot.margin = unit(c(3,3,3,3),"lines"),
-        plot.title = element_text(size = rel(1), face = "bold", hjust="0.5",
+        plot.title = element_text(size = rel(1.5), face = "bold", hjust="0.5",
                                   margin =unit(c(0,0,1,0), "lines"), family="Ledger"),
         plot.subtitle = element_text(size = rel(0.75), hjust="0.5",  
                                      margin = unit(c(0,0,2,0), "lines"), family="Ledger"),
@@ -469,9 +469,9 @@ arg_values_demos <- c(
 )
 ```
 
-
+## Population Displacement in Chicago Communities
 In the last decade, underrepresented minority populations in Chicago have been increasingly relegated to lower income areas in the South and West of the City. 
-```{r facet_wrap_demo_info, message=FALSE, warning=FALSE, fig.width=30, fig.height=20}
+```{r facet_wrap_demo_info, message=FALSE, warning=FALSE, fig.width=30, fig.height=24}
 all_demos_range <- readRDS(here::here("data", "range_demos_chi_proj.Rda"))
 wards.2015 <- readRDS(here::here("data", "wards2015_sf.Rda"))
 
@@ -479,41 +479,74 @@ ward_range <- st_intersection(wards.2015, all_demos_range)
 
 # plot intersection of Census tracts with chicago wards
 # st_intersection(wards.2015, all_demos_range) %>%
-ward_range %>% 
+ward_range %>% filter((predominant_race == "Latinx") & (id != 2015)) %>%
 ggplot() +
   # outline tracts based on predominant race based on Census, shaded by median Income for tract
-  # geom_sf(aes(alpha=medianIncome), lwd = 0, fill=get_dt_cols("ocean")) +
-  # geom_sf(data = ward_range %>% filter(predominant_race != "White"), aes(color=predominant_race), lwd = 2, fill=NA) +
-  geom_sf(aes(alpha=medianIncome, color=predominant_race), lwd = 2, fill="#318791") +
-  # scale_alpha(range = c(0.15, 1)) +
+  geom_sf(aes(fill=below_poverty_pct), lwd = 2, color="#6d7d53") +
+
+  scale_fill_gradient(low = "#76BFBB", high="#2d3d61") +
   
   # outline Chicago wards over data
-  geom_sf(data = wards.2015, color="black", lwd = 0.5, fill=NA) +
-  scale_color_manual(values=c("Asian" = "#986769", 
-                              "Black" = "#9d8e64", 
-                              "Latinx" = "#6d7d53", 
-                              "White"=NA)) +
-  # scale_color_dt("diverging",reverse = TRUE, na.value=get_dt_cols("palegray")) +
+  geom_sf(data = wards.2015, color=get_dt_cols("mauve"), lwd = 1, fill=NA) +
+
   coord_sf(datum = NA) +
   theme_map_modest() + 
   theme(
         plot.title = element_text(face = "bold", hjust="0.5", family = "Ledger", size=rel(2.5)),
-        plot.subtitle = element_text(margin = unit(c(0, 0, 1, 0), "lines"), size=rel(1.5)),
-        plot.caption = element_text(hjust=1),
-        strip.text.x = element_text(family="Ledger", size=rel(1.5)),
-        legend.position = "top",
-        legend.title = element_text(size=rel(1.25)),
+        plot.subtitle = element_text(margin = unit(c(0, 0, 1, 0), "lines"), size=rel(2)),
+        plot.caption = element_text(hjust=1, size=rel(1.75)),
+        strip.text.x = element_text(family="Ledger", size=rel(2.25)),
+        legend.position = "bottom",
+        legend.box = "vertical",
+        legend.title = element_text(size=rel(2), family = "Ledger"),
+        legend.text = element_text(size=rel(1.1)),
+        legend.key.size = unit(45, "pt"),
+        panel.spacing = unit(1, "lines"),
+        plot.margin = unit(c(2,4,2,2),"lines")
+        ) +
+  facet_wrap(~ id) + 
+  guides(fill = guide_colourbar(title.position="top", title.hjust = 0.5)) + 
+  labs(alpha = "Median Income", color="Predominant Race", title="Latinx Populations in Chicago Pushed to South, West Neighborhoods", caption="Data Source: U.S. Census Bureau", 
+       subtitle = "Chicago racial and ethnic group movement by census tract since 2012 (5 year averages) show that Latinx communities are being\ndisplaced from the city center.", fill="Tract Percentage Below Poverty") 
+
+
+  
+```
+
+
+```{r facet-wrap-black, message=FALSE, warning=FALSE, fig.width=30, fig.height=24}
+ward_range %>% filter((predominant_race == "Black") & (id != 2015)) %>%
+ggplot() +
+  # outline tracts based on predominant race based on Census, shaded by median Income for tract
+  # geom_sf(aes(alpha=below_poverty_pct), lwd = 0, fill=get_dt_cols("ocean")) +
+
+  geom_sf(aes(fill=below_poverty_pct), lwd = 2, color="#9d8e64") +
+  # scale_alpha(range = c(0.15, 1)) +
+  scale_fill_gradient(low = "#76BFBB", high="#2d3d61") +
+  # outline Chicago wards over data
+  geom_sf(data = wards.2015, color=get_dt_cols("mauve"), lwd = 1, fill=NA) +
+  coord_sf(datum = NA) +
+  theme_map_modest() + 
+  theme(
+        plot.title = element_text(face = "bold", hjust="0.5", family = "Ledger", size=rel(2.5)),
+        plot.subtitle = element_text(margin = unit(c(0, 0, 1, 0), "lines"), size=rel(2)),
+        plot.caption = element_text(hjust=1, size=rel(1.75)),
+        strip.text.x = element_text(family="Ledger", size=rel(2.25)),
+        legend.position = "bottom",
+        legend.box = "vertical",
+        legend.title = element_text(size=rel(2), family = "Ledger"),
         legend.text = element_text(size=rel(1.1)),
         legend.key.size = unit(45, "pt"),
         panel.spacing = unit(1, "lines"),
         plot.margin = unit(c(2,4,2,2),"lines")
         ) +
   facet_wrap(~ id) +
-  labs(alpha = "Median Income", color="Predominant Race", title="Latinx Populations in Chicago Pushed to South, West Neighborhoods", caption="Data Source: U.S. Census Bureau", subtitle = "Chicago racial and ethnic group movement by census tract since 2012 (5 year averages)") 
+  guides(fill = guide_colourbar(title.position="top", title.hjust = 0.5)) + 
+  labs(alpha = "Median Income", color="Predominant Race", title="In Contrast, Black Communities Stay in Place in Increasingly Poor Neighborhoods ", caption="Data Source: U.S. Census Bureau", 
+       subtitle = "Black communities are not pushed out of their neighborhoods, however, the percentage of residents below the federal poverty line\nin predominantly Black tracts has increased city-wide.", fill="Tract Percentage Below Poverty") 
 
-
-  
 ```
+
 
 ```{r include=FALSE, eval=FALSE}
 demos_2012 <- st_join(all_demos_range %>% filter(as.numeric(id) == 2012), wards.2015, largest=TRUE, agr=arg_values_demos)
@@ -525,7 +558,7 @@ demos_2012 %>% dplyr::select(GEOID, id, medianIncome, predominant_race, max_pct,
 
 ```
 
-## Business Activity by Chicago Side Over Time
+## Business Activity across Chicago Areas
 ```{r bus-stagnation-bar, fig.height=12, fig.width=15, message=FALSE, warning=FALSE}
 
 all_wards_all_dates <-  readRDS(here::here("data", "all_wards_all_dates.Rda"))
@@ -568,8 +601,8 @@ allDatesCount.df %>%
         panel.grid.major.x = element_blank(),
         panel.spacing = unit(2, "lines"),
         strip.text = element_text(family="Ledger", size=rel(1.2)),
-        axis.title.y = element_text(size=rel(1.5), margin=unit(c(0,3,0,0),"lines"), angle=90, family="Ledger"),
-        axis.text.y = element_text(size=rel(0.85)),
+        axis.title.y = element_text(size=rel(1.5), margin=unit(c(0,0,2,2), "lines"), angle=90, family="Ledger"),
+        axis.text.y = element_text(size=rel(1), margin=unit(c(0,0,2,2), "lines")),
         axis.text.x = element_text(hjust = 0, angle=-45),
         axis.title.x = element_blank(),
         plot.margin = unit(c(2,4,2,2),"lines")) + 
@@ -676,9 +709,10 @@ bus_licenses %>% filter(!is.na(WARD), active==1,  activity_date >= mdy("1/1/2012
         plot.caption = element_text(hjust=1)
         ) +
   annotate("text", x = 7 , y= 390, label="Most West Side business\noccurs in Wards 2 and 27,\nwhich border the Loop.", size=rel(4)) +
-  annotate("text", x = 9 , y= 745, label="The Central area is comprised\nof Ward 42, the Loop area.", size=rel(4)) +
+  annotate("text", x = 8.9 , y= 745, label="The Central area is comprised\nof Ward 42, the Loop area.", size=rel(4)) +
   annotate("text", x = 5 , y= 335, label="South Side business activity\nis concentrated in Kenwood,\n Fuller Park areas bordering\nthe University of Chicago.", size=rel(4)) +
-  annotate("text", x = 3 , y= 305, label="Ward 12 on the Southwest\nSide bordering Chinatown is\ncharacterized by higher rates\nof business activity than\nits neighbors.", size=rel(4))
+  annotate("text", x = 3 , y= 305, label="Ward 12 on the Southwest\nSide bordering Chinatown is\ncharacterized by higher rates\nof business activity than\nits neighbors.", size=rel(4)) +
+  annotate("text", x=-0.25, y=25, label="25",size=rel(1), color=get_dt_cols("mauve"), face="bold")
   
 ```
 
@@ -825,11 +859,11 @@ bus_licenses %>% filter(!is.na(WARD), active==1,  activity_date >= mdy("1/1/2012
           axis.text.y = element_blank(),
           panel.grid.minor=element_blank(),
           panel.grid.major=element_blank(),
-          plot.title = 
-        )+
+          plot.title = element_text(size=rel(1.5))
+        ) +
         # plot.subtitle = element_text(hjust=0.35)) +
-  labs(title="Amid City-Wide Turnout Dropoff, Significantly Higher\nVoter Activation in Far Southwest Side", 
-         subtitle="Voters in the Far Southeast, which has faced de-investment\nas determined by a number of factors, far exceeded other areas' participation\nin the last two City Council elections.", 
+  labs(title="Amid City-Wide Turnout Dropoff, Significantly Higher Voter Activation in Far Southwest Side", 
+         subtitle="Voters in the Far Southeast, which has faced de-investment as determined by a number of factors, far exceeded other areas'\nparticipation in the last two City Council elections.", 
          caption="Source: Chicago Board of Election Commissioners", color="Chicago Area") +
   annotate("text",  x = 1, y = 25, label = "*Underlying ward trends visualized\nbehind Side trendlines", size=rel(4)) + 
     annotate("text", x = 0.8, y = 65, label="Ward 19 on the Far Southwest\nSide, which contains the Beverly\nand Morgan Park neighborhoods,\nhad voter turnout of nearly 75%\n in the 2011 City Council Election.", size=rel(4), hjust=0, color=get_dt_cols("mauve"))
@@ -946,7 +980,7 @@ school_data %>% group_by(`SCHOOL ID (R-C-D-T-S)`, predominant_race) %>%
                    labels = c("Majority Asian Schools", "Majority Black Schools",
                              "Majority Latinx Schools", "Majority White Schools")) +
   theme_modest() + 
-  theme(axis.text.x.top = element_text(size=rel(1.15), vjust = -8, face="bold"),
+  theme(axis.text.x.top = element_text(size=rel(1.25), vjust = -8, face="bold"),
         axis.text.y = element_text(size=rel(1), margin=unit(c(0,0,0,3),"lines")),
         axis.title.y = element_text(size=rel(1), angle = 90, family = "Ledger"),
         axis.title.x = element_blank()
@@ -991,7 +1025,7 @@ school_data %>% mutate(NONWHITE_PCT = (100 - as.numeric(`SCHOOL - WHITE %`)),
   dplyr::select(front_cols, predominant_race, NONWHITE_PCT, DIFF_NONWHITE, everything()) %>%   
 ggplot(aes(NONWHITE_PCT, AVG_SPEND_PER_STUDENT, frame = as.integer(YEAR))) +
   geom_point(alpha = 0.5, show.legend = FALSE, aes(size = `OVERALL AVERAGE CLASS SIZE - SCHOOL`,
-           colour = predominant_race)) +
+           colour = predominant_race, group=`SCHOOL ID (R-C-D-T-S)`)) +
   scale_size(range = c(2, 12)) +
   scale_color_dt("diverging", reverse = TRUE, na.value=get_dt_cols("palegray")) +
   enter_fade() +
@@ -1001,18 +1035,21 @@ ggplot(aes(NONWHITE_PCT, AVG_SPEND_PER_STUDENT, frame = as.integer(YEAR))) +
         axis.text.y = element_text(margin=unit(c(0,0,0,2),"lines")),
         axis.text.x = element_text(margin=unit(c(2,0,0,0),"lines")),
         panel.grid.minor.y = element_blank(),
-        axis.text = element_text(size=rel(0.5)),
-        axis.title.x = element_text(size=rel(0.75), family = "Ledger"),
-        plot.subtitle = element_text(size=rel(0.65), hjust = 1),
-        plot.title = element_text(size=rel(0.90), hjust = .5),
-        axis.title.y = element_text(size=rel(0.75), angle = 90, family = "Ledger")
+        axis.text = element_text(size=rel(1)),
+        axis.title.x = element_text(size=rel(1.25), family = "Ledger"),
+        plot.subtitle = element_text(size=rel(1.25), hjust = 1),
+        plot.title = element_text(size=rel(1.5), hjust = .5),
+        plot.caption = element_text(size=rel(1)),
+        axis.title.y = element_text(size=rel(1.25), angle = 90, family = "Ledger")
   ) +
   
   # Here comes the gganimate specific bits
   labs(subtitle = 'Year: {frame_time}', x = 'Non-White Student Percentage', y = 'Average Spend per Student',
-       title = "Spread of Spend per Student Increases\nafter 2017, 2018 School Funding Formula Changes") +
-  # transition_components(`SCHOOL ID (R-C-D-T-S)`, as.integer(YEAR)) +
-  gganimate::transition_time(time=as.integer(YEAR)) +
+       title = "Spread of Spend per Student Increases after 2018 School Funding Formula Changes") +
+  transition_components(as.integer(YEAR), enter_length = as.integer(1), exit_length=as.integer(2)) +
+  # gganimate::transition_time(time=as.integer(YEAR)) +
+  exit_fade() +
+  enter_grow() +
   ease_aes('sine-in-out')
 
 ```
@@ -1051,11 +1088,17 @@ school_data %>% group_by(YEAR, SIDE) %>%
     scale_fill_dt(na.value=get_dt_cols("palegray")) +
   theme_modest() +
   theme(legend.text = element_text(size=rel(1)),
-        legend.title = element_text(size=rel(1)),
-        axis.title.x = element_text(family = "Ledger"),
-        axis.title.y = element_text(angle = 90, family = "Ledger")
+        legend.title = element_text(size=rel(1), family = "Ledger"),
+        plot.caption = element_text(hjust=1, size=rel(0.75)),
+        panel.grid.minor = element_blank(),
+        legend.position = "bottom",
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(angle = 90, family = "Ledger", size=rel(1.25), 
+                                    margin=unit(c(0,0,2,2), "lines")),
+        axis.text.y = element_text( margin=unit(c(0,2,2,2), "lines"))
         ) +
-          labs(y= "Median Spend per Student", x="Year", caption="Data Source: Chicago Public Schools, Find Your School Budget & Illinois State Board of Education, Annual Report Cards")
+      guides(colour = guide_legend(title.position="top", title.hjust = 0.5)) +
+          labs(y= "Median Spend per Student", x="Year", caption="Data Source: Chicago Public Schools & Illinois State Board of Education", title="Average Spending per Student Largely Similar Across Chicago Sides")
 ```
 
 ```{r include= FALSE}
