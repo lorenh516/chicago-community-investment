@@ -263,7 +263,15 @@ bl <- bus_licenses %>% filter(activity_yr >= 2012,
     labs(y="Latitude", x="Longitude", colour="Year", subtitle = 'Date: {frame_time}',
          title="Virtually No New Business Entry in South, Far Southeast,\nFar Southwest Sides since 2012", 
          caption = "Data Source: City of Chicago Department of Business Affairs and Consumer Protection"
-         ) +
+         ) +   annotate("text", x=-88, y = 42, hjust=0, parse=TRUE, label=expression(("While a number of ") * phantom("renewals") * phantom( "take place in the southernmost wards, very few ") * phantom("new business licenses") * phantom("have been issued to businesses in these areas.")), size = rel(3)) +
+    
+  annotate("text", x=-88, y = 42, hjust=0, parse=TRUE, label=expression(phantom("While a number of ") * ("renewals") * phantom( "take place in the southernmost wards, very few ") * phantom("new business licenses") * phantom("have been issued to businesses in these areas.")), color = "#ebb742", size = rel(3)) +
+    
+annotate("text", x=-88, y = 42, hjust=0, parse=TRUE, label=expression(phantom("While a number of ") * phantom("renewals") * ( "take place in the southernmost wards, very few ") * phantom("new business licenses") * phantom("have been issued to businesses in these areas.")), size = rel(3)) +
+    
+annotate("text",x=-88, y = 42, hjust=0, parse=TRUE, label=expression(phantom("While a number of ") * phantom("renewals") * phantom( "take place in the southernmost wards, very few ") * ("new business licenses") * phantom("have been issued to businesses in these areas.")),color = "##358790", size = rel(3)) +
+    
+annotate("text", x=-88, y = 42, hjust=0, parse=TRUE, label=expression(phantom("While a number of ") * phantom("renewals") * phantom( "take place in the southernmost wards, very few ") * phantom("new business licenses") * ("have been issued to businesses in these areas.")), size = rel(3)) +
     theme_modest() + 
     theme(
       panel.border = element_blank(),
@@ -284,17 +292,7 @@ bl <- bus_licenses %>% filter(activity_yr >= 2012,
     transition_components(time=activity_month) +
   enter_grow() +
   exit_fade() +
-  ease_aes('cubic-in-out') +
-  
-  annotate("text", x=-88, y = 42, hjust=0, parse=TRUE, label=expression(("While a number of ") * phantom("renewals") * phantom( "take place in the southernmost wards, very few ") * phantom("new business licenses") * phantom("have been issued to businesses in these areas.")), size = rel(3)) +
-    
-  annotate("text", x=-88, y = 42, hjust=0, parse=TRUE, label=expression(phantom("While a number of ") * ("renewals") * phantom( "take place in the southernmost wards, very few ") * phantom("new business licenses") * phantom("have been issued to businesses in these areas.")), color = "#ebb742", size = rel(3)) +
-    
-annotate("text", x=-88, y = 42, hjust=0, parse=TRUE, label=expression(phantom("While a number of ") * phantom("renewals") * ( "take place in the southernmost wards, very few ") * phantom("new business licenses") * phantom("have been issued to businesses in these areas.")), size = rel(3)) +
-    
-annotate("text",x=-88, y = 42, hjust=0, parse=TRUE, label=expression(phantom("While a number of ") * phantom("renewals") * phantom( "take place in the southernmost wards, very few ") * ("new business licenses") * phantom("have been issued to businesses in these areas.")),color = "##358790", size = rel(3)) +
-    
-annotate("text", x=-88, y = 42, hjust=0, parse=TRUE, label=expression(phantom("While a number of ") * phantom("renewals") * phantom( "take place in the southernmost wards, very few ") * phantom("new business licenses") * ("have been issued to businesses in these areas.")), size = rel(3))
+  ease_aes('cubic-in-out')
 
 ```
 
