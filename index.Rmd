@@ -37,6 +37,7 @@ library(extrafont)
 # loadfonts()
 library(swatches)
 library(ggbeeswarm)
+library(cowplot)
 
 # mapping tools
 library(raster)
@@ -97,7 +98,7 @@ dt_palettes <- list(
   `diverging` = get_dt_cols("darkteal", "goldenrod", "forest", "honeymustard", "ocean", "mauve"),
   `cool`  = get_dt_cols("darkteal", "forest", "plankton", "ocean"),
   `desert`   = get_dt_cols("mauve", "goldenrod", "cocoa", "honeymustard"),
-  `mixed` = get_dt_cols("mauve", "goldenrod", "darkteal", "forest", "cocoa", "plankton", "honeymustard"),
+  `mixed` = get_dt_cols("mauve", "ocean", "honeymustard", "forest", "cocoa", "plankton", "honeymustard"),
   `grey`  = get_dt_cols("palegray", "darkgray")
 )
 ```
@@ -216,11 +217,8 @@ bus_licenses <- bus_licenses %>% mutate(SIDE = ifelse(SIDE == "Far Southwest", "
 # investigate nonstandard zip codes flagged -- looks like int'l businesses operating in Chicago
 # opting not not to remove
 # bind_cols(bus_licenses[unlist(problems(bus_licenses)[, 'row']), c('LICENSE ID', 'LEGAL NAME', 'DOING BUSINESS AS NAME', 'ADDRESS', 'CITY', 'STATE', 'BUSINESS ACTIVITY')], problems(bus_licenses)[, 'actual']) %>% arrange(ADDRESS) %>% distinct(`DOING BUSINESS AS NAME`, `BUSINESS ACTIVITY`, ADDRESS, CITY, STATE, actual)
-```
 
-
-```{r add-lic-cols, include=FALSE}
-# add columns for 
+# add columns calculating license status and term 
 # bus_licenses <- mutate(bus_licenses, 
 #                        active=ifelse(grepl("AAI",`LICENSE STATUS`),1,0),
 #                        app_review = difftime(mdy(`LICENSE APPROVED FOR ISSUANCE`,tz="America/Chicago"), mdy(`APPLICATION REQUIREMENTS COMPLETE`,tz="America/Chicago"),unit="days"),
@@ -234,13 +232,10 @@ bus_licenses <- bus_licenses %>% mutate(SIDE = ifelse(SIDE == "Far Southwest", "
 ```
 
 
-```{r include=FALSE}
-# wardSides <- read_csv(here::here("data", "wardSides.csv"))
-```
+```{r add-ward-sides, include=FALSE}
 
 
-
-```{r, include=FALSE}
+# add ward information
 # bus_licenses <- bus_licenses %>% mutate(activity_wk = lubridate::as_date(cut(activity_date, breaks = "week", start.on.monday = FALSE, origin = lubridate::origin)))
 # bus_licenses <- left_join(bus_licenses, wardSides, by="WARD")
 # saveRDS(bus_licenses, file = here::here("data", "bus_licenses.Rda"))
@@ -265,9 +260,7 @@ bus_licenses %>% group_by(activity_date, WARD) %>% summarise(business_count = n(
 ```{r check-2012-spike, include=FALSE}
 # look into spike around beginning of 2013
 # bus_licenses %>% group_by(activity_date, WARD) %>% summarise(bus_count = n()) %>% summarise(max_activity = max(bus_count)) %>% arrange(desc(max_activity))
-```
 
-```{r pre-2015-licensing, echo=FALSE, include=FALSE}
 # bus_licenses %>% filter(active==1, activity_date < mdy("1/1/2015"), !is.na(WARD), !(activity_date== mdy("12/29/2012"))) %>%
 #   group_by(activity_date, WARD) %>% summarise(business_count = n()) %>% 
 #   ggplot() + geom_line(aes(x=activity_date, y=business_count, colour=as.factor(WARD))) +
@@ -282,21 +275,12 @@ bus_licenses %>% group_by(activity_date, WARD) %>% summarise(business_count = n(
 ```
 
 
-```{r save-pre-2015-licensing, include=FALSE}
-# ggsave("pre_2015_licensing.pdf", width = 30, height = 15, units = "cm")
-```
-
-
-
-
-```{r import-former-wards, include=FALSE}
+```{r import-former-wards, include=FALSE, eval=FALSE}
 # wardsPre2015 <- sf::st_read(here::here("data","Geofiles - Chicago Zip Code and Neighborhood", "Boundaries - Wards (2003-2015)","geo_export_fa687596-87b6-4059-afac-b28ce789a674.shp"))
 # 
 # wardsPre2015 <-wardsPre2015 %>% mutate(lon=map_dbl(geometry, ~st_centroid(.x)[[1]]), # add centroid values for labels
 #                                     lat=map_dbl(geometry, ~st_centroid(.x)[[2]])) # add centroid values for labels
 ```
-
-
 
 
 ```{r include=FALSE}
@@ -421,48 +405,78 @@ getDemos(2017)
 ```
 
 
+```{r fortify-mapping, message=FALSE, include=FALSE, eval=FALSE}
+# import ward boundaries as sf object
+wards.2015 <- sf::st_read(here::here("data","Geofiles - Chicago Zip Code and Neighborhood","Boundaries - Wards (2015-)","geo_export_0bb2e9fd-20ca-415b-a96a-7722d72c1b41.shp"))
+
+# add centroid values for labels to wards sf object
+wards.2015 <- wards.2015  %>% mutate(
+  long=map_dbl(geometry, ~st_centroid(.x)[[1]]), 
+  lat=map_dbl(geometry, ~st_centroid(.x)[[2]]))
+
+# add sides column
+wardSides <- read_csv(here::here("data", "wardSides.csv"))
+wardSides <- wardSides %>% mutate(WARD = as.factor(WARD))
+wards.2015 <- left_join(wards.2015, wardSides, by=c(ward = "WARD"))
+
+saveRDS(wards.2015, file = here::here("data", "wards2015_sf.Rda"))
+```
+
 
 ```{r message=FALSE,  include = FALSE, eval=FALSE}
-years <- list(2012, 2013, 2014, 2015, 2016, 2017)
+years <- list(2012, 2013, 2015, 2017)
 multi_year <-
   map(.x = years, .f=demoConversion, geoms=TRUE) %>%
   map2(.y = years, ~ mutate(.x, id = .y))
 
-all_demos <- reduce(multi_year, rbind)
-# all_demos_range <- reduce(multi_year, rbind)
+# all_demos <- reduce(multi_year, rbind)
+all_demos_range <- reduce(multi_year, rbind)
 
 # match census sf object to Chicago wards projection
-all_demos <-st_transform(all_demos, crs =  st_crs(wards.2015))
+# all_demos <-st_transform(all_demos, crs =  st_crs(wards.2015))
+all_demos_range <-st_transform(all_demos_range, crs =  st_crs(wards.2015))
 
-saveRDS(all_demos, file = here::here("data", "all_demos_chi_proj.Rda"))
+# saveRDS(all_demos, file = here::here("data", "all_demos_chi_proj.Rda"))
+saveRDS(all_demos_range, file = here::here("data", "range_demos_chi_proj.Rda"))
+```
+
+```{r include = FALSE}
+arg_values_demos <- c(
+ "GEOID" = "identity", "NAME" = "identiy", "id"="identity", "medianIncome" = "aggregate",
+ "perCapitaIncome" = "aggregate", "population" = "aggregate", "medAgemovedInside" = "aggregate",
+ "asian_pct" = "aggregate", "black_pct" = "aggregate", "latinx_pct" = "aggregate", "white_pct" = "aggregate",
+ "other_pct" = "aggregate", "below_poverty_pct" = "aggregate", "childMedicaid_pct" = "aggregate",
+ "childMedicare_pct" = "aggregate", "takeupMedicare_pct" = "aggregate",  "takeupMedicaid_pct" = "aggregate",
+ "households_kidsSNAP_pct"="aggregate", "takeupSNAP_pct" = "aggregate", "YAmovesInChi_pct" = "aggregate",
+ "movesInChi_pct" = "aggregate", "immigrant_pct" = "aggregate", "renting_pct" = "aggregate",
+ "public_transport_pct" = "aggregate", "asianPop" = "aggregate", "belowPovertyPop" = "aggregate",
+ "blackPop" = "aggregate", "citizenshipPop" = "aggregate", "femaleChildMedicaid" = "aggregate",
+ "femaleChildMedicare" = "aggregate", "femaleMedicaid18_64" = "aggregate", "femaleMedicaid65_up" = "aggregate",
+ "femaleMedicare18_64"  = "aggregate", "femaleMedicare65_up" = "aggregate", "households" = "aggregate",
+ "householdsKidsSNAP","householdsSNAP" = "aggregate", "kidsHealthIns" = "aggregate", "latinxPop" = "aggregate",
+ "maleChildMedicaid" = "aggregate",  "maleChildMedicare" = "aggregate", "maleMedicaid18_64" = "aggregate",
+ "maleMedicaid65_up" = "aggregate", "maleMedicare18_64" = "aggregate", "maleMedicare65_up" = "aggregate",
+ "medicaidPop" = "aggregate", "medicarePop" = "aggregate", "mobilityPop" = "aggregate",
+ "movedInside20to24" = "aggregate", "movedInside25to29" = "aggregate", "movedInsideCounty" = "aggregate",
+ "naturalized" = "aggregate", "noncitizen" = "aggregate", "owners" = "aggregate",
+ "publicTransport" = "aggregate", "renterPop" = "aggregate", "renters" = "aggregate", "transportPop" = "aggregate", "whitePop" = "aggregate",  "predominant_race" = "aggregate", "max_pct" = "aggregate"
+)
 ```
 
 
-```{r fortify-mapping, message=FALSE, include=FALSE, eval=FALSE}
 
-# wards.2015 <- sf::st_read(here::here("data","Geofiles - Chicago Zip Code and Neighborhood","Boundaries - Wards (2015-)","geo_export_0bb2e9fd-20ca-415b-a96a-7722d72c1b41.shp"))
-```
-
-```{r  include=FALSE, eval=FALSE}
-
-# 
-# all_demos_range <-st_transform(all_demos_range, crs =  st_crs(wards.2015))
-
-
-
-
-# add centroid values for labels
-# wards.2015 <- wards.2015  %>% mutate(long=map_dbl(geometry, ~st_centroid(.x)[[1]]), # add centroid values for labels
-#                                                       lat=map_dbl(geometry, ~st_centroid(.x)[[2]]))
-# wards.2015 <- merge(wards.2015, read_csv(here::here("data", "wardSides.csv")))
-
-# saveRDS(wards.2015, file = here::here("data", "wards2015_sf.Rda"))
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 
 # limit Census data to tracts within Chicago ward boundaries
-# # all.demos.Chi <- st_intersection(all_demos, wards.2015.acs.proj)
+# all.demos.Chi <- st_intersection(all_demos, wards.2015.acs.proj)
 # colnames(all_demos)
 
 # wards_w_demos <- st_join(wards.2015, all_demos_range)
+
+demos_2012 <- st_join(all_demos_range %>% filter(as.numeric(id) == 2012), wards.2015, largest=TRUE, agr=arg_values_demos)
+demos_2013 <- st_join(all_demos_range %>% filter(as.numeric(id) == 2013), wards.2015, largest=TRUE, agr=arg_values_demos)
+demos_2015 <- st_join( all_demos_range %>% filter(as.numeric(id) == 2015), wards.2015, largest=TRUE, agr=arg_values_demos)
+demos_2017 <- st_join( all_demos_range %>% filter(as.numeric(id) == 2017), wards.2015, largest=TRUE, agr=arg_values_demos)
 
 ```
 
@@ -470,48 +484,25 @@ saveRDS(all_demos, file = here::here("data", "all_demos_chi_proj.Rda"))
 In the last decade, underrepresented minority populations in Chicago have been increasingly relegated to lower income areas in the South and West of the City. 
 ```{r facet_wrap_demo_info, message=FALSE, warning=FALSE, fig.width=10, fig.height=15, eval=FALSE}
 
-# 
+# all_demos_range <- readRDS(here::here("data", "all_demos_chi_proj.Rda"))
 # all_demos <- readRDS(here::here("data", "all_demos_chi_proj.Rda"))
 # 
-wards.2015 <-  readRDS(here::here("data", "wards2015_sf.Rda"))
-all_demos <-  readRDS(here::here("data", "all_demos_chi.Rda"))
+# wards.2015 <-  readRDS(here::here("data", "wards2015_sf.Rda"))
+# all_demos <-  readRDS(here::here("data", "all_demos_chi.Rda"))
 
-selected_demos <- all_demos %>% filter(id %in% c(2012, 2015, 2017))
 
-wards_selected_demos <- st_join(wards.2015, 
-                                st_transform(selected_demos, crs = st_crs(wards.2015))
-                                )
-# agr = c(
-#  "GEOID" = "identity", "NAME" = "identiy", "id"="identity", "medianIncome" = "aggregate", 
-#  "perCapitaIncome" = "aggregate", "population" = "aggregate", "medAgemovedInside" = "aggregate",  
-#  "asian_pct" = "aggregate", "black_pct" = "aggregate", "latinx_pct" = "aggregate", "white_pct" = "aggregate",
-#  "other_pct" = "aggregate", "below_poverty_pct" = "aggregate", "childMedicaid_pct" = "aggregate", 
-#  "childMedicare_pct" = "aggregate", "takeupMedicare_pct" = "aggregate",  "takeupMedicaid_pct" = "aggregate",
-#  "households_kidsSNAP_pct"="aggregate", "takeupSNAP_pct" = "aggregate", "YAmovesInChi_pct" = "aggregate", 
-#  "movesInChi_pct" = "aggregate", "immigrant_pct" = "aggregate", "renting_pct" = "aggregate", 
-#  "public_transport_pct" = "aggregate", "asianPop" = "aggregate", "belowPovertyPop" = "aggregate", 
-#  "blackPop" = "aggregate", "citizenshipPop" = "aggregate", "femaleChildMedicaid" = "aggregate", 
-#  "femaleChildMedicare" = "aggregate", "femaleMedicaid18_64" = "aggregate", "femaleMedicaid65_up" = "aggregate",
-#  "femaleMedicare18_64"  = "aggregate", "femaleMedicare65_up" = "aggregate", "households" = "aggregate",
-#  "householdsKidsSNAP","householdsSNAP" = "aggregate", "kidsHealthIns" = "aggregate", "latinxPop" = "aggregate",
-#  "maleChildMedicaid" = "aggregate",  "maleChildMedicare" = "aggregate", "maleMedicaid18_64" = "aggregate",
-#  "maleMedicaid65_up" = "aggregate", "maleMedicare18_64" = "aggregate", "maleMedicare65_up" = "aggregate",
-#  "medicaidPop" = "aggregate", "medicarePop" = "aggregate", "mobilityPop" = "aggregate", 
-#  "movedInside20to24" = "aggregate", "movedInside25to29" = "aggregate", "movedInsideCounty" = "aggregate", 
-#  "naturalized" = "aggregate", "noncitizen" = "aggregate", "owners" = "aggregate", 
-#  "publicTransport" = "aggregate", "renterPop" = "aggregate", "renters" = "aggregate", "transportPop" = "aggregate", "whitePop" = "aggregate",  "predominant_race" = "aggregate", "max_pct" = "aggregate"    
-# )
 
 # plot intersection of Census tracts with chicago wards
-ggplot(wards_selected_demos) +
+st_intersection(wards.2015, demos_2012) %>%
+ggplot() +
   # color based on predominant race based on Census, shaded by percentage of that race
-  geom_sf(aes(fill=medianIncome), lwd = 0) +
-  scale_fill_dt("diverging", discrete=FALSE, na.value=get_dt_cols("palegrey")) +
-  scale_alpha(range = c(0.15, 1), guide="none") + 
+  geom_sf(aes(alpha=medianIncome, color=predominant_race), lwd = 2, fill=get_dt_cols("ocean")) +
+  
+  # scale_alpha(range = c(0.15, 1)) +
   
   # outline Chicago wards over data
-  geom_sf(data = wards.2015, color="black", fill=NA) +
-  
+  geom_sf(data = wards.2015, color="black", lwd = 0.5, fill=NA) +
+  scale_color_dt("diverging", reverse = TRUE, na.value=get_dt_cols("palegray")) +
   # label wards with the most movement
   # geom_text_repel(data=wards.2015 %>% filter(ward %in% c(10, 18)), 
   #                 aes(x=long, y=lat, label=ward),
@@ -542,39 +533,24 @@ ggplot(wards_selected_demos) +
   #                 hjust = 1) +
   coord_sf(datum = NA) +
   theme_map_modest() + 
-  theme(plot.margin = unit(c(20, 0, 0, 0), "pt"),
-        plot.title = element_text(face = "bold", hjust="0.5", margin = margin(t = 15)),
-        plot.subtitle = element_text( margin = margin(t = 15)),
+  theme(plot.margin = unit(c(1, 1, 1, 1), "lines"),
+        plot.title = element_text(face = "bold", hjust="0.5", family = "Ledger"),
+        plot.subtitle = element_text(margin = unit(c(0, 0, 1, 0), "lines")),
         plot.caption = element_text(hjust=1)) +
   
   # plot each year separately
-  facet_wrap( ~ id) + labs(
+  # facet_wrap( ~ id) + 
+  labs(
     title = "Latinx Populations in Chicago\nPushed to South, West Neighborhoods",
     subtitle = "Chicago Racial and Ethnic Group Movement\nby Census Tract Since 2012 (5 year averages)",
-    caption = "Data Source: U.S. Census Bureau", fill = "Predominant Race in Tract")
+    caption = "Data Source: U.S. Census Bureau",
+    alpha = "Median Income", color="Predominant Race")
   
 
 ```
 
 ```{r include=FALSE, eval=FALSE}
-# all_demos <-  readRDS(here::here("data", "all_demos_chi.Rda"))
-
-# wards_w_all_demos <- st_join(wards.2015, st_transform(all_demos, crs =  st_crs(wards.2015)), largest=TRUE)
-
-wards_w_all_demos %>% filter(YEAR %in% c(2012, 2015, 2017)) %>%
-  ggplot() + 
-    geom_sf(aes(fill=medianIncome), alpha=0.5) + 
-  scale_fill_dt("cool", discrete=FALSE, reverse=TRUE, na.value=get_dt_cols("palegray")) +
-  geom_sf(aes(color=predominant_race), fill=NA, lwd=3) +
-  scale_color_dt("diverging", discrete=TRUE, na.value=get_dt_cols("palegray"))  +
-  theme_map_modest() +
-  facet_wrap(~YEAR)
-```
-
-
-
-```{r save-bus-locs, warning=FALSE, include = FALSE, eval=FALSE}
-ggsave("ward_demographics.pdf", width = 30, height = 25, units = "cm")
+all_demos %>% dplyr::select(GEOID, id, medianIncome, predominant_race, max_pct, geometryspread()
 ```
 
 ## Business Activity by Chicago Side Over Time
@@ -619,12 +595,18 @@ allDatesCount.df %>%
         panel.grid.minor = element_blank(),
         panel.grid.major.x = element_blank(),
         panel.spacing = unit(2, "lines"),
-        strip.text = element_text(family="Ledger"),
+        strip.text = element_text(family="Ledger", size=rel(1.2)),
         axis.title.y = element_text(size=rel(1.5), margin=unit(c(0,3,0,0),"lines"), angle=90, family="Ledger"),
+        axis.text.y = element_text(size=rel(0.85)),
         axis.text.x = element_text(hjust = 0, angle=-45),
         axis.title.x = element_blank(),
-        plot.margin = unit(c(2,4,2,2),"lines")) + facet_rep_wrap(~ SIDE_CLEAN, repeat.tick.labels=TRUE) +
-      labs(y="Number of Business Licenses Issued or Renewed", colour="Chicago Council Ward", caption="Data Source: Chicago Open Data Portal",  title="New Business Never Returns to Far Southeast and Far Southwest Post-Recession", subtitle = "Steady decline in new business entry post-recession in Chicago areas with lowest economic activity pre-recession", fill="Chicago Area")  
+        plot.margin = unit(c(2,4,2,2),"lines")) + 
+  facet_rep_wrap(~ SIDE_CLEAN, repeat.tick.labels=TRUE) +
+      labs(y="Number of Business Licenses Issued or Renewed", 
+           colour="Chicago Council Ward", 
+           caption="Data Source: Chicago Open Data Portal",  
+           title="New Business Never Returns to Far Southeast and Far Southwest Post-Recession", 
+           subtitle = "Steady decline in new business entry post-recession in Chicago areas with lowest economic activity pre-recession", fill="Chicago Area")  
   # annotate("text", x=lubridate::ymd("2013-01-01"), y = 850000, label="Business renewals dipping in 2013, were balanced by spikes in new business due to EDGE tax credits.")
 ```
 Immediately post-recession in 2013, the amount of [Economic Development for a Growing Economy (EDGE) tax credits granted by Illinois nearly doubled from the prior year](https://www.chicagobusiness.com/article/20171006/NEWS02/171009915/corporate-tax-incentives-back-in-favor-in-illinois), causing a brief spike in new business issuances for every area of the city beyond Central (Loop area), which has experienced fairly constant new business entry since the recession. Thus far, only the West Side of Chicago is approaching 2012 levels of new business, with most other areas of the city remaining fairly constant after EDGE excitement tapered off. In the Far Southeast and Far Southwest Sides, where ecnomic activity (in terms of number of active businesses) was about half the next lowest areas even pre-taper, one must wonder how much growth a neighborhood can experience with a rate of new business entry that has hovered around 500 businesses operating on newly-issued licenses for months. For contrast, the mean number of quarterly new licenses issued in the Central area of the city is just under 700,000, and the mean number of quarterly licenses issued in the Northwest Side is jsut over 85,000.
@@ -664,80 +646,10 @@ bus_licenses <-bus_licenses %>% mutate(`LICENSE TERM EXPIRATION DATE` = lubridat
 
 
 
-```{r ggmapping, message=FALSE, warning=FALSE, fig.height=12, fig.width=15}
-
-# filter for 2012+ issuances and licenses 
-# count each business only once per year, unless they also had a renewal that year (term expired)
-bl <- bus_licenses %>% filter(activity_yr >= 2012, 
-                              active == 1, 
-                              `APPLICATION TYPE`%in% c('ISSUE', 'RENEW')) %>% 
-    group_by(`ACCOUNT NUMBER`, activity_date = lubridate::ymd(activity_date), `APPLICATION TYPE`, LONGITUDE, LATITUDE) %>% 
-  summarise(max_term = max(license_term), 
-            final_exp = max(`LICENSE TERM EXPIRATION DATE`))
-
-# pull in Chicago terrain map from Google Maps
-  ggmap::ggmap(ggmap::get_googlemap(center = c(lon = -87.732125, lat = 41.83379),
-                      zoom = 10, scale = 1,
-                      maptype ='terrain',
-                      color = 'color',
-                      key = Sys.getenv("GOOGLEMAPS_KEY"))) + 
-    
-    # layer licenses over each other at extremely low alpha
-    geom_point(data=bl, aes(x=LONGITUDE, y=LATITUDE, color=`APPLICATION TYPE`, group=`ACCOUNT NUMBER`), 
-               alpha = 0.10, show.legend = FALSE, na.rm = TRUE) + 
-    scale_color_dt() +
-    
-    # add Chicago Ward boundaries
-    geom_path(data = wards2015.df, aes(long,lat,group=group), color="black") +
-    geom_polygon(data = wards2015.df, aes(long,lat,group=group), fill=NA) + 
-    labs(y="Latitude", x="Longitude", colour="Year", subtitle = 'Date: {frame_time}',
-         title="Virtually No New Business Entry in South, Far Southeast,\nFar Southwest Sides since 2012", 
-         caption = "Data Source: City of Chicago Department of Business Affairs and Consumer Protection"
-         ) +
-    theme_modest() + 
-    theme(
-      panel.border = element_blank(),
-      axis.text.y = element_blank(),
-      panel.grid.major.y = element_blank(),
-      panel.grid.minor.y = element_blank(),
-      axis.title = element_blank(),
-      axis.text.x = element_blank(),
-      panel.grid.major.x = element_blank(),
-      panel.grid.minor.x = element_blank(),
-      plot.title = element_text(face = "bold", hjust="0.5", margin = margin(t = 15)),
-      plot.subtitle = element_text(hjust="0.5", margin = margin(t = 20))
-    ) +
-    
-    # zoom graph to outer ward boundaries
-    scale_x_continuous(limits = c(wards2015.df %>% dplyr::select(long) %>% min() - 0.1, wards2015.df %>% dplyr::select(long) %>% max() + 0.05), expand = c(0, 0)) +
-    scale_y_continuous(limits = c(wards2015.df %>% dplyr::select(lat) %>% min() - 0.1, wards2015.df %>% dplyr::select(lat) %>% max()) + 0.05, expand = c(0, 0)) +
-  # transition_events(start= activity_date, 
-  #                   end = final_exp,
-  #                   # range = NULL, 
-  #                   enter_length = 2, 
-  #                   exit_length = 2
-  #                   ) + 
-    transition_components(time=activity_date
-                    ) +
-  # transition_states(ymd(activity_date), 
-  #                   state_length =  as.integer(max_term),
-  #                   transition_length = 1) + 
-  enter_grow() +
-  exit_fade() +
-  ease_aes('cubic-in-out')
-```
-
-
-
 
 ```{r include=FALSE, eval=FALSE}
 
 daily_bus_by_type <-  readRDS(here::here("data", "daily_bus_by_type.Rda"))
-```
-
-
-```{r include=FALSE, eval=FALSE}
-ggsave("location_over_googlemap_zoom10.pdf", width = 36, height = 23, units = "cm")
 ```
 
 
@@ -780,7 +692,7 @@ bus_licenses %>% filter(!is.na(WARD), active==1,  activity_date >= mdy("1/1/2012
   scale_y_continuous(breaks = sort(c(seq(0, 750, by=150))), limits = c(0, 750)) +
   scale_x_discrete(breaks=unique(bus_licenses$SIDE), 
     labels=addline_format(as.factor(unique(bus_licenses$SIDE))) ) +
-  labs(x="Chicago Council Ward", y="Average Monthly Business Count", caption="Data Source: Chicago Open Data Portal", title="Least New & Surviving Businesses in Far South,\nSouthwest Wards for 5+ Years", subtitle="Since 2012, Far South wards average 26 or less monthly business license issuances and renewals",fill="Chicago Area") + 
+  labs(x="Chicago Council Ward", y="Average Monthly Business Count", caption="Data Source: Chicago Open Data Portal", title="Least New & Surviving Businesses in Far South, Southwest Wards for 5+ Years", subtitle="Since 2012, Far South wards average 26 or less monthly business license issuances and renewals",fill="Chicago Area") + 
   theme_modest() +
   theme(
         panel.grid.major.x = element_blank(),
@@ -796,10 +708,6 @@ bus_licenses %>% filter(!is.na(WARD), active==1,  activity_date >= mdy("1/1/2012
   annotate("text", x = 5 , y= 335, label="South Side business activity\nis concentrated in Kenwood,\n Fuller Park areas bordering\nthe University of Chicago.", size=rel(4)) +
   annotate("text", x = 3 , y= 305, label="Ward 12 on the Southwest\nSide bordering Chinatown is\ncharacterized by higher rates\nof business activity than\nits neighbors.", size=rel(4))
   
-```
-
-```{r save-new-bus, warning=FALSE, include=FALSE, eval=FALSE}
-ggsave("avg_ward_business.pdf", width = 25, height = 18, units = "cm")
 ```
 
 
@@ -939,7 +847,7 @@ bus_licenses %>% filter(!is.na(WARD), active==1,  activity_date >= mdy("1/1/2012
   scale_x_discrete(position = "top") +
    # coord_cartesian(ylim=c(23.5, 60)) +
   theme_modest() + 
-  theme(axis.text.x.top = element_text(size=rel(1.25), vjust = -8, face="bold"),
+  theme(axis.text.x.top = element_text(size=rel(1.25), vjust = -8, face="bold", family="Ledger"),
           axis.title.y = element_blank(),
           axis.title.x = element_blank(),
           axis.text.y = element_blank(),
@@ -952,28 +860,9 @@ bus_licenses %>% filter(!is.na(WARD), active==1,  activity_date >= mdy("1/1/2012
          subtitle="Voters in the Far Southeast, which has faced de-investment\nas determined by a number of factors, far exceeded other areas' participation\nin the last two City Council elections.", 
          caption="Source: Chicago Board of Election Commissioners", color="Chicago Area") +
   annotate("text",  x = 1, y = 25, label = "*Underlying ward trends visualized\nbehind Side trendlines", size=rel(4)) + 
-    annotate("text", x = 0.8, y = 65, label="Ward 19 on the Far Southwest\nSide, which contains the Beverly\nand Morgan Park neighborhoods,\nhad voter turnout of nearly\n75% in the 2011 City Council\nElection.", size=rel(4), hjust=0, color=get_dt_cols("mauve"))
+    annotate("text", x = 0.8, y = 65, label="Ward 19 on the Far Southwest\nSide, which contains the Beverly\nand Morgan Park neighborhoods,\nhad voter turnout of nearly 75%\n in the 2011 City Council Election.", size=rel(4), hjust=0, color=get_dt_cols("mauve"))
 ```
 
-
-```{r include=FALSE}
-ggsave("ward_election_turnout2011_2015.pdf", width = 36, height = 23, units = "cm")
-```
-
-
-
-
-```{r eval=FALSE, include=FALSE}
-# multi_year <-
-#   map(.x = years, .f=demoConversion, geoms=FALSE) %>%
-#   map2(.y = years, ~ mutate(.x, YEAR = .y))
-# 
-# just_demos <- reduce(multi_year, rbind) 
-# # all_demos_range <- reduce(multi_year, rbind)
-# rm(multi_year)
-
-# saveRDS(just_demos, file = here::here("data", "just_demos.Rda"))
-```
 
 ## Investing in the Future: Signs of Educational De-Investment
 ```{r quasi-random, fig.height=12, fig.width=15, message=FALSE, warning=FALSE}
@@ -1077,7 +966,7 @@ school_data %>% group_by(`SCHOOL ID (R-C-D-T-S)`, predominant_race) %>%
   summarise(avg_LI_pct = mean(`LOW-INCOME SCHOOL %`, na.rm = TRUE),
                               school_count = n()) %>% 
   ggplot(aes(predominant_race, avg_LI_pct, color=factor(predominant_race))) +
-      geom_quasirandom(varwidth=TRUE, size=3, show.legend = FALSE) +
+      geom_quasirandom(varwidth=TRUE, size=2, show.legend = FALSE) +
   scale_color_dt("diverging", reverse = TRUE, na.value=get_dt_cols("palegray")) +
   scale_y_continuous(labels = function(x) paste0(x, "%")) +
   # scale_x_continuous(breaks=c(0, 25, 50, 75, 100)) +
@@ -1203,6 +1092,12 @@ school_data %>% group_by(YEAR, SIDE) %>%
 ```
 
 
+```{r include=FALSE, eval=FALSE}
+wards_selected_demos <- st_join(wards.2015, 
+                                st_transform(selected_demos, crs = st_crs(wards.2015))
+                                )
+
+```
 
 
 
