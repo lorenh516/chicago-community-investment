@@ -1,0 +1,300 @@
+---
+title: "Businesses by Ward Mapping"
+author: Loren Hinkson
+output:
+    html_document:
+      df_print: paged
+      code_folding: hide
+---
+
+```{r Housekeeping, echo=TRUE, message=FALSE, warning=FALSE, include=FALSE}
+# Housekeeping (clear workspace, start output file, load packages)
+# rm(list=ls())
+
+# data cleaning, augmenting, manipulation
+library(tidyverse)
+library(dplyr)
+library(haven)
+# library(stargazer)
+library(xtable)
+library(readxl)
+# library(astsa)
+library(Hmisc)
+library(tidycensus)
+library(lubridate)
+library(here)
+
+# plotting tools
+library(gridExtra)
+library(ggplot2)
+library(grid)
+library(ggrepel)
+library(gghighlight)
+library(ggalt)
+library(scales)
+library(extrafont)
+# font_import()
+# loadfonts()
+library(swatches)
+library(ggbeeswarm)
+library(gganimate)
+
+# mapping tools
+library(raster)
+library(rgdal)
+library(rgeos)
+library(maptools)
+library(tigris)
+library(ggmap)
+library(sf)
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache=TRUE)
+```
+
+
+```{r include = FALSE}
+monochromatic_C6C3FF <- c(
+"#7d77ff",
+"#9690ff",
+"#aeaaff",
+"#c6c3ff",
+"#deddff",
+"#f6f6ff")
+
+diverging_teal <- c(
+                    # 'navy' = '#2d3d61',
+                    'darkteal' = '#2d4f5a',
+                    'forest' = '#2d615f',
+                    'plankton' = '#2d706e',
+                    'ocean' = '#318791',
+                    'mauve' = '#996768',
+                    'cocoa' = '#b5725a',
+                    'honeymustard' = '#d59349',
+                    'goldenrod' = '#edb834',
+                    'darkgray' = 'B5B5B5',
+                    'palegray' = '#E5E5E5')
+
+```
+
+
+
+```{r include=FALSE}
+# make it easy to select colors by name, thanks Dr. Simon J!
+# Attribution: https://drsimonj.svbtle.com/creating-corporate-colour-palettes-for-ggplot2
+get_dt_cols <- function(...) {
+  cols <- c(...)
+  if (is.null(cols))
+    return (diverging_teal)
+  diverging_teal[cols]
+}
+```
+
+```{r include=FALSE}
+# set groupings of colors as palettes
+dt_palettes <- list(
+  `main`  = get_dt_cols("ocean", "mauve", "darkteal", "goldenrod"),
+  `diverging` = get_dt_cols("darkteal", "goldenrod", "forest", "honeymustard", "ocean", "mauve"),
+  `cool`  = get_dt_cols("darkteal", "forest", "plankton", "ocean"),
+  `desert`   = get_dt_cols("mauve", "goldenrod", "cocoa", "honeymustard"),
+  `mixed` = get_dt_cols("mauve", "goldenrod", "darkteal", "forest", "cocoa", "plankton", "honeymustard"),
+  `grey`  = get_dt_cols("palegray", "darkgray")
+)
+```
+
+
+```{r include=FALSE}
+# function for uilitizing palettes
+dt_pal <- function(palette = "main", reverse = FALSE, ...) {
+  pal <- dt_palettes[[palette]]
+  if (reverse) pal <- rev(pal)
+  # pass alpha, other color arguments to colorRampPalette
+  colorRampPalette(pal, ...)
+}
+
+# function for applying palettes to borders and fills in ggplot2
+scale_color_dt <- function(palette = "main", discrete = TRUE, reverse = FALSE, ...) {
+  pal <- dt_pal(palette = palette, reverse = reverse)
+
+  if (discrete) {
+    discrete_scale("colour", paste0("dt_", palette), palette = pal, ...)
+  } else {
+    scale_color_gradientn(colours = pal(256), ...)
+  }
+}
+
+scale_fill_dt <- function(palette = "main", discrete = TRUE, reverse = FALSE, ...) {
+  pal <- dt_pal(palette = palette, reverse = reverse)
+
+  if (discrete) {
+    discrete_scale("fill", paste0("dt_", palette), palette = pal, ...)
+  } else {
+    scale_fill_gradientn(colours = pal(256), ...)
+  }
+}
+```
+
+
+```{r set_theme, message=FALSE, warning=FALSE, include=FALSE}
+theme_modest <- function(base_size = 16,
+                                  base_family = "Roboto",
+                                  base_line_size = base_size / 25,
+                                  base_rect_size = base_size / 25) {
+  require(grid)
+  theme_minimal(base_size = base_size, 
+                base_family = base_family,
+                base_line_size = base_line_size)  %+replace%
+    theme(
+        axis.title = element_text(size = rel(0.75)),
+        axis.title.y = element_text(margin=unit(c(0,0,0,2),"lines")),
+        axis.title.x = element_text(margin=unit(c(2,0,0,0), "lines")),
+        axis.text = element_text(size = rel(0.75)),
+        axis.ticks=element_line(colour="grey", size=0.5),
+        panel.grid.major = element_line(colour="grey", size=0.4),
+        panel.grid.minor = element_line(colour="lightgrey", size=0.25),
+        legend.box = NULL, 
+        legend.title = element_text(size = rel(1)),
+        legend.text = element_text(size = rel(0.5)),
+        legend.key.height = NULL,
+        legend.key.width = NULL,
+        legend.key.size = unit(20, "pt"),
+        legend.key = element_rect(fill = NA, colour = NA),
+        legend.background = element_rect(colour = NA, fill=NA), 
+        legend.position = "right",
+        legend.justification = "center", 
+        plot.background = element_rect(colour = NA, fill="#fffbe6"),
+        plot.margin = unit(c(3,3,3,3),"lines"),
+        plot.title = element_text(size = rel(1), face = "bold", hjust="0.5",
+                                  margin =unit(c(0,0,1,0), "lines"), family="Ledger"),
+        plot.subtitle = element_text(size = rel(0.75), hjust="0.5",  
+                                     margin = unit(c(0,0,2,0), "lines"), family="Ledger"),
+        plot.caption = element_text(size = rel(0.75), hjust = 1, 
+                                    margin = unit(c(2,0,0,0), "lines")),
+        strip.background = element_rect(colour = NA, fill=NA),
+        strip.text = element_text(face = "bold", size = rel(0.75), family = "Ledger"),
+        panel.spacing = unit(15,"lines"),
+        panel.border=element_blank(),
+        complete = TRUE
+    )
+}
+  
+  
+
+theme_map_modest <- function(base_size = 12) {
+  require(grid)
+  theme_modest(base_size) %+replace%
+    theme(
+        axis.title.y = element_blank(),
+        axis.title.x = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks=element_blank(),
+        panel.grid.minor.y=element_blank(),
+        panel.grid.minor.x=element_blank(),
+        panel.grid.major.x=element_blank(),
+        panel.border=element_blank(),
+        panel.spacing = unit(0,"lines"),
+        plot.margin  =  unit(c(10,10,10,10),"lines")
+    )
+}
+
+theme_set(theme_modest(base_size = 12))
+```
+
+
+```{r import-licenses, message=FALSE, warning=FALSE, include=FALSE}
+# import business licenses data
+# bus_licenses <- read_csv(here::here("data", "Business_Licenses.csv"))
+bus_licenses <-  readRDS(here::here("data", "bus_licenses.Rda"))
+bus_licenses <- bus_licenses %>% mutate(SIDE = ifelse(SIDE == "Far Southwest", "Far Southwest Side",
+                                               ifelse(SIDE == "Far Southeast", "Far Southeast Side", SIDE)))
+```
+
+
+## Mapping Chicago's Forgotten Economies
+```{r ggmap-prep, include=FALSE}
+
+# read in Chicago ward geos in ggmap-compatible format
+wards.shp.2015 <- here::here("data","Geofiles - Chicago Zip Code and Neighborhood","Boundaries - Wards (2015-)","geo_export_0bb2e9fd-20ca-415b-a96a-7722d72c1b41.shp")
+
+wards2015 <- shapefile(wards.shp.2015)
+wards2015@data <- mutate(wards2015@data, id = rownames(wards2015@data))
+wards2015.points <- fortify(wards2015, region="id")
+wards2015.df <- merge(wards2015.points, wards2015@data, by="id")
+
+# name license types
+license_types <- c("ISSUE" = "New Business Licenses", 
+                   "RENEW" = "Business License Renewals")  
+
+
+bus_licenses <-bus_licenses %>% mutate(
+  `LICENSE TERM EXPIRATION DATE` = lubridate::mdy(`LICENSE TERM EXPIRATION DATE`),
+  activity_month = lubridate::as_date(
+      cut(activity_date, breaks = "month", start.on.monday = FALSE, origin = lubridate::origin))
+  )
+```
+
+```{r ggmapping, message=FALSE, warning=FALSE, fig.height=12, fig.width=15}
+
+# filter for 2012+ issuances and licenses 
+# count each business only once per year, unless they also had a renewal that year (term expired)
+bl <- bus_licenses %>% filter(activity_yr >= 2012, 
+                              active == 1, 
+                              `APPLICATION TYPE`%in% c('ISSUE', 'RENEW')) %>% 
+    group_by(`ACCOUNT NUMBER`, activity_month = lubridate::ymd(activity_month), `APPLICATION TYPE`, LONGITUDE, LATITUDE) %>% 
+  summarise(max_term = max(license_term), 
+            final_exp = max(`LICENSE TERM EXPIRATION DATE`))
+
+# pull in Chicago terrain map from Google Maps
+  ggmap::ggmap(ggmap::get_googlemap(center = c(lon = -87.732125, lat = 41.83379),
+                      zoom = 10, scale = 1,
+                      maptype ='terrain',
+                      color = 'color',
+                      key = Sys.getenv("GOOGLEMAPS_KEY"))) + 
+    
+    # layer licenses over each other at extremely low alpha
+    geom_point(data=bl, aes(x=LONGITUDE, y=LATITUDE, color=`APPLICATION TYPE`, group=`ACCOUNT NUMBER`), 
+               alpha = 0.10, show.legend = FALSE, na.rm = TRUE) + 
+    scale_color_dt() +
+    
+    # add Chicago Ward boundaries
+    geom_path(data = wards2015.df, aes(long,lat,group=group), color="black") +
+    geom_polygon(data = wards2015.df, aes(long,lat,group=group), fill=NA) + 
+    labs(y="Latitude", x="Longitude", colour="Year", subtitle = 'Date: {frame_time}',
+         title="Virtually No New Business Entry in South, Far Southeast,\nFar Southwest Sides since 2012", 
+         caption = "Data Source: City of Chicago Department of Business Affairs and Consumer Protection"
+         ) +
+    theme_modest() + 
+    theme(
+      panel.border = element_blank(),
+      axis.text.y = element_blank(),
+      panel.grid.major.y = element_blank(),
+      panel.grid.minor.y = element_blank(),
+      axis.title = element_blank(),
+      axis.text.x = element_blank(),
+      panel.grid.major.x = element_blank(),
+      panel.grid.minor.x = element_blank(),
+      plot.title = element_text(face = "bold", hjust="0.5", margin = margin(t = 15)),
+      plot.subtitle = element_text(hjust="0.5", margin = margin(t = 20))
+    ) +
+    
+    # zoom graph to outer ward boundaries
+    scale_x_continuous(limits = c(wards2015.df %>% dplyr::select(long) %>% min() - 0.1, wards2015.df %>% dplyr::select(long) %>% max() + 0.05), expand = c(0, 0)) +
+    scale_y_continuous(limits = c(wards2015.df %>% dplyr::select(lat) %>% min() - 0.1, wards2015.df %>% dplyr::select(lat) %>% max()) + 0.05, expand = c(0, 0)) +
+    transition_components(time=activity_month) +
+  enter_grow() +
+  exit_fade() +
+  ease_aes('cubic-in-out') +
+  
+  annotate("text", x=-88, y = 42, hjust=0, parse=TRUE, label=expression(("While a number of ") * phantom("renewals") * phantom( "take place in the southernmost wards, very few ") * phantom("new business licenses") * phantom("have been issued to businesses in these areas.")), size = rel(3)) +
+    
+  annotate("text", x=-88, y = 42, hjust=0, parse=TRUE, label=expression(phantom("While a number of ") * ("renewals") * phantom( "take place in the southernmost wards, very few ") * phantom("new business licenses") * phantom("have been issued to businesses in these areas.")), color = "#ebb742", size = rel(3)) +
+    
+annotate("text", x=-88, y = 42, hjust=0, parse=TRUE, label=expression(phantom("While a number of ") * phantom("renewals") * ( "take place in the southernmost wards, very few ") * phantom("new business licenses") * phantom("have been issued to businesses in these areas.")), size = rel(3)) +
+    
+annotate("text",x=-88, y = 42, hjust=0, parse=TRUE, label=expression(phantom("While a number of ") * phantom("renewals") * phantom( "take place in the southernmost wards, very few ") * ("new business licenses") * phantom("have been issued to businesses in these areas.")),color = "##358790", size = rel(3)) +
+    
+annotate("text", x=-88, y = 42, hjust=0, parse=TRUE, label=expression(phantom("While a number of ") * phantom("renewals") * phantom( "take place in the southernmost wards, very few ") * phantom("new business licenses") * ("have been issued to businesses in these areas.")), size = rel(3))
+
+```
+
