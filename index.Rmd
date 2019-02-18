@@ -106,17 +106,23 @@ dt_palettes <- list(
 
 ```{r include=FALSE}
 # function for uilitizing palettes
-dt_pal <- function(palette = "main", reverse = FALSE, ...) {
+dt_pal <- function(palette = "main", reverse = FALSE, shift=0,...) {
   pal <- dt_palettes[[palette]]
+  
   if (reverse) pal <- rev(pal)
+  
+  if (shift > 0) {
+    pal = pal[1+shift:length(pal)]
+  }
+  
   # pass alpha, other color arguments to colorRampPalette
   colorRampPalette(pal, ...)
 }
 
 # function for applying palettes to borders and fills in ggplot2
-scale_color_dt <- function(palette = "main", discrete = TRUE, reverse = FALSE, ...) {
-  pal <- dt_pal(palette = palette, reverse = reverse)
-
+scale_color_dt <- function(palette = "main", discrete = TRUE, reverse = FALSE, shift=0, ...) {
+  pal <- dt_pal(palette = palette, reverse = reverse, shift=shift)
+  
   if (discrete) {
     discrete_scale("colour", paste0("dt_", palette), palette = pal, ...)
   } else {
@@ -464,104 +470,50 @@ arg_values_demos <- c(
 ```
 
 
-
-```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
-
-# limit Census data to tracts within Chicago ward boundaries
-# all.demos.Chi <- st_intersection(all_demos, wards.2015.acs.proj)
-# colnames(all_demos)
-
-# wards_w_demos <- st_join(wards.2015, all_demos_range)
+In the last decade, underrepresented minority populations in Chicago have been increasingly relegated to lower income areas in the South and West of the City. 
+```{r facet_wrap_demo_info, message=FALSE, warning=FALSE, fig.width=30, fig.height=15}
+all_demos_range <- readRDS(here::here("data", "range_demos_chi_proj.Rda"))
+wards.2015 <- readRDS(here::here("data", "wards2015_sf.Rda"))
 
 demos_2012 <- st_join(all_demos_range %>% filter(as.numeric(id) == 2012), wards.2015, largest=TRUE, agr=arg_values_demos)
 demos_2013 <- st_join(all_demos_range %>% filter(as.numeric(id) == 2013), wards.2015, largest=TRUE, agr=arg_values_demos)
 demos_2015 <- st_join( all_demos_range %>% filter(as.numeric(id) == 2015), wards.2015, largest=TRUE, agr=arg_values_demos)
 demos_2017 <- st_join( all_demos_range %>% filter(as.numeric(id) == 2017), wards.2015, largest=TRUE, agr=arg_values_demos)
 
-```
-
-
-In the last decade, underrepresented minority populations in Chicago have been increasingly relegated to lower income areas in the South and West of the City. 
-```{r facet_wrap_demo_info, message=FALSE, warning=FALSE, fig.width=30, fig.height=12, eval=FALSE}
-
-# all_demos_range <- readRDS(here::here("data", "all_demos_chi_proj.Rda"))
-# all_demos <- readRDS(here::here("data", "all_demos_chi_proj.Rda"))
-# 
-# wards.2015 <-  readRDS(here::here("data", "wards2015_sf.Rda"))
-# all_demos <-  readRDS(here::here("data", "all_demos_chi.Rda"))
-
-
+ward_range <- st_intersection(wards.2015, all_demos_range)
 
 # plot intersection of Census tracts with chicago wards
-st_intersection(wards.2015, all_demos_range) %>%
+# st_intersection(wards.2015, all_demos_range) %>%
+ward_range %>% 
 ggplot() +
   # outline tracts based on predominant race based on Census, shaded by median Income for tract
-  geom_sf(aes(alpha=medianIncome, color=predominant_race), lwd = 2, fill=get_dt_cols("ocean")) +
+  geom_sf(aes(alpha=medianIncome), lwd = 0, fill=get_dt_cols("ocean")) +
   # scale_alpha(range = c(0.15, 1)) +
-  
+  geom_sf(data = ward_range %>% filter(predominant_race != "White"), aes(color=predominant_race), lwd = 2, fill=NA) +
+  # geom_sf(aes(alpha=medianIncome, color=predominant_race), lwd = 2, fill=get_dt_cols("ocean")) +
   # outline Chicago wards over data
   geom_sf(data = wards.2015, color="black", lwd = 0.5, fill=NA) +
-  scale_color_dt("diverging", reverse = TRUE, na.value=get_dt_cols("palegray")) +
+  scale_color_dt("diverging", shift=1, reverse = TRUE, na.value=get_dt_cols("palegray")) +
   coord_sf(datum = NA) +
   theme_map_modest() + 
-  theme(plot.margin = unit(c(1, 1, 1, 1), "lines"),
-        plot.title = element_text(face = "bold", hjust="0.5", family = "Ledger"),
-        plot.subtitle = element_text(margin = unit(c(0, 0, 1, 0), "lines")),
-        plot.caption = element_text(hjust=1)) +
-  facet_wrap(~ id)
+  theme(
+        plot.title = element_text(face = "bold", hjust="0.5", family = "Ledger", size=rel(1.5)),
+        plot.subtitle = element_text(margin = unit(c(0, 0, 1, 0), "lines"), size=rel(1.25)),
+        plot.caption = element_text(hjust=1),
+        strip.text.x = element_text(family="Ledger", size=rel(1.2)),
+        legend.position = "top",
+        legend.key.size = unit(45, "pt"),
+        panel.spacing = unit(1, "lines"),
+        plot.margin = unit(c(2,4,2,2),"lines")
+        ) +
+  facet_wrap(~ id) +
   labs(alpha = "Median Income", color="Predominant Race", title="Latinx Populations in Chicago Pushed to South, West Neighborhoods", caption="Data Source: U.S. Census Bureau", subtitle = "Chicago Racial and Ethnic Group Movement\nby Census Tract Since 2012 (5 year averages)") 
-
-
-  
-chi_2015 <- st_intersection(wards.2015, demos_2015) %>%
-ggplot() +
-  # outline tracts based on predominant race based on Census, shaded by median Income for tract
-  geom_sf(aes(alpha=medianIncome, color=predominant_race), lwd = 2, fill=get_dt_cols("ocean")) +
-  # scale_alpha(range = c(0.15, 1)) +
-  
-  # outline Chicago wards over data
-  geom_sf(data = wards.2015, color="black", lwd = 0.5, fill=NA) +
-  scale_color_dt("diverging", reverse = TRUE, na.value=get_dt_cols("palegray")) +
-  coord_sf(datum = NA) +
-  theme_map_modest() + 
-  theme(plot.margin = unit(c(1, 1, 1, 1), "lines"),
-        plot.title = element_text(face = "bold", hjust="0.5", family = "Ledger"),
-        plot.subtitle = element_text(margin = unit(c(0, 0, 1, 0), "lines")),
-        plot.caption = element_text(hjust=1)) +
-  labs(alpha = "Median Income", color="Predominant Race")
-
-chi_2017 <- st_intersection(wards.2015, demos_2017) %>%
-ggplot() +
-  # outline tracts based on predominant race based on Census, shaded by median Income for tract
-  geom_sf(aes(alpha=medianIncome, color=predominant_race), lwd = 2, fill=get_dt_cols("ocean")) +
-  # scale_alpha(range = c(0.15, 1)) +
-  
-  # outline Chicago wards over data
-  geom_sf(data = wards.2015, color="black", lwd = 0.5, fill=NA) +
-  scale_color_dt("diverging", reverse = TRUE, na.value=get_dt_cols("palegray")) +
-  coord_sf(datum = NA) +
-  theme_map_modest() + 
-  theme(plot.margin = unit(c(1, 1, 1, 1), "lines"),
-        plot.title = element_text(face = "bold", hjust="0.5", family = "Ledger"),
-        plot.subtitle = element_text(margin = unit(c(0, 0, 1, 0), "lines")),
-        plot.caption = element_text(hjust=1)) +
-  labs(alpha = "Median Income", color="Predominant Race")
-
-yr_plots <- plot_grid(
-  chi_2012, chi_2015, NULL, NULL, chi_2017,
-  ncol = 2, nrow=3, rel_widths =  c(1, 1, 1, 1, 2), rel_widths =  c(1, 1, 1, 1, 2), align = 'h')
-
-title <- ggdraw() + draw_label(, fontface='bold', size=15)
-caption <- ggdraw() + draw_label(, size=20)
-subtitle <- ggdraw() + draw_label(, size=20)
-
-plot_grid(title, subtitle, yr_plots, subtitle, ncol=1, 
-          rel_heights=c(0.01, 0.11, 1, 0.01), align='v')
   
 ```
 
 ```{r include=FALSE, eval=FALSE}
-all_demos %>% dplyr::select(GEOID, id, medianIncome, predominant_race, max_pct, geometryspread()
+demos_2012 %>% dplyr::select(GEOID, id, medianIncome, predominant_race, max_pct, population, whitePop, white_pct, blackPop, black_pct, asianPop, asian_pct, latinx_pct, below_poverty_pct, renterPop, renters, owners,renting_pct) spread()
+
 ```
 
 ## Business Activity by Chicago Side Over Time
@@ -1059,7 +1011,7 @@ ggplot(aes(NONWHITE_PCT, AVG_SPEND_PER_STUDENT, frame = as.integer(YEAR))) +
 
 
 
-```{r geo-attempt}
+```{r geo-attempt, include= FALSE}
 # all_demos <-  readRDS(here::here("data", "all_demos_chi.Rda"))
 
 # wards_w_all_demos <- st_join(wards.2015, st_transform(all_demos, crs =  st_crs(wards.2015)), largest=TRUE)
@@ -1067,7 +1019,7 @@ ggplot(aes(NONWHITE_PCT, AVG_SPEND_PER_STUDENT, frame = as.integer(YEAR))) +
 ```
 
 
-```{r geo-attempt-contd, fig.height=12, fig.width=15}
+```{r geo-attempt-contd, fig.height=12, fig.width=15, include= FALSE}
 # 
 # beg_mid_end_wards_all_demos %>% filter(YEAR %in% c(2012, 2015, 2017)) %>%
 #   ggplot() + 
