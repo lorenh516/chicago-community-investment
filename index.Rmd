@@ -1237,7 +1237,7 @@ waffle(round(mapply(FUN = `/`, as.list(parts_all.list[[6]])[3:6], 1)), colors = 
 # how to combine census data set to compare over time...
 ```
 
-In a perhaps reassuring trend, the newest funding formula used for Evidence-Based-Fuding by CPS appears to have increased the number of schools spending more per student.
+In a perhaps reassuring trend, the [newest Evidence-Based-Fuding Formula](https://cps.edu/News/Press_releases/Pages/PR1_10_5_17.aspx) used by CPS appears to have increased the number of predominantly non-white schools spending more per student.
 ```{r gganimate_budget, fig, fig.height=12, fig.width=15, message=FALSE, warning=FALSE}
  
 library(gganimate)
