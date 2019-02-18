@@ -109,11 +109,11 @@ dt_palettes <- list(
 dt_pal <- function(palette = "main", reverse = FALSE, shift=0,...) {
   pal <- dt_palettes[[palette]]
   
-  if (reverse) pal <- rev(pal)
-  
-  if (shift > 0) {
+    if (shift > 0) {
     pal = pal[1+shift:length(pal)]
   }
+  
+  if (reverse) pal <- rev(pal)
   
   # pass alpha, other color arguments to colorRampPalette
   colorRampPalette(pal, ...)
@@ -471,14 +471,9 @@ arg_values_demos <- c(
 
 
 In the last decade, underrepresented minority populations in Chicago have been increasingly relegated to lower income areas in the South and West of the City. 
-```{r facet_wrap_demo_info, message=FALSE, warning=FALSE, fig.width=30, fig.height=15}
+```{r facet_wrap_demo_info, message=FALSE, warning=FALSE, fig.width=30, fig.height=20}
 all_demos_range <- readRDS(here::here("data", "range_demos_chi_proj.Rda"))
 wards.2015 <- readRDS(here::here("data", "wards2015_sf.Rda"))
-
-demos_2012 <- st_join(all_demos_range %>% filter(as.numeric(id) == 2012), wards.2015, largest=TRUE, agr=arg_values_demos)
-demos_2013 <- st_join(all_demos_range %>% filter(as.numeric(id) == 2013), wards.2015, largest=TRUE, agr=arg_values_demos)
-demos_2015 <- st_join( all_demos_range %>% filter(as.numeric(id) == 2015), wards.2015, largest=TRUE, agr=arg_values_demos)
-demos_2017 <- st_join( all_demos_range %>% filter(as.numeric(id) == 2017), wards.2015, largest=TRUE, agr=arg_values_demos)
 
 ward_range <- st_intersection(wards.2015, all_demos_range)
 
@@ -487,31 +482,45 @@ ward_range <- st_intersection(wards.2015, all_demos_range)
 ward_range %>% 
 ggplot() +
   # outline tracts based on predominant race based on Census, shaded by median Income for tract
-  geom_sf(aes(alpha=medianIncome), lwd = 0, fill=get_dt_cols("ocean")) +
+  # geom_sf(aes(alpha=medianIncome), lwd = 0, fill=get_dt_cols("ocean")) +
+  # geom_sf(data = ward_range %>% filter(predominant_race != "White"), aes(color=predominant_race), lwd = 2, fill=NA) +
+  geom_sf(aes(alpha=medianIncome, color=predominant_race), lwd = 2, fill="#318791") +
   # scale_alpha(range = c(0.15, 1)) +
-  geom_sf(data = ward_range %>% filter(predominant_race != "White"), aes(color=predominant_race), lwd = 2, fill=NA) +
-  # geom_sf(aes(alpha=medianIncome, color=predominant_race), lwd = 2, fill=get_dt_cols("ocean")) +
+  
   # outline Chicago wards over data
   geom_sf(data = wards.2015, color="black", lwd = 0.5, fill=NA) +
-  scale_color_dt("diverging", shift=1, reverse = TRUE, na.value=get_dt_cols("palegray")) +
+  scale_color_manual(values=c("Asian" = "#986769", 
+                              "Black" = "#9d8e64", 
+                              "Latinx" = "#6d7d53", 
+                              "White"=NA)) +
+  # scale_color_dt("diverging",reverse = TRUE, na.value=get_dt_cols("palegray")) +
   coord_sf(datum = NA) +
   theme_map_modest() + 
   theme(
-        plot.title = element_text(face = "bold", hjust="0.5", family = "Ledger", size=rel(1.5)),
-        plot.subtitle = element_text(margin = unit(c(0, 0, 1, 0), "lines"), size=rel(1.25)),
+        plot.title = element_text(face = "bold", hjust="0.5", family = "Ledger", size=rel(2.5)),
+        plot.subtitle = element_text(margin = unit(c(0, 0, 1, 0), "lines"), size=rel(1.5)),
         plot.caption = element_text(hjust=1),
-        strip.text.x = element_text(family="Ledger", size=rel(1.2)),
+        strip.text.x = element_text(family="Ledger", size=rel(1.5)),
         legend.position = "top",
+        legend.title = element_text(size=rel(1.25)),
+        legend.text = element_text(size=rel(1.1)),
         legend.key.size = unit(45, "pt"),
         panel.spacing = unit(1, "lines"),
         plot.margin = unit(c(2,4,2,2),"lines")
         ) +
   facet_wrap(~ id) +
-  labs(alpha = "Median Income", color="Predominant Race", title="Latinx Populations in Chicago Pushed to South, West Neighborhoods", caption="Data Source: U.S. Census Bureau", subtitle = "Chicago Racial and Ethnic Group Movement\nby Census Tract Since 2012 (5 year averages)") 
+  labs(alpha = "Median Income", color="Predominant Race", title="Latinx Populations in Chicago Pushed to South, West Neighborhoods", caption="Data Source: U.S. Census Bureau", subtitle = "Chicago racial and ethnic group movement by census tract since 2012 (5 year averages)") 
+
+
   
 ```
 
 ```{r include=FALSE, eval=FALSE}
+demos_2012 <- st_join(all_demos_range %>% filter(as.numeric(id) == 2012), wards.2015, largest=TRUE, agr=arg_values_demos)
+demos_2013 <- st_join(all_demos_range %>% filter(as.numeric(id) == 2013), wards.2015, largest=TRUE, agr=arg_values_demos)
+demos_2015 <- st_join( all_demos_range %>% filter(as.numeric(id) == 2015), wards.2015, largest=TRUE, agr=arg_values_demos)
+demos_2017 <- st_join( all_demos_range %>% filter(as.numeric(id) == 2017), wards.2015, largest=TRUE, agr=arg_values_demos)
+
 demos_2012 %>% dplyr::select(GEOID, id, medianIncome, predominant_race, max_pct, population, whitePop, white_pct, blackPop, black_pct, asianPop, asian_pct, latinx_pct, below_poverty_pct, renterPop, renters, owners,renting_pct) spread()
 
 ```
