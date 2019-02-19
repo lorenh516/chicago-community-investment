@@ -468,7 +468,9 @@ arg_values_demos <- c(
  "publicTransport" = "aggregate", "renterPop" = "aggregate", "renters" = "aggregate", "transportPop" = "aggregate", "whitePop" = "aggregate",  "predominant_race" = "aggregate", "max_pct" = "aggregate"
 )
 ```
-There is a colloquially accepted idea in Chicago that gentrification happens differently for Latinx communities and Black communities. Under this theory, wealthier populations are more likely to settle in predominantly Latinx communities, eventually pushing out current residents. In Black neighborhoods, however, gentrification happens after significant periods of neglect and disenfranchisement make an area unlivable, forcing residents to move elsewhere: "freeing it up" for different demographics and consequent investment catering to these new residents. I seek to evaluate this claim by exploring the movement of racial and ethnic populations within the city, business activity as measured by business license issuances, and investment in education determined by average spend per student across different socioeconomic groups.
+There is a colloquially accepted theory of gentrification in Chicago which holds that gentrification happens differently across racial and ethnic communities. Under this theory, wealthier populations are more likely to settle in predominantly Latinx communities, eventually pushing out current residents. In Black neighborhoods, however, gentrification happens after significant periods of neglect and disenfranchisement make an area unlivable, forcing residents to move elsewhere: "freeing it up" for different demographics and consequent investment catering to these new residents. 
+
+I seek to evaluate this claim by exploring the movement of racial and ethnic populations within the city, business activity as measured by business license issuances, and investment in education determined by average spend per student across different socioeconomic groups. I focus on the years immediately following the recent recession, as I am interested in the varying post-crisis resilience of neighborhoods as a factor in the theory described above.
 
 ## Population Displacement in Chicago Communities
 Since the Great Recession, underrepresented minority populations in Chicago have been increasingly relegated to lower income areas in the South and West of the City. Some communities have maintained a foothold in their respective neighborhoods, while others are priced out as wealthier populations move into the areas they have historically called home. 
@@ -587,7 +589,7 @@ all_demos %>%
 
 
 ## Business Activity across Chicago Areas
-The neighborhoods housing these minority communities are those with distinctly lower levels of economic activity, while in contrast, the majority of the city's "bouncing back" after the recession happens in the Central, North, and West sides of the city.
+The neighborhoods housing these minority communities are those with distinctly lower levels of economic activity. The majority of the city's "bouncing back" after the recession happens in the Central, North, and West sides of the city.
 ```{r bus-stagnation-bar, fig.height=12, fig.width=15, message=FALSE, warning=FALSE}
 
 all_wards_all_dates <-  readRDS(here::here("data", "all_wards_all_dates.Rda"))
@@ -646,7 +648,7 @@ allDatesCount.df %>%
 ```
 Immediately post-recession in 2013, the amount of [Economic Development for a Growing Economy (EDGE) tax credits granted by Illinois nearly doubled from the prior year](https://www.chicagobusiness.com/article/20171006/NEWS02/171009915/corporate-tax-incentives-back-in-favor-in-illinois), causing a brief spike in new business license Issuances for every area of the city beyond Central (Loop area), which has experienced fairly constant new business entry since the recession. Thus far, only the West Side of Chicago is approaching 2012 levels of new business, with most other areas of the city remaining fairly constant after EDGE excitement tapered off. 
 
-In the Far Southeast and Far Southwest Sides, where economic activity (in terms of number of active businesses) was about half the next lowest areas even pre-taper, one must wonder how much growth a neighborhood can experience with a rate of new business entry that has hovered around 500 businesses operating on newly-issued licenses for months. For context, the mean number of quarterly new licenses issued in the Central area of the city is just under 700,000, and the mean number of quarterly licenses issued in the Northwest Side is just over 85,000.
+In the Far Southeast and Far Southwest Sides, economic activity (in terms of number of active businesses) was about half that of the next lowest areas, even before EDGE-induced business dropped off. One must wonder how much growth a neighborhood can experience with a monthly rate of new business entry that has hovered around 500 businesses for years. For context, the mean number of quarterly new licenses issued in the Central area of the city is just under 700,000, and the mean number of quarterly licenses issued in the Northwest Side is just over 85,000.
 
 ```{r include=FALSE, echo=TRUE, eval=FALSE}
 # to look into: relationship between population and new business, can talk about that here. esp. number of new businesses per capita could be more meaningful than raw numbers.
@@ -1116,7 +1118,7 @@ ggplot(aes(NONWHITE_PCT, AVG_SPEND_PER_STUDENT, frame = as.integer(YEAR))) +
   enter_fade() +
   ease_aes('sine-in-out') +
   guides(colour = guide_legend(title.position="top", title.hjust = 0.5, legend.box = "vertical", 
-                               override.aes = list(alpha = 1)),
+                               override.aes = list(alpha = .75)),
          size = guide_legend(title.position="top", title.hjust = 0.5, legend.box = "vertical"))
 
 ```
@@ -1300,6 +1302,15 @@ turnoutDiff %>% filter(SIDE == "Far Southwest Side")
 ```
 
 The disparities explored above should give Chicagoans good reason to utilize their right to choose leaders who will work to build a more equitable Chicago in the upcoming election for Chicago City Council.
+
+### Chicago City Council Election Day is Tuesday, February 26, 2019!
+
+Find your ward's [early voting site](https://chicagoelections.com/en/early-voting.html) to vote before Monday, February 25, 2019.
+
+Not registered for the updoming Chicago Elections? [Register here](https://www.uchivotes.com/voting-in-chicago), or [double-check your registration status](https://chicagoelections.com/en/your-voter-information.html).
+
+Want to learn about the candidates? Visit the City Council election page on [Ballotpedia](https://ballotpedia.org/City_council_elections_in_Chicago,_Illinois_(2019)).
+
 
 ### Resources:
 

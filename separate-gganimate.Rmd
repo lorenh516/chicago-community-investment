@@ -211,6 +211,11 @@ bus_licenses <- bus_licenses %>% mutate(SIDE = ifelse(SIDE == "Far Southwest", "
 ```
 
 
+```{r}
+
+```
+
+
 ## Mapping Chicago's Forgotten Economies
 ```{r ggmap-prep, include=FALSE}
 
@@ -236,6 +241,8 @@ bus_licenses <-bus_licenses %>% mutate(
 
 ```{r ggmapping, message=FALSE, warning=FALSE, fig.height=12, fig.width=15}
 
+ggmap::register_google(key = Sys.getenv("GOOGLEMAPS_KEY"))
+
 # filter for 2012+ issuances and licenses 
 # count each business only once per year, unless they also had a renewal that year (term expired)
 bl <- bus_licenses %>% filter(activity_yr >= 2012, 
@@ -254,24 +261,24 @@ bl <- bus_licenses %>% filter(activity_yr >= 2012,
     
     # layer licenses over each other at extremely low alpha
     geom_point(data=bl, aes(x=LONGITUDE, y=LATITUDE, color=`APPLICATION TYPE`, group=`ACCOUNT NUMBER`), 
-               alpha = 0.10, show.legend = FALSE, na.rm = TRUE) + 
+               alpha = 0.10, na.rm = TRUE) + 
     scale_color_dt() +
     
     # add Chicago Ward boundaries
     geom_path(data = wards2015.df, aes(long,lat,group=group), color="black") +
     geom_polygon(data = wards2015.df, aes(long,lat,group=group), fill=NA) + 
-    labs(y="Latitude", x="Longitude", colour="Year", subtitle = 'Date: {frame_time}',
+    labs(y="Latitude", x="Longitude", colour="License Type", subtitle = 'Date: {frame_time}',
          title="Virtually No New Business Entry in South, Far Southeast,\nFar Southwest Sides since 2012", 
-         caption = "Data Source: City of Chicago Department of Business Affairs and Consumer Protection"
-         ) +   annotate("text", x=-88, y = 42, hjust=0, parse=TRUE, label=expression(("While a number of ") * phantom("renewals") * phantom( "take place in the southernmost wards, very few ") * phantom("new business licenses") * phantom("have been issued to businesses in these areas.")), size = rel(3)) +
-    
-  annotate("text", x=-88, y = 42, hjust=0, parse=TRUE, label=expression(phantom("While a number of ") * ("renewals") * phantom( "take place in the southernmost wards, very few ") * phantom("new business licenses") * phantom("have been issued to businesses in these areas.")), color = "#ebb742", size = rel(3)) +
-    
-annotate("text", x=-88, y = 42, hjust=0, parse=TRUE, label=expression(phantom("While a number of ") * phantom("renewals") * ( "take place in the southernmost wards, very few ") * phantom("new business licenses") * phantom("have been issued to businesses in these areas.")), size = rel(3)) +
-    
-annotate("text",x=-88, y = 42, hjust=0, parse=TRUE, label=expression(phantom("While a number of ") * phantom("renewals") * phantom( "take place in the southernmost wards, very few ") * ("new business licenses") * phantom("have been issued to businesses in these areas.")),color = "##358790", size = rel(3)) +
-    
-annotate("text", x=-88, y = 42, hjust=0, parse=TRUE, label=expression(phantom("While a number of ") * phantom("renewals") * phantom( "take place in the southernmost wards, very few ") * phantom("new business licenses") * ("have been issued to businesses in these areas.")), size = rel(3)) +
+         caption = "Data Source: City of Chicago Department of Business Affairs and Consumer Protection") +
+#          ) +   annotate("text", x=-88, y = 42, hjust=0, parse=TRUE, label=expression(("While a number of ") * phantom("renewals") * phantom( "take place in the southernmost wards, very few ") * phantom("new business licenses") * phantom("have been issued to businesses in these areas.")), size = rel(3)) +
+#     
+#   annotate("text", x=-88, y = 42, hjust=0, parse=TRUE, label=expression(phantom("While a number of ") * ("renewals") * phantom( "take place in the southernmost wards, very few ") * phantom("new business licenses") * phantom("have been issued to businesses in these areas.")), color = "#ebb742", size = rel(3)) +
+#     
+# annotate("text", x=-88, y = 42, hjust=0, parse=TRUE, label=expression(phantom("While a number of ") * phantom("renewals") * ( "take place in the southernmost wards, very few ") * phantom("new business licenses") * phantom("have been issued to businesses in these areas.")), size = rel(3)) +
+#     
+# annotate("text",x=-88, y = 42, hjust=0, parse=TRUE, label=expression(phantom("While a number of ") * phantom("renewals") * phantom( "take place in the southernmost wards, very few ") * ("new business licenses") * phantom("have been issued to businesses in these areas.")),color = "##358790", size = rel(3)) +
+#     
+# annotate("text", x=-88, y = 42, hjust=0, parse=TRUE, label=expression(phantom("While a number of ") * phantom("renewals") * phantom( "take place in the southernmost wards, very few ") * phantom("new business licenses") * ("have been issued to businesses in these areas.")), size = rel(3)) +
     theme_modest() + 
     theme(
       panel.border = element_blank(),
@@ -285,7 +292,7 @@ annotate("text", x=-88, y = 42, hjust=0, parse=TRUE, label=expression(phantom("W
       plot.title = element_text(face = "bold", hjust="0.5", margin = margin(t = 15)),
       plot.subtitle = element_text(hjust="0.5", margin = margin(t = 20))
     ) +
-    
+    guides(guide_legend(override.aes = list(alpha = 1))) +
     # zoom graph to outer ward boundaries
     scale_x_continuous(limits = c(wards2015.df %>% dplyr::select(long) %>% min() - 0.1, wards2015.df %>% dplyr::select(long) %>% max() + 0.05), expand = c(0, 0)) +
     scale_y_continuous(limits = c(wards2015.df %>% dplyr::select(lat) %>% min() - 0.1, wards2015.df %>% dplyr::select(lat) %>% max()) + 0.05, expand = c(0, 0)) +
