@@ -7,6 +7,6 @@ In the year and a half I've spent in Chicago, I've heard a lot about how gentrif
 As Chicago is notably one of the most segregated cities in the United States, I believe it will be an interesting forum for such an analysis, and that the city’s segregated neighborhoods comprise a “natural experiment” of sorts on the myriad effects of systemic disinvestment of communities. I will attempt to determine whether the two patterns of de-investment versus increased investment are visible across communities of different demographics in terms of:
 - Business licenses in Chicago to track the entry and exit of businesses into neighborhoods of different demographics
 - Investment in students through public schools with differing majorities of student racial/ ethnic backgrounds and income statuses
-- Food access and the prevalence of fast food restaurants in place of healthier chains and grocery stores
+- Food access and the prevalence of fast food restaurants as compared to grocery stores
 - Increased take-up of programs, or an increase in amounts allocated to residents of a particular Census tract by safety net programs such as SNAP and Medicaid as community staples such as schools, where millions of students access subsidized, (arguably) nutritious food, are defunded and establishments like fairly-priced neighborhood groceries disappear
 - Voter turnout, used to determine any correlation between democratic participaiton and neighborhood de-investment
