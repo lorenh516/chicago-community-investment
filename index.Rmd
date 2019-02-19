@@ -1301,13 +1301,13 @@ turnoutDiff %>% filter(SIDE == "Far Southwest Side")
     annotate("text", x = 0.7, y = 70, label="Ward 19 on the Far Southwest\nSide, which contains the Beverly\nand Morgan Park neighborhoods,\nhad voter turnout of nearly 75%\n in the 2011 City Council Election.", size=rel(4), hjust=0, color=get_dt_cols("mauve"))
 ```
 
-The disparities explored above should give Chicagoans good reason to utilize their right to choose leaders who will work to build a more equitable Chicago in the upcoming election for Chicago City Council.
+The disparities explored above give all Chicagoans good reason to utilize their right to choose leaders who will work to build a more equitable Chicago.
 
 ### Chicago City Council Election Day is Tuesday, February 26, 2019!
 
 Find your ward's [early voting site](https://chicagoelections.com/en/early-voting.html) to vote before Monday, February 25, 2019.
 
-Not registered for the updoming Chicago Elections? [Register here](https://www.uchivotes.com/voting-in-chicago), or [double-check your registration status](https://chicagoelections.com/en/your-voter-information.html).
+Not registered for the upcoming Chicago Elections? [Register here](https://www.uchivotes.com/voting-in-chicago), or [double-check your registration status](https://chicagoelections.com/en/your-voter-information.html).
 
 Want to learn about the candidates? Visit the City Council election page on [Ballotpedia](https://ballotpedia.org/City_council_elections_in_Chicago,_Illinois_(2019)).
 
