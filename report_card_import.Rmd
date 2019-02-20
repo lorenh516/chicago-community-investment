@@ -1275,9 +1275,9 @@ multiHeader <- function(filename, sheet=NA, col_names=FALSE, na="..", n_max=1) {
  #  # summarize_all makes it work on all columns.
   column_labels <- headers %>% summarize_all(str_c, collapse = " ")
   for (i in length(column_labels)) {
-    column_labels[i] <- gsub("\n", "\\s",column_labels[i])
-    column_labels[i] <- gsub("/\n", "/\\s",column_labels[i])
-    column_labels[i] <- gsub(" NA", "",column_labels[i])
+    column_labels[i] <- str_replace_all(column_labels[i], "\r?\n|\r|\n", "\\s")
+    column_labels[i] <- str_replace_all(column_labels[i], "n/\n", "n/\\s ")
+    column_labels[i] <- gsub("NA", "",column_labels[i])
   }
  # pull them into one character vector
  headers = unlist(column_labels[1,])
@@ -1287,6 +1287,8 @@ multiHeader <- function(filename, sheet=NA, col_names=FALSE, na="..", n_max=1) {
   if (is.character(headers[[i]])) { 
     if (str_detect(headers[[i]], "(20th.*)([0-9]{4})[-]([0-9]{4} )")) {
   headers[i] <- unlist(strsplit(headers[[i]], "(20th.*)([0-9]{4})[-]([0-9]{4} )"))[2]
+    } else if (str_detect(headers[[i]], " NA")) {
+      headers[i] <- unlist(strsplit(headers[[i]], " NA"))[1]
     }
   }
 }
@@ -1301,27 +1303,15 @@ multiHeader <- function(filename, sheet=NA, col_names=FALSE, na="..", n_max=1) {
 multiHeader(filename=here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "Demographics_RacialEthnic_2019.xls"), sheet="Schools", n_max=2)
 ```
 
-```{r}
-# phone <- "([2-9][0-9]{2})[- .]([0-9]{3})[- .]([0-9]{4})"
 
-for (i in 1:length(h)) {
-  if (is.character(h[[i]])) { 
-    if (str_detect(h[[i]], "(20th.*)([0-9]{4})[-]([0-9]{4} )")) {
-  h[i] <- unlist(strsplit(h[[i]], "(20th.*)([0-9]{4})[-]([0-9]{4} )"))[2]
-    }
-  }
-}
+```{r}
+multiHeader(filename=here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "FY15_Racial_Ethnic_Survey.xls"), sheet="Educational Units", n_max=2)
 ```
 
 ```{r}
-h
+multiHeader(filename=here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "FY16_Student_Racial_Ethnic_Report_20151023.xls"), sheet="Educational Units", n_max=2)
+
 ```
-
-
-```{r}
-multiHeader(filename=here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "FY12_Racial_Ethnic_Survey.xls"), sheet="Educational Units", n_max=2)
-```
-
 
 
 ```{r message=FALSE, warning=FALSE}
