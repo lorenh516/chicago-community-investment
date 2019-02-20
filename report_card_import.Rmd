@@ -1168,25 +1168,6 @@ for (i in length(files)) {
   
 }
 ```
-
-
-```{r}
-
-```
-
-
-```{r}
-
-```
-
-
-```{r}
-
-```
-
-
-
-
 ```{r}
 files
 ```
@@ -1284,26 +1265,97 @@ multiHeader <- function(filename, sheet=NA, col_names=FALSE, na="..", n_max=1) {
   long_headers <- fill(long_headers,1:n_max) # all four columns
   headers <- data.frame(t(long_headers)) # back to vertical.
   
-  # summarize using str_c from stringr which collapses strings.
-  # summarize_all makes it work on all columns.
-  column_labels <- headers %>% str_replace_na(summarize_all(str_c, collapse = " "))
-  # for (i in length(column_labels)) {
-  #   column_labels[i] <- gsub("\n", "\\s",column_labels[i]) 
-  # }
-  # 
-  # # pull them into one character vector, add YEAR
- # headers = unlist(column_labels[1,])
-    # headers = c("YEAR", unname(unlist(column_labels[1,])))
+  headers <- headers %>%
+  mutate_all(as.character) %>%
+  fill(names(.), .direction = "up") %>% 
+    mutate_all(., funs(replace(.,duplicated(.), NA))) %>% 
+    mutate_all(str_replace_na)
   
-  return(column_labels)
+ #  # summarize using str_c from stringr which collapses strings.
+ #  # summarize_all makes it work on all columns.
+  column_labels <- headers %>% summarize_all(str_c, collapse = " ")
+  for (i in length(column_labels)) {
+    column_labels[i] <- gsub("\n", "\\s",column_labels[i])
+    column_labels[i] <- gsub("/\n", "/\\s",column_labels[i])
+    column_labels[i] <- gsub(" NA", "",column_labels[i])
+  }
+ # pull them into one character vector
+ headers = unlist(column_labels[1,])
+ headers = unname(headers)
+
+  for (i in 1:length(headers)) {
+  if (is.character(headers[[i]])) { 
+    if (str_detect(headers[[i]], "(20th.*)([0-9]{4})[-]([0-9]{4} )")) {
+  headers[i] <- unlist(strsplit(headers[[i]], "(20th.*)([0-9]{4})[-]([0-9]{4} )"))[2]
+    }
+  }
+}
+ 
+  return(headers)
 } 
 
 ```
 
 
 ```{r}
-multiHeader(filename=here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "FY14_Racial_Ethnic_Survey.xls"), sheet="Educational Units", n_max=2)
+multiHeader(filename=here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "Demographics_RacialEthnic_2019.xls"), sheet="Schools", n_max=2)
 ```
 
-`
+```{r}
+# phone <- "([2-9][0-9]{2})[- .]([0-9]{3})[- .]([0-9]{4})"
+
+for (i in 1:length(h)) {
+  if (is.character(h[[i]])) { 
+    if (str_detect(h[[i]], "(20th.*)([0-9]{4})[-]([0-9]{4} )")) {
+  h[i] <- unlist(strsplit(h[[i]], "(20th.*)([0-9]{4})[-]([0-9]{4} )"))[2]
+    }
+  }
+}
+```
+
+```{r}
+h
+```
+
+
+```{r}
+multiHeader(filename=here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "FY12_Racial_Ethnic_Survey.xls"), sheet="Educational Units", n_max=2)
+```
+
+
+
+```{r message=FALSE, warning=FALSE}
+
+id.Unit <- read_csv(here::here("data", "rc_v2", "2001_to_2014_unit_School_ID_matchup.csv"), col_names = T, skip=1) %>% distinct(`School ID`, Unit) %>% dplyr::select(School_ID = `School ID`, Unit)
+
+all_budgets <-  readRDS(here::here("data", "all_budgets.Rda"))
+id_overlap <-  readRDS(here::here("data", "id_overlap.Rda"))
+school_data <-  readRDS(here::here("data", "combined_school_data.Rda"))
+                                   
+dim(school_data %>% filter(is.na(School_ID)))
+                                   
+dim(school_data %>% filter(!is.na(School_ID) & !is.na(`SCHOOL ID (R-C-D-T-S)`)))
+
+school_data %>% filter(!is.na(School_ID) & !is.na(`SCHOOL ID (R-C-D-T-S)`) &
+  !is.na(``))
+
+# Schools per year 325-399 every year
+school_data %>% filter(!is.na(School_ID) & !is.na(`SCHOOL ID (R-C-D-T-S)`)) %>% 
+  filter(!is.na(`Proposed Budget`)) %>% 
+  dplyr::select(contains("budget"), School_ID, `SCHOOL ID (R-C-D-T-S)`, `SCHOOL NAME`, everything()) %>% 
+  group_by(YEAR, `SCHOOL ID (R-C-D-T-S)`) %>% group_by(YEAR) %>% summarise(schools = n())
+                 
+write_csv(all_budgets, "all_budgets.csv")
+                                                     
+inner_join(id_overlap %>% 
+             mutate(Legacy_Unit_ID = as.numeric(Legacy_Unit_ID)),
+           id.Unit %>% 
+             mutate(Unit = as.numeric(Unit)), 
+           by=c(Legacy_Unit_ID="Unit")) %>% dplyr::select(School_ID, Finance_ID, YEAR)
+```
+
+```{r}
+
+```
+
 
