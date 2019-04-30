@@ -21,13 +21,13 @@ communityWard <- communityWard %>% filter(Year > 2012)
 ```
 
 ```{r}
-communityWard <- communityWard %>% filter(`Community Area` > 0) %>% 
+communitySide <- communityWard %>% filter(`Community Area` > 0) %>% 
   dplyr::select(Year, `Community Area`, Ward) %>% arrange(Year, Ward, `Community Area`)
 ```
 
 
 ```{r}
-communityWard <- communityWard %>% unique()
+communitySide <- communitySide %>% unique()
 ```
 
 ```{r}
@@ -43,7 +43,7 @@ farSouthEast <- c(44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55)
 ```
 
 ```{r}
-communityWard <- communityWard %>% 
+communitySide <- communitySide %>% 
   mutate(Side = ifelse(
     (`Community Area` %in% farNorth), "Far North",
     ifelse((`Community Area` %in% northWest), "Northwest", 
@@ -58,29 +58,29 @@ communityWard <- communityWard %>%
 ```
 
 ```{r}
-communityWard <- communityWard %>% select(Year, Ward, Side) %>% group_by(Ward, Side) %>% summarise(n = n()) %>% filter(n == max(n), !is.na(Ward))
+ communitySide %>% dplyr::select(Year, `Community Area`, Ward, Side) %>% group_by(`Community Area`, Ward) %>% summarise(n = n()) %>% filter(n == max(n), !is.na(Ward))
 ```
 
 ```{r}
-communityWard %>% filter(Ward %in% unlist(communityWard[duplicated(communityWard$Ward), 1]))
+communitySide %>% filter(Ward %in% unlist(communitySide[duplicated(communitySide$Ward), 1]))
 ```
 
 ```{r}
-communityWard <- communityWard %>% mutate(Side = ifelse(Ward == 42, "Central", 
+communitySide <- communitySide %>% mutate(Side = ifelse(Ward == 42, "Central", 
                                  ifelse(Ward == 43, "North",
                                  ifelse(Ward == 46, "Far North",
                                  ifelse(Ward == 47, "North", 
                                  Side))))) %>% unique() %>% dplyr::select(Ward, Side)
-colnames(communityWard) <- sapply(colnames(communityWard), toupper)
+colnames(communitySide) <- sapply(colnames(communitySide), toupper)
 ```
 
 
 ```{r}
-communityWard
+communitySide
 ```
 
 
 ```{r}
-write_csv(communityWard, path=here::here("data", "wardSides.csv"))
+write_csv(communitySide, path=here::here("data", "wardSides.csv"))
 ```
 
