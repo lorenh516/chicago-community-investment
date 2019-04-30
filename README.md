@@ -4,7 +4,7 @@
 Perform visual investigatation of community investment and de-investment across Chicago communities post-recession, especially in areas predominantly inhabited by Hispanic residents versus predominantly inhabited by Black residents.
 
 ### Methods & Tools
-Utilize R to analyze and compile data on school spending, business licensing,  `ggplot2`, `gganimate`, and `sf` packages to create static visualizations on Chicago investment patterns from 2012 to 2018. 
+Utilize R to analyze and compile data on school spending, business licensing, and democratic participation across Chicago wards. Utilize `ggplot2`, `gganimate`, and `sf` packages to create static visualizations on Chicago investment patterns from 2012 to 2018. 
 
 View my analysis on my [Chicago Community Investment](https://lorenh516.github.io/chicago-community-investment/) webpage.
 
