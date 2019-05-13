@@ -1,4 +1,12 @@
-## [Chicago Community Investment](https://lorenh516.github.io/chicago-community-investment/)
+## Chicago Community Investment
+
+### Goal
+Perform visual investigatation of community investment and de-investment across Chicago communities post-recession, especially in areas predominantly inhabited by Hispanic residents versus predominantly inhabited by Black residents.
+
+### Methods & Tools
+Utilize R to analyze and compile data on school spending, business licensing, and democratic participation across Chicago wards. Utilize `ggplot2`, `gganimate`, and `sf` packages to create static visualizations on Chicago investment patterns from 2012 to 2018. 
+
+View my analysis on my [Chicago Community Investment](https://lorenh516.github.io/chicago-community-investment/) webpage.
 
 ### Background
 
@@ -7,6 +15,4 @@ In the year and a half I've spent in Chicago, I've heard a lot about how gentrif
 As Chicago is notably one of the most segregated cities in the United States, I believe it will be an interesting forum for such an analysis, and that the city’s segregated neighborhoods comprise a “natural experiment” of sorts on the myriad effects of systemic disinvestment of communities. I will attempt to determine whether the two patterns of de-investment versus increased investment are visible across communities of different demographics in terms of:
 - Business licenses issued, to track businesses' entry into and exit from neighborhoods of different demographics
 - Investment in students through public schools with differing majorities of student racial/ ethnic and socioeconomic backgrounds
-- Food access and the prevalence of fast food restaurants as compared to grocery stores
-- Increased take-up of programs, or an increase in amounts allocated to residents of a particular Census tract by safety net programs such as SNAP and Medicaid as community staples such as schools, where millions of students access subsidized, (arguably) nutritious food, are defunded and establishments like fairly-priced neighborhood groceries disappear
 - Voter turnout, used to determine any correlation between democratic participaiton and neighborhood de-investment
