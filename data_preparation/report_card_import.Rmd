@@ -22,36 +22,8 @@ library(here)
 ```
 
 
-```{r include=FALSE}
-# Experiment with one file to write functions
-# rc17Layout <- mutate(rc17Layout, descriptions = ifelse(is.na(X__3),X__6, paste(X__6, " - ", X__3)))
-```
 
-```{r include=FALSE}
-# rc17Layout <- read_excel(here::here("data","RC17_layout.xlsx"), sheet="RC17", col_names=FALSE)
-```
-
-```{r include=FALSE}
-# rc17Layout %>% filter(is.na(as.numeric(X__1)))
-```
-
-```{r warning=FALSE, include=FALSE}
-# rc17Layout <- rc17Layout %>% filter(!is.na(as.numeric(X__1)))
-```
-
-```{r include=FALSE}
-# rc17Layout %>% filter(!is.na(X__2))
-```
-
-```{r include=FALSE}
-# rc17Layout <- rc17Layout %>% select(-one_of(c("X__2")))
-```
-
-```{r include=FALSE}
-# rc17Layout <- mutate(rc17Layout, descriptions = ifelse(is.na(X__3),X__6, paste(X__6, " - ", X__3)))
-```
-
-
+## Import and Format Report Card files from ISBE
 ```{r}
 importReportCards <- function(file, year, layout) {
    repCard <- read.delim(here::here("data", file), header = FALSE, sep=";")
@@ -96,20 +68,21 @@ processLayout <- function(file, sheet, colnames) {
 ```
 
 
-
+#### Identify Common Phrases in Key Columns Across Years
 ```{r}
 rc_key_phrases <- c("Summative Designation", "Low-Income", "Enrollment", "School Days", "Attendance Rate", "Truancy",	"Truant", "Truants", "Dropout", 'Dropout Rate', "DROPOUT RATE SCHOOL %", "Graduation Rate", "Grad Rate", "Class Size", "Teaching Exp", "Teacher Exp", "Teaching Exp.", "Teacher Exp.", "Teaching Experience", "Provisional Credentials", "Teacher Ratio", "Admin Ratio", "Pupil-Teacher", "Pupil-Admin", "Teacher Avg Salary", "Admin Avg Salary", "Teacher Retention", "Principal Turnover",	"Teacher Attendace", "Teacher Evaluation", "AP Classes", "AP Exams")
 rc_key_phrases <- sapply(rc_key_phrases, toupper)
 ```
 
 
+#### Identify Key Columns for Basic School Information
 ```{r}
+# columns to be placed at beginning of final data frame
 id_info <- c("YEAR", "SCHOOL ID (R-C-D-T-S)", "SCHOOL NAME", "DISTRICT NAME", "CITY", "COUNTY", "SCHOOL TYPE NAME", "GRADES IN SCHOOL", "SCHOOL - WHITE %", "SCHOOL - BLACK %", "SCHOOL - HISPANIC %", "SCHOOL - ASIAN %", "LOW-INCOME SCHOOL %")
 ```
 
-
+#### Import Individual Files
 ```{r include=FALSE}
-# data exploration 
 rc15Layout <- processLayout(file="RC15-layout.xlsx", sheet="RC15", colnames=FALSE)
 ```
 
@@ -146,7 +119,7 @@ rc17 <- importReportCards("rc17.txt", "2017", rc16Layout)
 rc17 %>% dplyr::select(id_info, matches(paste(rc_key_phrases,collapse="|")))
 ```
 
-
+#### Limit Columns to Identified Key Columns
 ```{r}
 rc15 <- rc15 %>% dplyr::select(id_info, matches(paste(rc_key_phrases,collapse="|")))
 rc16 <- rc16 %>% dplyr::select(id_info, matches(paste(rc_key_phrases,collapse="|")))
@@ -160,11 +133,12 @@ ncol(rc16)
 ncol(rc17)
 ```
 
-
+#### Combine 2015-2017 data frames
 ```{r}
 full_term <- plyr::rbind.fill(rc15, rc16, rc17)
 ```
 
+####  Import 2018
 ```{r}
 rc18 <- read_xlsx(here::here("data", "Report-Card-Public-Data-Set.xlsx"), sheet = "General")
 rc18 <- mutate(rc18, YEAR="2018")
@@ -254,6 +228,7 @@ rc18 <- rc18 %>% filter(grepl("City of Chicago", `DISTRICT NAME`)) %>%
   dplyr::select(id_info, matches(paste(rc_key_phrases,collapse="|")), -contains("IEP"), -contains("TWO OR MORE"), -contains("OTHER"), -contains("ALASKA"), -contains("NUMBER EL"), -contains(" - SUBREGION"), -contains(" - DISTRICT"))
 ```
 
+#### Identify and address any missed key columns 
 ```{r include=FALSE}
 # check for column name changes from previous years
 setdiff(colnames(full_term), colnames(rc18))
@@ -264,28 +239,13 @@ setdiff(colnames(full_term), colnames(rc18))
 setdiff(colnames(rc18), colnames(full_term))
 ```
 
-
 ```{r}
 full_term <- plyr::rbind.fill(full_term, rc18)
 ```
 
-
-```{r include=FALSE}
-# attempt at fuzzzy matching between 2018 and previous years
-# col_check <- data.frame(name2018=colnames(rc18),
-#                  prevname=NA*length(colnames(rc18)), 
-#                  stringsAsFactors=FALSE) 
-# for(i in 1:length(col_check$name2018) ) {
-#    x <- agrep(pattern=col_check$name2018[i], x=colnames(rc_2015_to_2018),
-#    ignore.case=TRUE, value=TRUE,
-#    max.distance = 0.01, useBytes = TRUE)
-#    x <- paste0(x,"")
-#    col_check$prevname[i] <- x
-# }
-# View(col_check)
-```
-
+#### Import 2013 and 2014 School Year Report Cards
 ```{r}
+# import years stored in SAS files
 rc13 <- haven::read_sas(here::here("data", "rc13-sas-data", "rc13-sas-data.sas7bdat"))
 rc14 <- haven::read_sas(here::here("data", "rc14-sas-data", "rc14-sas-data.sas7bdat"))
 ```
@@ -294,6 +254,7 @@ rc14 <- haven::read_sas(here::here("data", "rc14-sas-data", "rc14-sas-data.sas7b
 # dim(rc13 %>% filter(grepl("City of Chicago", DistNAME)))
 # dim(rc14 %>% filter(grepl("City of Chicago", DistNAME)))
 ```
+
 ```{r}
 rc13 <- rc13 %>% filter(grepl("City of Chicago", DistNAME))
 rc14 <- rc14 %>% filter(grepl("City of Chicago", DistNAME))
@@ -409,12 +370,11 @@ rc14 <- rc14 %>%  rename("SCHOOL ID (R-C-D-T-S)" = "SchRcdts",
 
 
 
-
 ```{r}
 setdiff(sapply(colnames(rc13), toupper), sapply(colnames(rc14), toupper))
 ```
 
-
+#### Remove Extraneous Columns not Renamed
 ```{r}
 # double-check "COMING SOON" columns are all NA in 2013 data
 rc13 %>% dplyr::select(contains("Coming")) %>% summarise_all(funs(n_distinct(.)))
@@ -449,13 +409,13 @@ saveRDS(full_term, file = here::here("data", "full_term.Rda"))
 ```
 
 
+#### PDF-Scraping: Retrieve School Ward Numbers 
 ```{r}
 library(tm)
 read <- tm::readPDF(control = list(text = "-layout"))
 schoolsByWard <- Corpus(URISource(here::here("data", "Schools_by_Ward_2012.pdf")), readerControl = list(reader = read))
 schoolsByWard_content <- content(schoolsByWard[[1]])
 schoolsByWard_content <- unlist(schoolsByWard_content <- strsplit(schoolsByWard_content, "\n"))
-
 ```
 
 ```{r}
@@ -472,7 +432,6 @@ schoolsByWard_content <- schoolsByWard_content[- (header_rows)]
 subtitle_rows <- grep("^Based on", schoolsByWard_content) 
 schoolsByWard_content <- schoolsByWard_content[- (subtitle_rows)]
 ```
-
 
 ```{r}
 # add delimiters to PDF text corpus
@@ -510,10 +469,11 @@ schoolsByWard <-  read.table(text=schoolsByWard, sep=";", quote="", stringsAsFac
 schoolsByWard <- schoolsByWard %>% dplyr::select(-one_of('X'))
 
 saveRDS(schoolsByWard, file = here::here("data", "schoolsByWard.Rda"))
-# 
+
 ```
 
 
+## Import CPS Budget Files
 ```{r}
 formatBudget <- function(budget_df, year) {
   df_names <- colnames(budget_df)
@@ -542,8 +502,6 @@ formatBudget <- function(budget_df, year) {
 ```
 
 
-
-
 ```{r warning=FALSE}
 compileBudgets <- function(filename, year, col_types=c("guess", "guess", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric")) {
   
@@ -556,6 +514,7 @@ compileBudgets <- function(filename, year, col_types=c("guess", "guess", "numeri
  }
 ```
 
+#### Import 2013-2019 School Budgets from CPS
 ```{r warning=FALSE}
 
 
@@ -591,23 +550,89 @@ all_budgets %>% filter(is.na(`Budget Difference`))
 ```
 
 
-```{r message=FALSE, warning=FALSE}
+
+```{r}
+scraped_CPS_ids <- read_csv(here::here('data_preparation', 'data', 'CPS_ids.csv'), col_names = TRUE)
+```
+
+```{r}
+ISBE_school_list <- read_xls(here::here('data_preparation', 'data', 'dir_ed_entities.xls'), col_names = TRUE, sheet = "Public Dist & Sch")
+```
+
+```{r}
+ISBE_school_list %>% filter(grepl("299", `Region-2
+County-3
+District-4`)) %>% filter(City!="Chicago")
+```
+```{r}
+Chicago_ISBE_list <- ISBE_school_list %>% filter(grepl("299", `Region-2
+County-3
+District-4`))
+```
+
+
+```{r}
+Chicago_ISBE_list <- left_join(Chicago_ISBE_list, scraped_CPS_ids, by=c("FacilityName"="ISBE_FacilityName"))
+```
+
+```{r}
+Chicago_ISBE_list <- Chicago_ISBE_list %>% mutate(RCDTS_ID = paste(`Region-2
+County-3
+District-4`, Type, School, sep = ""))
+```
+
+
+```{r}
+all_report_cards <-  readRDS(here::here("data", "full_term.Rda"))
+```
+
+
+
+```{r}
+all_report_cards_both_ids <- left_join(all_report_cards, Chicago_ISBE_list, by=c("SCHOOL ID (R-C-D-T-S)"="RCDTS_ID"))
+```
+
+
+```{r message=FALSE}
 # read in file with IDs to join from different sources
-id_overlap <- read_csv(here::here("data", "Chicago_Public_Schools_-_School_Profile_Information_SY1617.csv"), col_names = TRUE)
-id_overlap18 <- read_csv(here::here("data", "NEW_Chicago_Public_Schools_-_School_Profile_Information_SY1718.csv"), col_names = TRUE)
+id_overlap <- read_csv(here::here("data_preparation","data", "Chicago_Public_Schools_-_School_Profile_Information_SY1617.csv"), col_names = TRUE)
+id_overlap18 <- read_csv(here::here("data_preparation", "data", "NEW_Chicago_Public_Schools_-_School_Profile_Information_SY1718.csv"), col_names = TRUE)
 id_overlap <- id_overlap %>% mutate(Finance_ID = as.character(Finance_ID))
 id_overlap18 <- id_overlap18 %>% mutate(Finance_ID = as.character(Finance_ID))
 # saveRDS(id_overlap, file = here::here("data", "id_overlap.Rda"))
 
 
+```
+
+
+```{r}
+left_join(all_report_cards_both_ids,  id_overlap %>% dplyr::select('School_ID','Finance_ID'), by=c("CPS_id_num"="School_ID")) %>% filter(is.na(Finance_ID))
+```
+```{r}
+all_report_cards_both_ids <- left_join(all_report_cards_both_ids,  id_overlap %>% dplyr::select('School_ID','Finance_ID'), by=c("CPS_id_num"="School_ID"))
+```
+
+```{r}
+dim(all_report_cards_both_ids)
+```
+
+
+```{r}
+all_budgets <-  readRDS(here::here("data", "all_budgets.Rda"))
+```
+
+
+```{r}
+all_budgets <- all_budgets %>% mutate(YEAR = as.numeric(YEAR))
+all_report_cards_both_ids <- all_report_cards_both_ids  %>% mutate(YEAR = as.numeric(YEAR))
+
+school_data <- left_join(all_report_cards_both_ids, all_budgets, by = c("Finance_ID" = "unitNum", "YEAR" = "YEAR"), na_matches="never")
 
 ```
 
 
-```{r include=FALSE, eval=FALSE}
-all_report_cards <-  readRDS(here::here("data", "full_term.Rda"))
-id_overlap <-  readRDS(here::here("data", "id_overlap.Rda"))
-all_budgets <-  readRDS(here::here("data", "all_budgets.Rda"))
+```{r}
+
 schoolsByWard <-  readRDS(here::here("data", "schoolsByWard.Rda"))
 
 
@@ -615,78 +640,35 @@ schoolsByWard <- schoolsByWard %>% rename("School_ID" =  "School.ID",
                       "Unit_Name" = "Name.of.School",
                       "Address" = "Street.Address")
 
-# pull in IDs available from Chicago Data Portal (2017 SY)
-all_budgets <- left_join(all_budgets, id_overlap, by = c("unitNum" = "Finance_ID")) %>% 
-  dplyr::select( contains('_ID'), contains("long_name"),contains("address"), 
-                 one_of(colnames(all_budgets)), contains("latitude"), contains("longitude"))
-all_budgets <- all_budgets %>% rename("Unit_Name" = "Unit Name")
+```
 
-keep_albudgets_cols <- colnames(all_budgets)
-
-# matching on finance unit number matches 4,444 of 8,189 rows (654 schools)
-dim(all_budgets %>% filter(!is.na(School_ID)))
-dim(all_budgets %>% filter(!is.na(School_ID)) %>% distinct(Unit))
-
-#1462 unites in budget
-all_budgets  %>% distinct(Unit)
-
-# attempting to also match on school name only matches 1 more row
-inner_join(all_budgets, 
-          id_overlap %>% 
-            dplyr::select(contains('_ID'), contains("Long_Name"), contains("Address"), contains("Latitude"), contains("Longitude")) , 
-          by = c("Unit_Name" = "Long_Name")) 
-
+```{r}
+saveRDS(school_data, file = here::here("data_preparation", "data", "combined_school_data.Rda"))
 ```
 
 
 
 ```{r include=FALSE, eval=FALSE}
-# devtools::install_github("dgrtwo/fuzzyjoin")
-library(fuzzyjoin)
+
+
+# pull in IDs available from Chicago Data Portal (2017 SY)
+# all_budgets <- left_join(all_budgets, id_overlap, by = c("unitNum" = "Finance_ID")) %>% 
+#   dplyr::select( contains('_ID'), contains("long_name"),contains("address"), 
+#                  one_of(colnames(all_budgets)), contains("latitude"), contains("longitude"))
+# all_budgets <- all_budgets %>% rename("Unit_Name" = "Unit Name")
+
+# keep_albudgets_cols <- colnames(all_budgets)
 # 
+# # matching on finance unit number matches 4,444 of 8,189 rows (654 schools)
+# dim(all_budgets %>% filter(!is.na(School_ID)))
+# dim(all_budgets %>% filter(!is.na(School_ID)) %>% distinct(Unit))
 
+#1462 unites in budget
+# all_budgets  %>% distinct(Unit)
 
-check_this <- all_budgets%>% filter(!is.na(Unit_Name)) %>% left_join(schoolsByWard, by = "School_ID") %>%   filter(!is.na(`Unit Name`)) %>% 
-  dplyr::select(YEAR, Unit_Name, "Unit Name", School_ID, Address.x, Address.y, contains(".x"), contains(".y")) 
-
-
-unmatched <- all_budgets%>% filter(!is.na(Unit_Name)) %>% anti_join(schoolsByWard, by = "School_ID")  %>% filter(!is.na(School_ID)) %>% left_join(all_report_cards, by= c("School_Id"))
-
-check_this <- all_budgets %>% filter(!is.na(Unit_Name)) %>% stringdist_left_join(schoolsByWard, by = c(Unit_Name = "Unit Name"), max_dist = 0.15, method="jw", distance_col = "distance") %>% 
-  dplyr::select(YEAR,Unit_Name, `Unit Name`, School_ID.x, School_ID.y,  distance, Address.x, Address.y, Ward, contains(".x"), contains(".y")) 
-
-all_budgets %>% filter(!is.na(Unit_Name)) %>% stringdist_semi_join(schoolsByWard, by = c(Unit_Name = "Unit Name"), max_dist = 0.15, method="osa") %>% filter(YEAR==2014) %>% 
-  dplyr::select(YEAR, Unit_Name, School_ID, Address,  contains(".x"), contains(".y")) 
-
-all_budgets %>% filter(!is.na(Unit_Name)) %>% stringdist_semi_join(schoolsByWard, by = c(Unit_Name = "Unit Name"), max_dist = 0.15, method="lv") %>% filter(YEAR==2014) %>% 
-  dplyr::select(YEAR, Unit_Name, School_ID, Address, contains(".x"), contains(".y")) 
-
-all_budgets %>% filter(!is.na(Unit_Name)) %>% stringdist_semi_join(schoolsByWard, by = c(Unit_Name = "Unit Name"), max_dist = 0.15, method="dl") %>% filter(YEAR==2014) %>% 
-  dplyr::select(YEAR, Unit_Name, School_ID, Address, contains(".x"), contains(".y")) 
-
-all_budgets %>% filter(!is.na(Unit_Name)) %>% stringdist_semi_join(schoolsByWard, by = c(Unit_Name = "Unit Name"), max_dist = 0.15, method="jaccard") %>% filter(YEAR==2014) %>% 
-  dplyr::select(YEAR, Unit_Name, School_ID, Address, contains(".x"), contains(".y")) 
-
-all_budgets %>% filter(!is.na(Unit_Name)) %>% stringdist_semi_join(schoolsByWard, by = c(Unit_Name = "Unit Name" ), max_dist = 0.15, method="cosine") %>% filter(YEAR==2014) %>% 
-  dplyr::select(YEAR, Unit_Name, School_ID, Address, contains(".x"), contains(".y")) 
-
-all_budgets %>% filter(!is.na(Unit_Name)) %>% stringdist_semi_join(schoolsByWard, by = c(Unit_Name = "Unit Name" ), max_dist = 0.15, method="qgram") %>% filter(YEAR==2014) %>% 
-  dplyr::select(YEAR, Unit_Name, School_ID, Address, contains(".x"), contains(".y")) 
-
-
-all_budgets %>% filter(!is.na(Unit_Name)) %>% stringdist_semi_join(schoolsByWard, by = c(Unit_Name = "Unit Name" ), max_dist = 0.15, method="lcs") %>% filter(YEAR==2014) %>% 
-  dplyr::select(YEAR, Unit_Name, School_ID, Address, contains(".x"), contains(".y")) 
-
-all_budgets %>% filter(!is.na(Unit_Name)) %>% stringdist_semi_join(schoolsByWard, by = c(Unit_Name = "Unit Name" ), max_dist = 0.15, method="hamming") %>%  filter(YEAR==2014) %>% 
-  dplyr::select(dist, YEAR, Unit_Name, School_ID, Address, contains(".x"), contains(".y")) 
-# all_budgets %>% filter(!is.na(Unit_Name)) %>% stringdist_anti_join(schoolsByWard, by = c(Unit_Name = "Unit Name"), max_dist = 2) %>% 
-#   dplyr::select(YEAR, School_ID, Unit_Name,  `Unit Name`, Address) 
-
-# fuzzy_join(all_budgets, schoolsByWard, fuzzy = c("Unit Name", "Address"), w = c(0.8, 0.2))
-
-# %>% 
-#   dplyr::select("School_ID", "School.ID", "Unit Name", "Name.of.School", "Address", "Street.Address", "Ward")
 ```
+
+
 
 
 ```{r}
@@ -880,7 +862,7 @@ school_data <- left_join(all_report_cards, all_budgets, by=c("SCHOOL ID (R-C-D-T
 
 
 
-# saveRDS(school_data, file = here::here("data", "combined_school_data.Rda"))
+
 
 ```
 
@@ -1249,7 +1231,6 @@ read_xls(here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "FY12_Racial_E
 ) %>% mutate(Total = ifelse(is.na(Total), Totals, Total)) %>% filter(!(is.na(`School ID`) & is.na(Unit)) & !is.na(Total))
 
 ```
-
 
 
 
