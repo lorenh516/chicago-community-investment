@@ -73,7 +73,7 @@ diverging_teal <- c(
                     'cocoa' = '#b5725a',
                     'honeymustard' = '#d59349',
                     'goldenrod' = '#edb834',
-                    'darkgray' = 'B5B5B5',
+                    'darkgray' = '#B5B5B5',
                     'palegray' = '#E5E5E5')
 
 ```
@@ -758,60 +758,11 @@ bus_licenses %>% filter(!is.na(WARD), active==1,  activity_date >= mdy("1/1/2012
 While economic activity is definitively a factor in the a neighborhood's ability to thrive, just as important in future success is the quality of education that students in the area are able to receive. Here I explore the variation in Chicago Public School spending for students of different socioeconomic backgrounds.
 ```{r quasi-random, fig.height=12, fig.width=15, message=FALSE, warning=FALSE}
 # read in combined school report card and budget dataset
-school_data <-  readRDS(here::here("data", "combined_school_data.Rda"))
-
-schoolsByWard <-  readRDS(here::here("data", "schoolsByWard.Rda"))
-
-
-
-schoolsByWard <- schoolsByWard %>% rename("School_ID" =  "School.ID", 
-                      "Unit_Name" = "Name.of.School",
-                      "Address" = "Street.Address")
-
-# add ward to rows from schoolsByWard document parsed above
-school_data <- left_join(school_data, 
-                         schoolsByWard %>% 
-                           dplyr::select(School_ID, WARD = Ward, NAME_WARD_JOIN = Unit_Name), 
-                         by=c("School_ID" = "School_ID")) %>% 
-  dplyr::select(School_ID, WARD, SCHOOL_NAME = `SCHOOL NAME`, 
-                NAME_WARD_JOIN, `Proposed Budget`, 
-                `SCHOOL TOTAL ENROLLMENT`, everything())
-
-# calculate average spend per student
-school_data <- school_data %>% 
-  mutate(
-    # remove commas from enrollment column and make sure it's numeric
-    `SCHOOL TOTAL ENROLLMENT` = as.numeric(gsub(",","",`SCHOOL TOTAL ENROLLMENT`)),
-    `Proposed Budget` = as.numeric(`Proposed Budget`),
-    # calculate a basic average spend based on enrollment and budget for each row
-    AVG_SPEND_PER_STUDENT = as.numeric(`Proposed Budget` / as.numeric(gsub(",","",`SCHOOL TOTAL ENROLLMENT`))),
-   # ensure year columns are all numeric
-   YEAR = as.numeric(YEAR),
-   PREV_YR = as.numeric(YEAR) - 1,
-   TWO_YR_PRIOR = as.numeric(YEAR) - 2,
-   # remove trailing white space from school types column 
-   `SCHOOL TYPE NAME` = str_trim(`SCHOOL TYPE NAME`),
-   SCHOOL_NAME = str_trim(SCHOOL_NAME),
-   # make sure all charter schools are included in school types column
-   `SCHOOL TYPE NAME` = ifelse(str_detect(pattern="C$", `SCHOOL ID (R-C-D-T-S)`),
-                                "CHARTERSCH", `SCHOOL TYPE NAME`)) %>% 
-  dplyr::select(YEAR, PREV_YR, TWO_YR_PRIOR, School_ID, WARD, NAME_WARD_JOIN, 
-                CY_BUDGET = `Proposed Budget`, 
-                SCHOOL_TOTAL_ENROLLMENT =  `SCHOOL TOTAL ENROLLMENT`,
-                AVG_SPEND_PER_STUDENT, everything())
-
-# add Chicago area based on matching generated from Chicago Open Data portal dataset 
-# and UChicago community-area-to-Side matching
-school_data <- left_join(school_data, read_csv(here::here("data", "wardSides.csv")),
-                         by="WARD") %>% 
-  dplyr::select(YEAR, PREV_YR, TWO_YR_PRIOR, School_ID, WARD, SIDE, everything())
-
-    
-# make sure all years have all school types
-# school_data %>% distinct(YEAR, `SCHOOL TYPE NAME`)
+school_data <-  readRDS(here::here("data_preparation", "data", "combined_school_data.Rda"))
 
 # create variable of columns to keep in front after modifications
-front_cols <- c("YEAR", "School_ID", "WARD", "SIDE", "SCHOOL_NAME", "NAME_WARD_JOIN", "CY_BUDGET", "SCHOOL_TOTAL_ENROLLMENT")
+front_cols <- c("YEAR", "CPS_id_num", "WARD", "SIDE", "SCHOOL_NAME", "NAME_WARD_JOIN", "CY_BUDGET", "SCHOOL_TOTAL_ENROLLMENT")
+
 
 # bin enrollment and spend values for comparison
 school_data <- school_data %>% 
@@ -849,6 +800,9 @@ school_data <- left_join(
     dplyr::select(front_cols, ENROLLMENT_RANGE, SPEND_RANGE, 
       predominant_race = group_name, max_pct = pct, everything())
   
+
+# saveRDS(school_data, file = here::here("data_preparation", "data", "binned_school_data.Rda"))
+school_data <-  readRDS(here::here("data_preparation", "data", "binned_school_data.Rda"))
 
 #########################
 ##  Quasi-Random Plot  ##
@@ -1079,7 +1033,7 @@ However, in a perhaps reassuring trend, the [newest Evidence-Based-Fuding Formul
 ```{r gganimate_budget, fig, fig.height=12, fig.width=15, message=FALSE, warning=FALSE}
  
 library(gganimate)
-# library(gapminder)
+
 school_data %>% mutate(NONWHITE_PCT = (100 - as.numeric(`SCHOOL - WHITE %`)),
                        DIFF_NONWHITE = NONWHITE_PCT - as.numeric(`SCHOOL - WHITE %`)) %>% 
   arrange(desc(predominant_race), DIFF_NONWHITE) %>% 
@@ -1124,17 +1078,6 @@ ggplot(aes(NONWHITE_PCT, AVG_SPEND_PER_STUDENT, frame = as.integer(YEAR))) +
 ```
 
 
-```{r include=FALSE, eval=FALSE}
-LI_parts <- parts_all  %>% dplyr::select(SPEND_RANGE, `Low-Income`, `Not Low-Income`) %>% gather("income_status", "value", -SPEND_RANGE)
-
-library(ggwaffle)
-waffle_data <- waffle_iron(LI_parts, aes_d(group = income_status))
-ggplot(waffle_data, aes(x, y, fill = group)) + 
-  geom_waffle() + 
-  coord_equal() + 
-  scale_fill_waffle() + 
-  theme_waffle() 
-```
 
 ## Exploring Voter Activation in Deinvested Wards
 
@@ -1233,6 +1176,9 @@ turnoutDiff %>% filter(SIDE == "Far Southwest Side")
 
 # saveRDS(turnoutDiff, file = here::here("data", "wards_turnout.Rda"))
 ``` 
+
+
+
 
 
 ```{r slopegraph, fig.height=12, fig.width=15}

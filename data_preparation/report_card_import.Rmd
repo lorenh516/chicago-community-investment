@@ -633,7 +633,7 @@ school_data <- left_join(all_report_cards_both_ids, all_budgets, by = c("Finance
 
 ```{r}
 
-schoolsByWard <-  readRDS(here::here("data", "schoolsByWard.Rda"))
+schoolsByWard <-  readRDS(here::here("data_preparation", "data", "schoolsByWard.Rda"))
 
 
 schoolsByWard <- schoolsByWard %>% rename("School_ID" =  "School.ID", 
@@ -642,272 +642,232 @@ schoolsByWard <- schoolsByWard %>% rename("School_ID" =  "School.ID",
 
 ```
 
-```{r}
-saveRDS(school_data, file = here::here("data_preparation", "data", "combined_school_data.Rda"))
-```
-
-
-
-```{r include=FALSE, eval=FALSE}
-
-
-# pull in IDs available from Chicago Data Portal (2017 SY)
-# all_budgets <- left_join(all_budgets, id_overlap, by = c("unitNum" = "Finance_ID")) %>% 
-#   dplyr::select( contains('_ID'), contains("long_name"),contains("address"), 
-#                  one_of(colnames(all_budgets)), contains("latitude"), contains("longitude"))
-# all_budgets <- all_budgets %>% rename("Unit_Name" = "Unit Name")
-
-# keep_albudgets_cols <- colnames(all_budgets)
-# 
-# # matching on finance unit number matches 4,444 of 8,189 rows (654 schools)
-# dim(all_budgets %>% filter(!is.na(School_ID)))
-# dim(all_budgets %>% filter(!is.na(School_ID)) %>% distinct(Unit))
-
-#1462 unites in budget
-# all_budgets  %>% distinct(Unit)
-
-```
-
-
 
 
 ```{r}
-file_names <-dir("/Users/lorenh/Documents/Classes/winter_2019/data_vizualization_course/chicago-investment/data/rc_v2", 
-                 pattern = '\\.csv', full.names = TRUE)
-
-names(file_names) <- c("ES2013", "HS2013", "ES2014", "HS2014", "ALL2016", "ALL2017",  "ALL2018", "ALL2019")
-file_names
-```
-```{r message=FALSE, warning=FALSE}
-included_years <- c(2013, 2013, 2014, 2014, 2016, 2017, 2018, 2019)
-
-ES2013 <- read_csv(file_names[1], col_names = TRUE) %>% mutate(YEAR = included_years[1])
-HS2013 <- read_csv(file_names[2], col_names = TRUE) %>% mutate(YEAR = included_years[2])
-ES2014 <- read_csv(file_names[3], col_names = TRUE) %>% mutate(YEAR = included_years[3])
-HS2014 <- read_csv(file_names[4], col_names = TRUE) %>% mutate(YEAR = included_years[4])
-ALL2016 <- read_csv(file_names[5], col_names = TRUE) %>% mutate(YEAR = included_years[5])
-ALL2017 <- read_csv(file_names[6], col_names = TRUE) %>% mutate(YEAR = included_years[6])
-ALL2018 <- read_csv(file_names[7], col_names = TRUE) %>% mutate(YEAR = included_years[7])
-ALL2019 <- read_csv(file_names[8], col_names = TRUE) %>% mutate(YEAR = included_years[8])
-
-ALL_SCHOOL_INFO <- bind_rows(ES2013, HS2013) %>% 
-  bind_rows(ES2014 %>% mutate(`Blue Ribbon Award` = as.character(`Blue Ribbon Award`))) %>% 
-  bind_rows(HS2014 %>% mutate(`Blue Ribbon Award` = as.character(`Blue Ribbon Award`))) %>% 
-  bind_rows(ALL2016) %>% 
-  bind_rows(ALL2017) %>%
-  bind_rows(ALL2018 %>% mutate(`Chronic_Truancy_Pct` = as.character(`Chronic_Truancy_Pct`))) %>% 
-  bind_rows(ALL2019 %>% 
-              mutate(
-                `School_Survey_Parent_Response_Rate_Avg_Pct` = as.character(`School_Survey_Parent_Response_Rate_Avg_Pct`),
-                `Chronic_Truancy_Pct` = as.character(`Chronic_Truancy_Pct`)
-                )
-            ) 
-```
-
-
-```{r eval=FALSE, include=FALSE}
-colnames(ALL_SCHOOL_INFO)
-```
-
-
-```{r}
-
-
-ALL_SCHOOL_INFO <-  ALL_SCHOOL_INFO %>% 
-  mutate(
-   School_ID = ifelse(is.na(School_ID), `School ID`, School_ID),
-   ZIP = ifelse(!is.na(ZIP), ZIP, 
-                ifelse(!is.na(Zip), Zip, 
-                ifelse(!is.na(`ZIP Code`), `ZIP Code`,
-                ZIP) )),
-   Longitude = ifelse(is.na(Longitude), School_Longitude,
-                             Longitude),
-   Latitude = ifelse(is.na(Latitude), School_Latitude,
-                            Latitude),
-   Address = ifelse(is.na(Address), `Street Address`,
-                    Address),
-   
-   Long_Name = ifelse(!is.na(Long_Name), Long_Name,
-               ifelse(!is.na(`School Name`),`School Name`,
-               ifelse(!is.na(`Name of School`),`Name of School`,
-                      Long_Name))),
-   One_Year_Dropout_Rate_Year_2_Pct = ifelse(
-         is.na(One_Year_Dropout_Rate_Year_2_Pct) & YEAR == 2013, 
-         `One-Year DropOut Rate Percentage 2013`, One_Year_Dropout_Rate_Year_2_Pct),
-   
-  Student_Attendance_Year_2_Pct = ifelse(
-        is.na(Student_Attendance_Year_2_Pct) & YEAR == 2013, `Student Attendance Percentage 2013`, Student_Attendance_Year_2_Pct),
-  
-Teacher_Attendance_Year_2_Pct = ifelse(
-      is.na(Teacher_Attendance_Year_2_Pct) & YEAR == 2013, 
-      `Teacher Attendance Percentage 2013`, Teacher_Attendance_Year_2_Pct))
-
-# saveRDS(ALL_SCHOOL_INFO, file = here::here("data", "ALL_SCHOOL_INFO.Rda"))
-# ALL_SCHOOL_INFO <-  readRDS(here::here("data", "ALL_SCHOOL_INFO.Rda"))
-
-all_report_cards %>% distinct(`SCHOOL ID (R-C-D-T-S)`, `SCHOOL NAME`, `SCHOOL TYPE NAME`)  %>%
-  write_csv("all_report_card_schools.csv")
-
-```
-
-
-
-```{r}
-read_csv(here::here("data", "rc_v2", "matchup_school_ids.csv"))
-```
-
-```{r message=FALSE, warning=FALSE, include=FALSE, eval=FALSE}
-# 1462 unique schools in budgets dataframe
-dim(all_budgets  %>% distinct(unitNum))
-
-# 721 unique schools in report card dataframe
-dim(all_report_cards  %>% distinct(`SCHOOL ID (R-C-D-T-S)`))
-
-# 659 budget school Finance Unit Numbers with names matched to CPS School_IDs (comined w/ profile data)
-dim(all_budgets %>% distinct(School_ID))
-
-# 452 report card schools matched ID exactly from ID-matchup doc (tied to RCDTS and School ID)
-inner_join(all_report_cards, read_csv(here::here("data", "rc_v2", "matchup_school_ids.csv")) %>% filter(!is.na(School_ID)) %>% dplyr::select(School_ID, Long_Name, `SCHOOL ID (R-C-D-T-S)` ), by=c("SCHOOL ID (R-C-D-T-S)" = "SCHOOL ID (R-C-D-T-S)"))  %>% distinct(School_ID)
-
-# 31 budget schools match name exactly on budgets df (tied to RCDTS and School ID)
-inner_join(all_budgets %>% filter(!is.na(Long_Name)), all_report_cards %>% filter(!is.na(`SCHOOL NAME`)) %>% dplyr::select(`SCHOOL ID (R-C-D-T-S)`, `SCHOOL NAME`), by=c("Long_Name" = "SCHOOL NAME"))  %>% distinct(School_ID)
-
-# double-check result: the 31 already included in 452 matching 
-setdiff(
-  unlist(inner_join(all_budgets %>% filter(!is.na(Long_Name)), all_report_cards %>% filter(!is.na(`SCHOOL NAME`)) %>% dplyr::select(`SCHOOL ID (R-C-D-T-S)`, `SCHOOL NAME`), by=c("Long_Name" = "SCHOOL NAME"))  %>% distinct(School_ID)),
-        unlist(inner_join(all_report_cards, read_csv(here::here("data", "rc_v2", "matchup_school_ids.csv")) %>% filter(!is.na(School_ID)) %>% dplyr::select(School_ID, Long_Name, `SCHOOL ID (R-C-D-T-S)` ), by=c("SCHOOL ID (R-C-D-T-S)" = "SCHOOL ID (R-C-D-T-S)"))  %>% distinct(School_ID))
-               )
-
-
-# 418 budget schools match ID exactly from ID-matchup doc (tied to RCDTS and School ID)
-inner_join(all_budgets, read_csv(here::here("data", "rc_v2", "matchup_school_ids.csv")) %>% filter(!is.na(School_ID)) %>% dplyr::select(School_ID, Long_Name, `SCHOOL ID (R-C-D-T-S)` ), by=c("School_ID" = "School_ID"))  %>% distinct(School_ID)
-
-
-# 402 budget schools match name exactly from ID-matchup doc (tied to RCDTS and School ID)
-inner_join(all_budgets, read_csv(here::here("data", "rc_v2", "matchup_school_ids.csv")) %>% filter(!is.na(School_ID)) %>% dplyr::select(School_ID, Long_Name, `SCHOOL ID (R-C-D-T-S)` ), by=c("Long_Name" = "Long_Name"))  %>% distinct(School_ID.x)
-
-# only 7 match by name but not ID
-setdiff(
-  # in this
-  unlist(inner_join(all_budgets, read_csv(here::here("data", "rc_v2", "matchup_school_ids.csv")) %>% filter(!is.na(School_ID)) %>% dplyr::select(School_ID, Long_Name, `SCHOOL ID (R-C-D-T-S)` ), by=c("Long_Name" = "Long_Name"))  %>% distinct(School_ID.x)),
-  # not in this
-unlist(inner_join(all_budgets, read_csv(here::here("data", "rc_v2", "matchup_school_ids.csv")) %>% filter(!is.na(School_ID)) %>% dplyr::select(School_ID, Long_Name, `SCHOOL ID (R-C-D-T-S)` ), by=c("School_ID" = "School_ID"))  %>% distinct(School_ID))  
-)
-
-# 23 match by ID but not by name
-setdiff(
- # in this
-unlist(inner_join(all_budgets, read_csv(here::here("data", "rc_v2", "matchup_school_ids.csv")) %>% filter(!is.na(School_ID)) %>% dplyr::select(School_ID, Long_Name, `SCHOOL ID (R-C-D-T-S)` ), by=c("School_ID" = "School_ID"))  %>% distinct(School_ID)),
- # not in this
-  unlist(inner_join(all_budgets, read_csv(here::here("data", "rc_v2", "matchup_school_ids.csv")) %>% filter(!is.na(School_ID)) %>% dplyr::select(School_ID, Long_Name, `SCHOOL ID (R-C-D-T-S)` ), by=c("Long_Name" = "Long_Name"))  %>% distinct(School_ID.x))
-)
-
-
-# 658 budget schools mactch names in CPS School_IDs (combined w/ ALL_SCHOOL_INFO df)
-inner_join(all_budgets, ALL_SCHOOL_INFO %>% filter(!is.na(Long_Name)) %>% dplyr::select(School_ID, Long_Name), by=c("Long_Name" = "Long_Name"))  %>% distinct(School_ID.x) 
-
-# 240 can be matched to names but not by ID 
-length(setdiff(
-  # in this
-  unlist(inner_join(all_budgets, ALL_SCHOOL_INFO %>% filter(!is.na(Long_Name)) %>% dplyr::select(School_ID, Long_Name), by=c("Long_Name" = "Long_Name"))  %>% distinct(School_ID.x)) ,
-    # not in this
-  unlist(inner_join(all_budgets, ALL_SCHOOL_INFO %>% filter(!is.na(Long_Name)) %>% dplyr::select(School_ID, Long_Name), by=c("School_ID" = "School_ID"))  %>% distinct(School_ID.x))
-  
-  ))
-
-
-# 240 can be matched to ID but not to name
-length(setdiff(
-  # in this
-  unlist(inner_join(all_budgets, ALL_SCHOOL_INFO %>% filter(!is.na(Long_Name)) %>% dplyr::select(School_ID, Long_Name), by=c("School_ID" = "School_ID"))  %>% distinct(School_ID)),
-  # not in this
-  unlist(inner_join(all_budgets, ALL_SCHOOL_INFO %>% filter(!is.na(Long_Name)) %>% dplyr::select(School_ID, Long_Name), by=c("Long_Name" = "Long_Name"))  %>% distinct(School_ID.x))
-  ))
-
-
-# 7 matching on name not in mached by ID
-length(setdiff(
-  # in this
-       unlist(inner_join(all_budgets, read_csv(here::here("data", "rc_v2", "matchup_school_ids.csv")) %>% filter(!is.na(School_ID)) %>% dplyr::select(School_ID, Long_Name, `SCHOOL ID (R-C-D-T-S)` ), by=c("Long_Name" = "Long_Name"))  %>% distinct(School_ID.x)),
-  # not in this
-  unlist(inner_join(all_budgets, read_csv(here::here("data", "rc_v2", "matchup_school_ids.csv")) %>% filter(!is.na(School_ID)) %>% dplyr::select(School_ID, Long_Name, `SCHOOL ID (R-C-D-T-S)` ), by=c("School_ID" = "School_ID"))  %>% distinct(School_ID))
-
-  ))
-
-```
-
-```{r eval=FALSE}
-# join data tables for analysis
-
-# add in additional matches from ALL_SCHOOL_INFO to get School IDs
-all_budgets <- left_join(all_budgets, ALL_SCHOOL_INFO %>% filter(!is.na(Long_Name)) %>% 
-                           dplyr::select(School_ID, Long_Name) %>% distinct(Long_Name), 
-                         by=c("Long_Name" = "Long_Name"))
-
-
-# add RCDTS to all_budgets for joining with report card data 
-all_budgets <- left_join(all_budgets, read_csv(here::here("data", "rc_v2", "matchup_school_ids.csv")) %>%
-                           filter(!is.na(School_ID)) %>% 
-                           dplyr::select(School_ID, Long_Name, `SCHOOL ID (R-C-D-T-S)` )%>% 
-                           distinct(School_ID, `SCHOOL ID (R-C-D-T-S)`) %>% group_by(School_ID) 
-                         # filter out bad matches in doc (same ID matched to multiple RCDTS)
-                         %>% filter(!n()>1), 
-                         # match on School_ID
-                         by=c("School_ID" = "School_ID")) 
-
-all_budgets <- all_budgets %>% mutate(YEAR = as.factor(YEAR))
-all_report_cards <- all_report_cards %>% mutate(YEAR = as.factor(YEAR))
-
-school_data <- left_join(all_report_cards, all_budgets, by=c("SCHOOL ID (R-C-D-T-S)" = "SCHOOL ID (R-C-D-T-S)", "YEAR" = "YEAR"), na_matches="never") %>% dplyr::select(School_ID, everything())
-
-
-
-
-
-```
-
-
-```{r message=FALSE}
-# read in combined school report card and budget dataset
-school_data <-  readRDS(here::here("data", "combined_school_data.Rda"))
-
 # confirm all rows matched to a budget have "Proposed Budget column"
-school_data %>% filter(!is.na(School_ID) & is.na(`Proposed Budget`))
+# 43 rows do not have budget
+school_data %>% filter(!is.na(CPS_id_num) & is.na(`Proposed Budget`))
 
   
 # add ward to rows from schoolsByWard document parsed above
-school_data <- left_join(school_data, schoolsByWard %>% dplyr::select(School_ID, WARD = Ward, NAME_WARD_JOIN = `Unit Name`), by=c("School_ID" = "School_ID")) %>% dplyr::select(School_ID, WARD, SCHOOL_NAME = `SCHOOL NAME`, NAME_WARD_JOIN, `Proposed Budget`, `SCHOOL TOTAL ENROLLMENT`, everything())
+school_data <- left_join(school_data, schoolsByWard %>% dplyr::select(School_ID, WARD = Ward, NAME_WARD_JOIN = `Unit_Name`), by=c("CPS_id_num" = "School_ID"), na_matches="never") %>% dplyr::select(CPS_id_num, WARD, SCHOOL_NAME = `SCHOOL NAME`, NAME_WARD_JOIN, `Proposed Budget`, `SCHOOL TOTAL ENROLLMENT`, everything())
+
+```
+
+
+
+```{r message=FALSE}
 
 # calculate average spend per student
 school_data <- school_data %>% 
   mutate(
     # remove commas from enrollment column and make sure it's numeric
-    SCHOOL_TOTAL_ENROLLMENT = as.numeric(gsub(",","",`SCHOOL TOTAL ENROLLMENT`)),
+    `SCHOOL TOTAL ENROLLMENT` = as.numeric(gsub(",","",`SCHOOL TOTAL ENROLLMENT`)),
+    `Proposed Budget` = as.numeric(`Proposed Budget`),
     # calculate a basic average spend based on enrollment and budget for each row
-    AVG_SPEND_PER_STUDENT = as.numeric(`Proposed Budget` / `SCHOOL TOTAL ENROLLMENT`),
+    AVG_SPEND_PER_STUDENT = as.numeric(`Proposed Budget` / as.numeric(gsub(",","",`SCHOOL TOTAL ENROLLMENT`))),
    # ensure year columns are all numeric
    YEAR = as.numeric(YEAR),
    PREV_YR = as.numeric(YEAR) - 1,
    TWO_YR_PRIOR = as.numeric(YEAR) - 2,
    # remove trailing white space from school types column 
    `SCHOOL TYPE NAME` = str_trim(`SCHOOL TYPE NAME`),
+   SCHOOL_NAME = str_trim(SCHOOL_NAME),
    # make sure all charter schools are included in school types column
    `SCHOOL TYPE NAME` = ifelse(str_detect(pattern="C$", `SCHOOL ID (R-C-D-T-S)`),
                                 "CHARTERSCH", `SCHOOL TYPE NAME`)) %>% 
-  dplyr::select(YEAR, PREV_YR, TWO_YR_PRIOR, School_ID, WARD, NAME_WARD_JOIN, 
+  dplyr::select(YEAR, PREV_YR, TWO_YR_PRIOR, CPS_id_num, WARD, NAME_WARD_JOIN, 
                 CY_BUDGET = `Proposed Budget`, 
                 SCHOOL_TOTAL_ENROLLMENT =  `SCHOOL TOTAL ENROLLMENT`,
                 AVG_SPEND_PER_STUDENT, everything())
 
 # add Chicago area based on matching generated from Chicago Open Data portal dataset 
 # and UChicago community-area-to-Side matching
-school_data <- left_join(school_data, read_csv(here::here("data", "wardSides.csv")),
+school_data <- left_join(school_data, read_csv(here::here("data_preparation", "data", "wardSides.csv")),
                          by="WARD") %>% 
-  dplyr::select(YEAR, PREV_YR, TWO_YR_PRIOR, School_ID, WARD, SIDE, everything())
+  dplyr::select(YEAR, PREV_YR, TWO_YR_PRIOR, CPS_id_num, WARD, SIDE, everything())
 
     
 # make sure all years have all school types
 school_data %>% distinct(YEAR, `SCHOOL TYPE NAME`)
+```
+
+
+```{r}
+saveRDS(school_data, file = here::here("data_preparation", "data", "combined_school_data.Rda"))
+```
+
+
+
+```{r fig.height=12, fig.width=15, message=FALSE, warning=FALSE}    
+# check whether there are schools which could be matched to ward, that aren't
+school_data %>% filter(!is.na(School_Latitude) & is.na(WARD))
+
+st_as_sf(
+  # isolate school IDs, geolocation info (address, latitude, longitude)
+  school_data %>% 
+           dplyr::select(`SCHOOL ID (R-C-D-T-S)`, School_ID, `SCHOOL_NAME`, Address, School_Latitude, School_Longitude), 
+         coords = c(School_Latitude, School_Longitude), 
+  agr = c(`SCHOOL ID (R-C-D-T-S)` = "identity", 
+          CPS_id_num = "identity", 
+          `SCHOOL_NAME` = "identity", 
+          Address = "constant"))
+```
+
+
+
+```{r include = FALSE}
+monochromatic_C6C3FF <- c(
+"#7d77ff",
+"#9690ff",
+"#aeaaff",
+"#c6c3ff",
+"#deddff",
+"#f6f6ff")
+
+diverging_teal <- c(
+                    # 'navy' = '#2d3d61',
+                    'darkteal' = '#2d4f5a',
+                    'forest' = '#2d615f',
+                    'plankton' = '#2d706e',
+                    'ocean' = '#318791',
+                    'mauve' = '#996768',
+                    'cocoa' = '#b5725a',
+                    'honeymustard' = '#d59349',
+                    'goldenrod' = '#edb834',
+                    'darkgray' = '#B5B5B5',
+                    'palegray' = '#E5E5E5')
+
+```
+
+
+
+```{r include=FALSE}
+# make it easy to select colors by name, thanks Dr. Simon J!
+# Attribution: https://drsimonj.svbtle.com/creating-corporate-colour-palettes-for-ggplot2
+get_dt_cols <- function(...) {
+  cols <- c(...)
+  if (is.null(cols))
+    return (diverging_teal)
+  diverging_teal[cols]
+}
+```
+
+```{r include=FALSE}
+# set groupings of colors as palettes
+dt_palettes <- list(
+  `main`  = get_dt_cols("ocean", "mauve", "darkteal", "goldenrod"),
+  `diverging` = get_dt_cols("darkteal", "goldenrod", "forest", "honeymustard", "ocean", "mauve"),
+  `cool`  = get_dt_cols("darkteal", "forest", "plankton", "ocean"),
+  `desert`   = get_dt_cols("mauve", "goldenrod", "cocoa", "honeymustard"),
+  `mixed` = get_dt_cols("mauve", "ocean", "honeymustard", "forest", "cocoa", "plankton", "honeymustard"),
+  `grey`  = get_dt_cols("palegray", "darkgray")
+)
+```
+
+
+```{r}
+# function for uilitizing palettes
+dt_pal <- function(palette = "main", reverse = FALSE, shift=0,...) {
+  pal <- dt_palettes[[palette]]
+  
+    if (shift > 0) {
+    pal = pal[1+shift:length(pal)]
+  }
+  
+  if (reverse) pal <- rev(pal)
+  
+  # pass alpha, other color arguments to colorRampPalette
+  colorRampPalette(pal, ...)
+}
+
+# function for applying palettes to borders and fills in ggplot2
+scale_color_dt <- function(palette = "main", discrete = TRUE, reverse = FALSE, shift=0, ...) {
+  pal <- dt_pal(palette = palette, reverse = reverse, shift=shift)
+  
+  if (discrete) {
+    discrete_scale("colour", paste0("dt_", palette), palette = pal, ...)
+  } else {
+    scale_color_gradientn(colours = pal(256), guide="colourbar", ...)
+  }
+}
+
+scale_fill_dt <- function(palette = "main", discrete = TRUE, reverse = FALSE, ...) {
+  pal <- dt_pal(palette = palette, reverse = reverse)
+
+  if (discrete) {
+    discrete_scale("fill", paste0("dt_", palette), palette = pal, guide="colourbar", ...)
+  } else {
+    scale_fill_gradientn(colours = pal(256), ...)
+  }
+}
+```
+
+
+```{r}
+theme_modest <- function(base_size = 16,
+                                  base_family = "Roboto",
+                                  base_line_size = base_size / 25,
+                                  base_rect_size = base_size / 25) {
+  require(grid)
+  theme_minimal(base_size = base_size, 
+                base_family = base_family,
+                base_line_size = base_line_size)  %+replace%
+    theme(
+        axis.title = element_text(size = rel(0.75)),
+        axis.title.y = element_text(margin=unit(c(0,0,0,2),"lines"), size=rel(1.25)),
+        axis.title.x = element_text(margin=unit(c(2,0,0,0), "lines")),
+        axis.text = element_text(size = rel(0.75)),
+        axis.ticks=element_line(colour="grey", size=0.5),
+        panel.grid.major = element_line(colour="grey", size=0.4),
+        panel.grid.minor = element_line(colour="lightgrey", size=0.25),
+        legend.box = NULL, 
+        legend.title = element_text(size = rel(1)),
+        legend.text = element_text(size = rel(0.5)),
+        legend.key.height = NULL,
+        legend.key.width = NULL,
+        legend.key.size = unit(20, "pt"),
+        legend.key = element_rect(fill = NA, colour = NA),
+        legend.background = element_rect(colour = NA, fill=NA), 
+        legend.position = "right",
+        legend.justification = "center", 
+        plot.background = element_rect(colour = NA, fill="#fffbe6"),
+        plot.margin = unit(c(3,3,3,3),"lines"),
+        plot.title = element_text(face = "bold", hjust="0.5",
+                                  margin =unit(c(0,0,1,0), "lines"), family="Ledger"),
+        plot.subtitle = element_text(size = rel(0.9), hjust="0.5",  
+                                     margin = unit(c(0,0,2,0), "lines"), family="Ledger"),
+        plot.caption = element_text(size = rel(0.75), hjust = 1, 
+                                    margin = unit(c(2,0,0,0), "lines")),
+        strip.background = element_rect(colour = NA, fill=NA),
+        strip.text = element_text(face = "bold", size = rel(0.65), family = "Ledger"),
+        panel.spacing = unit(15,"lines"),
+        panel.border=element_blank(),
+        complete = TRUE
+    )
+}
+  
+  
+
+theme_map_modest <- function(base_size = 12) {
+  require(grid)
+  theme_modest(base_size) %+replace%
+    theme(
+        axis.title.y = element_blank(),
+        axis.title.x = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks=element_blank(),
+        panel.grid.minor.y=element_blank(),
+        panel.grid.minor.x=element_blank(),
+        panel.grid.major.x=element_blank(),
+        panel.border=element_blank(),
+        panel.spacing = unit(0,"lines"),
+        plot.margin  =  unit(c(10,10,10,10),"lines")
+    )
+}
+
+theme_set(theme_modest(base_size = 12))
 ```
 
 
@@ -922,62 +882,6 @@ school_data %>% distinct(YEAR, `SCHOOL TYPE NAME`)
   theme_modest() +
   theme(legend.text = element_text(size=rel(1)),
         legend.title = element_text(size=rel(1))) 
-```
-
-
-```{r fig.height=12, fig.width=15, message=FALSE, warning=FALSE}    
-# check whether there are schools which could be matched to ward, that aren't
-school_data %>% filter(!is.na(School_Latitude) & is.na(WARD))
-
-st_as_sf(
-  # isolate school IDs, geolocation info (address, latitude, longitude)
-  school_data %>% 
-           dplyr::select(`SCHOOL ID (R-C-D-T-S)`, School_ID, `SCHOOL_NAME`, Address, School_Latitude, School_Longitude), 
-         coords = c(School_Latitude, School_Longitude), 
-  agr = c(`SCHOOL ID (R-C-D-T-S)` = "identity", 
-          School_ID = "identity", 
-          `SCHOOL_NAME` = "identity", 
-          Address = "constant"))
-```
-
-
-
-
-
-
-
-```{r}
-# enable mapping by max race in school
-school_data <- left_join(school_data %>% 
-                           dplyr::select(-predominant_race, -max_pct), 
-                         school_data %>% 
-                           dplyr::select(YEAR, `SCHOOL ID (R-C-D-T-S)`, 
-                                         School_ID, 
-                                         `SCHOOL - BLACK %`,
-                                         `SCHOOL - WHITE %`,
-                                        `SCHOOL - HISPANIC %`,
-                                        `SCHOOL - ASIAN %`) %>%
-              group_by(YEAR, `SCHOOL ID (R-C-D-T-S)`) %>% 
-              gather(group_name, pct, -`SCHOOL ID (R-C-D-T-S)`, -School_ID, -YEAR) %>% 
-           # sanity check to make sure all races in output to start before slicing
-             # arrange(YEAR, `SCHOOL ID (R-C-D-T-S)`)  %>% 
-                         slice(which.max(pct)) %>% 
-                         mutate(
-                           predominant_race = ifelse(
-                           group_name == 'SCHOOL - BLACK %', 'Black',
-                           ifelse(group_name == 'SCHOOL - WHITE %', 'White',
-                           ifelse(group_name == 'SCHOOL - ASIAN %', 'Asian',
-                           ifelse(group_name == 'SCHOOL - HISPANIC %', 'Latinx',
-                                  'Other')
-                           )))
-                           ) %>%
-              dplyr::select(`SCHOOL ID (R-C-D-T-S)`, YEAR, 
-                            predominant_race, max_pct = pct), 
-          by = c("SCHOOL ID (R-C-D-T-S)", "YEAR")) %>% 
-  dplyr::select(front_cols, ENROLLMENT_RANGE, SPEND_RANGE, 
-                predominant_race, max_pct, everything())
-    
-
 ```
 
 
@@ -1000,9 +904,6 @@ school_data %>%
 
 
  
-
-
-
 
 ```{r fig.height=12, fig.width=15, message=FALSE, warning=FALSE}
 facet_sides_labels <- as_labeller(c(`Far North` = "Far North Side", 
@@ -1074,29 +975,7 @@ school_data %>%
 
 
 
-```{r}
-left_join(just_demos, as.data.frame(wards_w_all_demos) %>% distinct(WARD, GEOID), by="GEOID", na_matches="never")
-```
-
-
 ```{r  fig.height=12, fig.width=15,  message=FALSE, warning=FALSE}
-school_data <- school_data %>%
-  mutate(
-    SCHOOL_TOTAL_ENROLLMENT = as.numeric(gsub(",","",SCHOOL_TOTAL_ENROLLMENT)),
-   YEAR = as.numeric(YEAR),
-   PREV_YR = as.numeric(PREV_YR),
-   TWO_YR_PRIOR = as.numeric(TWO_YR_PRIOR))
-
-
-front_cols <- c("YEAR", "School_ID", "WARD", "SIDE", "SCHOOL_NAME", "NAME_WARD_JOIN", "CY_BUDGET", "SCHOOL_TOTAL_ENROLLMENT")
-
-school_data <- school_data %>% 
-  mutate(ENROLLMENT_RANGE = cut(SCHOOL_TOTAL_ENROLLMENT, breaks=c(0, 500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, Inf), labels=c("0-499", "500-999", "1,000-1,499", "1,500-1,999", "2,000-2,499", "2,500-2,999", "3,000-3,499", "3,500-3,999", "4,000-4,499", "4,500-4,999", "5,000+"), ordered_result = TRUE),
-         SPEND_RANGE = cut(AVG_SPEND_PER_STUDENT, breaks=c(0, 2500, 5000, 75000, 10000, 12500, 15000, Inf), labels=c("0-2,499", "2,500-4,999", "5,000-7,499", "7,500-9,999", "10,000-12,499", "12,500-14,999", "15,000+"), ordered_result = TRUE)) %>%
-  dplyr::select(one_of(front_cols), ENROLLMENT_RANGE,SPEND_RANGE, everything())
-
-
-
 
 school_data %>% group_by(YEAR, predominant_race, ENROLLMENT_RANGE) %>% summarise(median_spend = median(AVG_SPEND_PER_STUDENT)) %>%
   ggplot(aes(x=median_spend, y=ENROLLMENT_RANGE, group=as.factor(predominant_race))) +
@@ -1122,211 +1001,4 @@ school_data %>%
   theme(legend.text = element_text(size=rel(1)),
         legend.title = element_text(size=rel(1)))
 ```
-
-
-```{r echo=TRUE}
-colnames(school_data)
-```
-
-```{r match-unit-ids, message=FALSE, warning=FALSE}
-
-id.Unit <- read_csv(here::here("data", "rc_v2", "2001_to_2014_unit_School_ID_matchup.csv"), col_names = T, skip=1) %>% distinct(`School ID`, Unit) %>% dplyr::select(School_ID = `School ID`, Unit)
-
-files <- dir(here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race"), 
-                 pattern = '\\.xls', full.names = TRUE)
-```
-
-
-
-```{r}
-
-
-for (i in length(files)) {
-  files[i] <- sub('.*\\/', '',files[i])
-  left_join(
-  read_xls(here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "Demographics_20thDay_2019.xls")) %>%
-    mutate(`School ID` = as.integer(`School ID`)), 
-  id.Unit, by=c(`School ID` = "School_ID") )
-  
-}
-```
-```{r}
-files
-```
-
-
-```{r}
-yoyTotalEnrollment <- bind_rows(
-  left_join(
-  read_xls(here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "Demographics_20thDay_2019.xls")) %>%
-    mutate(`School ID` = as.integer(`School ID`),
-           YEAR = 2019), 
-  id.Unit, by=c(`School ID` = "School_ID") ),
-  left_join(
-  read_xls(here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "Demographics_20thDay_2018.xls")) %>%
-    mutate(`School ID` = as.integer(`School ID`),
-           YEAR = 2018), 
-  id.Unit, by=c(`School ID` = "School_ID") ),
-  read_xls(here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "Demographics_20thDay_2017.xls")) %>%
-    mutate(`School ID` = as.integer(`School ID`),
-           YEAR = 2017), 
-  left_join(
-  read_xls(here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "enrollment_20th_day_2016_GV_20151023.xls")) %>%
-    mutate(`School ID` = as.integer(`School ID`)), 
-  id.Unit, by=c(`School ID` = "School_ID"),
-           YEAR = 2016),
-  left_join(
-  read_xls(here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "enrollment_20th_day_2014-15.xls")) %>%
-    mutate(`School ID` = as.integer(`School ID`),
-           YEAR = 2015), 
-  id.Unit, by=c(`School ID` = "School_ID") ),
-
-left_join(
-  read_xls(here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "enrollment_20th_day_2014.xls")) %>%
-    mutate(`School ID` = as.integer(`School ID`),
-           YEAR = 2014), 
-  id.Unit, by=c(`School ID` = "School_ID") ),
-left_join(
-  read_xls(here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "enrollment_20th_day_2013.xls")) %>%
-    mutate(`School ID` = as.integer(`School ID`),
-           YEAR = 2013), 
-  id.Unit, by=c(`School ID` = "School_ID") ),
-read_xls(here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "membership_20th_day_2012.xls")) %>%
-    mutate(`School ID` = as.integer(`School ID`),
-           YEAR=2012)
-) %>% mutate(Total = ifelse(is.na(Total), Totals, Total)) %>% filter(!(is.na(`School ID`) & is.na(Unit)) & !is.na(Total))
-  
-```
-
-
-
-```{r}
-schoolDemosTotalEnrollment <- bind_rows(
-  read_xls(here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "Demographics_RacialEthnic_2019.xls")) %>%
-    mutate(`School ID` = as.integer(`School ID`),
-           YEAR = 2019),
-  read_xls(here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "Demographics_RacialEthnic_2018.xls")) %>% mutate(`School ID` = as.integer(`School ID`),
-           YEAR = 2018),
-  read_xls(here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "Demographics_RacialEthnic_2017.xls")) %>%
-    mutate(`School ID` = as.integer(`School ID`),
-           YEAR = 2017), 
-  read_xls(here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "FY16_Student_Racial_Ethnic_Report_20151023.xls")) %>%
-    mutate(`School ID` = as.integer(`School ID`), 
-           YEAR = 2016),
-  read_xls(here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "FY15_Racial_Ethnic_Survey.xls")) %>%
-    mutate(`School ID` = as.integer(`School ID`),
-           YEAR = 2015), 
-  read_xls(here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "FY14_Racial_Ethnic_Survey.xls")) %>%
-    mutate(`School ID` = as.integer(`School ID`),
-           YEAR = 2014), 
-  id.Unit, by=c(`School ID` = "School_ID") ),
-left_join(
-  read_xls(here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "FY13_Racial_Ethnic_Survey.xls")) %>%
-    mutate(`School ID` = as.integer(`School ID`),
-           YEAR = 2013), 
-  id.Unit, by=c(`School ID` = "School_ID") ),
-read_xls(here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "FY12_Racial_Ethnic_Survey.xls")) %>%
-    mutate(`School ID` = as.integer(`School ID`),
-           YEAR=2012)
-) %>% mutate(Total = ifelse(is.na(Total), Totals, Total)) %>% filter(!(is.na(`School ID`) & is.na(Unit)) & !is.na(Total))
-
-```
-
-
-
-
-
-```{r}
-multiHeader <- function(filename, sheet=NA, col_names=FALSE, na="..", n_max=1) {
-  headers <- read_xls(filename, sheet=sheet, col_names = col_names, na=na, n_max = n_max)
-  
-  # fill only works down or up, so have to transpose headers
-  long_headers = data.frame(t(headers))
-  # Add column names down the columns
-  long_headers <- fill(long_headers,1:n_max) # all four columns
-  headers <- data.frame(t(long_headers)) # back to vertical.
-  
-  headers <- headers %>%
-  mutate_all(as.character) %>%
-  fill(names(.), .direction = "up") %>% 
-    mutate_all(., funs(replace(.,duplicated(.), NA))) %>% 
-    mutate_all(str_replace_na)
-  
- #  # summarize using str_c from stringr which collapses strings.
- #  # summarize_all makes it work on all columns.
-  column_labels <- headers %>% summarize_all(str_c, collapse = " ")
-  for (i in length(column_labels)) {
-    column_labels[i] <- str_replace_all(column_labels[i], "\r?\n|\r|\n", "\\s")
-    column_labels[i] <- str_replace_all(column_labels[i], "n/\n", "n/\\s ")
-    column_labels[i] <- gsub("NA", "",column_labels[i])
-  }
- # pull them into one character vector
- headers = unlist(column_labels[1,])
- headers = unname(headers)
-
-  for (i in 1:length(headers)) {
-  if (is.character(headers[[i]])) { 
-    if (str_detect(headers[[i]], "(20th.*)([0-9]{4})[-]([0-9]{4} )")) {
-  headers[i] <- unlist(strsplit(headers[[i]], "(20th.*)([0-9]{4})[-]([0-9]{4} )"))[2]
-    } else if (str_detect(headers[[i]], " NA")) {
-      headers[i] <- unlist(strsplit(headers[[i]], " NA"))[1]
-    }
-  }
-}
- 
-  return(headers)
-} 
-
-```
-
-
-```{r}
-multiHeader(filename=here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "Demographics_RacialEthnic_2019.xls"), sheet="Schools", n_max=2)
-```
-
-
-```{r}
-multiHeader(filename=here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "FY15_Racial_Ethnic_Survey.xls"), sheet="Educational Units", n_max=2)
-```
-
-```{r}
-multiHeader(filename=here::here("data", "rc_v2", "Enrollment_Info_SpEd_Race", "FY16_Student_Racial_Ethnic_Report_20151023.xls"), sheet="Educational Units", n_max=2)
-
-```
-
-
-```{r message=FALSE, warning=FALSE}
-
-id.Unit <- read_csv(here::here("data", "rc_v2", "2001_to_2014_unit_School_ID_matchup.csv"), col_names = T, skip=1) %>% distinct(`School ID`, Unit) %>% dplyr::select(School_ID = `School ID`, Unit)
-
-all_budgets <-  readRDS(here::here("data", "all_budgets.Rda"))
-id_overlap <-  readRDS(here::here("data", "id_overlap.Rda"))
-school_data <-  readRDS(here::here("data", "combined_school_data.Rda"))
-                                   
-dim(school_data %>% filter(is.na(School_ID)))
-                                   
-dim(school_data %>% filter(!is.na(School_ID) & !is.na(`SCHOOL ID (R-C-D-T-S)`)))
-
-school_data %>% filter(!is.na(School_ID) & !is.na(`SCHOOL ID (R-C-D-T-S)`) &
-  !is.na(``))
-
-# Schools per year 325-399 every year
-school_data %>% filter(!is.na(School_ID) & !is.na(`SCHOOL ID (R-C-D-T-S)`)) %>% 
-  filter(!is.na(`Proposed Budget`)) %>% 
-  dplyr::select(contains("budget"), School_ID, `SCHOOL ID (R-C-D-T-S)`, `SCHOOL NAME`, everything()) %>% 
-  group_by(YEAR, `SCHOOL ID (R-C-D-T-S)`) %>% group_by(YEAR) %>% summarise(schools = n())
-                 
-write_csv(all_budgets, "all_budgets.csv")
-                                                     
-inner_join(id_overlap %>% 
-             mutate(Legacy_Unit_ID = as.numeric(Legacy_Unit_ID)),
-           id.Unit %>% 
-             mutate(Unit = as.numeric(Unit)), 
-           by=c(Legacy_Unit_ID="Unit")) %>% dplyr::select(School_ID, Finance_ID, YEAR)
-```
-
-```{r}
-
-```
-
 
